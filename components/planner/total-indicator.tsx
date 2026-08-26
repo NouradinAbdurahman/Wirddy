@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { IconAlertCircle, IconCircleCheck, IconSparkles } from '@tabler/icons-react';
 import { useI18n } from '@/lib/i18n/context';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -33,21 +32,26 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-start">
           <div className="flex items-center gap-3">
             <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl overflow-hidden transition-colors ${
                 isExact
-                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                  ? 'bg-emerald-500/20'
                   : isMore
-                  ? 'bg-destructive/20 text-destructive'
-                  : 'bg-primary/10 text-primary'
+                  ? 'bg-destructive/20'
+                  : 'bg-muted/40 border border-border/40'
               }`}
             >
-              {isExact ? (
-                <IconCircleCheck className="h-5 w-5" />
-              ) : isMore ? (
-                <IconAlertCircle className="h-5 w-5" />
-              ) : (
-                <IconSparkles className="h-5 w-5" />
-              )}
+              <img
+                src="/logo-black.png"
+                alt="Wirddy"
+                className="h-7 w-7 object-contain block dark:hidden"
+                suppressHydrationWarning
+              />
+              <img
+                src="/logo-white.png"
+                alt="Wirddy"
+                className="h-7 w-7 object-contain hidden dark:block"
+                suppressHydrationWarning
+              />
             </div>
 
             <div>
