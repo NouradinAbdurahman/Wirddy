@@ -32,48 +32,51 @@ export function buildMemberCardHtml(
   const secondaryText = isDark ? '#94a3b8' : '#64748b';
   const accentColor = '#0d9488'; // teal-600
 
+  // Single-line, un-truncated: names stay whole and never break mid-word onto a new line.
+  const noWrapLine = 'white-space: nowrap;';
+
   return `
-    <div style="background-color: ${cardBg}; border: 1px solid ${cardBorder}; border-radius: 16px; padding: 14px 18px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.05); box-sizing: border-box;">
-      <!-- Top Row: Full Unclipped Member Name + Compact Amount Badge -->
-      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px;">
-        <div style="font-weight: 800; font-size: 16px; line-height: 1.35; color: ${primaryText}; word-break: break-word; overflow-wrap: break-word;">
+    <div style="background-color: ${cardBg}; border: 1px solid ${cardBorder}; border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.05); box-sizing: border-box;">
+      <!-- Top Row: Member Name (single line, unclipped) + Compact Amount Badge -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; min-width: 0;">
+        <div style="flex: 1 1 auto; min-width: 0; font-weight: 800; font-size: 14px; line-height: 1.3; color: ${primaryText}; ${noWrapLine}">
           ${member.name}
         </div>
-        <div style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? '#1e293b' : '#f1f5f9'}; color: ${secondaryText}; border: 1px solid ${isDark ? '#334155' : '#e2e8f0'}; white-space: nowrap; shrink: 0;">
+        <div style="flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? '#1e293b' : '#f1f5f9'}; color: ${secondaryText}; border: 1px solid ${isDark ? '#334155' : '#e2e8f0'}; white-space: nowrap;">
           ${amountStr}
         </div>
       </div>
 
       <!-- Symmetrical Paired Start & End Section -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding-top: 10px; border-top: 1px solid ${dividerColor};">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 9px; border-top: 1px solid ${dividerColor};">
         <!-- START Column -->
-        <div style="display: flex; flex-direction: column;">
-          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: ${accentColor}; letter-spacing: 0.5px; margin-bottom: 2px;">
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: ${accentColor}; letter-spacing: 0.5px; margin-bottom: 2px; ${noWrapLine}">
             ${startLabel}
           </div>
-          <div style="font-size: 11px; font-weight: 700; color: ${secondaryText};">
+          <div style="font-size: 10px; font-weight: 700; color: ${secondaryText}; ${noWrapLine}">
             ${startJuzStr}
           </div>
-          <div style="font-size: 13px; font-weight: 800; color: ${primaryText}; margin-top: 1px; word-break: break-word;">
+          <div style="font-size: 12px; font-weight: 800; color: ${primaryText}; margin-top: 1px; ${noWrapLine}">
             ${startSurahStr}
           </div>
-          <div style="font-size: 11px; color: ${secondaryText}; margin-top: 1px;">
+          <div style="font-size: 10px; color: ${secondaryText}; margin-top: 1px; ${noWrapLine}">
             ${startAyahStr}
           </div>
         </div>
 
         <!-- END Column -->
-        <div style="display: flex; flex-direction: column;">
-          <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: ${accentColor}; letter-spacing: 0.5px; margin-bottom: 2px;">
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <div style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: ${accentColor}; letter-spacing: 0.5px; margin-bottom: 2px; ${noWrapLine}">
             ${endLabel}
           </div>
-          <div style="font-size: 11px; font-weight: 700; color: ${secondaryText};">
+          <div style="font-size: 10px; font-weight: 700; color: ${secondaryText}; ${noWrapLine}">
             ${endJuzStr}
           </div>
-          <div style="font-size: 13px; font-weight: 800; color: ${primaryText}; margin-top: 1px; word-break: break-word;">
+          <div style="font-size: 12px; font-weight: 800; color: ${primaryText}; margin-top: 1px; ${noWrapLine}">
             ${endSurahStr}
           </div>
-          <div style="font-size: 11px; color: ${secondaryText}; margin-top: 1px;">
+          <div style="font-size: 10px; color: ${secondaryText}; margin-top: 1px; ${noWrapLine}">
             ${endAyahStr}
           </div>
         </div>
@@ -109,12 +112,12 @@ export function buildWeeklyCardsSectionHtml(
   return `
     <div style="margin-bottom: 24px; box-sizing: border-box;">
       <!-- Week Section Header -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid ${borderPrimary};">
-        <div style="font-size: 14px; font-weight: 800; color: ${primaryText}; display: flex; align-items: center; gap: 8px;">
-          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #0d9488;"></span>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid ${borderPrimary};">
+        <div style="min-width: 0; font-size: 13px; font-weight: 800; color: ${primaryText}; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+          <span style="flex-shrink: 0; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #0d9488;"></span>
           <span>${weekLabelStr}</span>
         </div>
-        <div style="font-size: 11px; font-weight: 700; color: #10b981;">
+        <div style="flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: #10b981; white-space: nowrap;">
           ${completionText}
         </div>
       </div>
@@ -164,37 +167,39 @@ export function buildWeeklyTableSectionHtml(
       const startAyahStr = isArabic ? `الآية ${formatArabicNumeral(member.start.ayahNumber)}` : `Ayah ${member.start.ayahNumber}`;
       const endAyahStr = isArabic ? `الآية ${formatArabicNumeral(member.end.ayahNumber)}` : `Ayah ${member.end.ayahNumber}`;
 
+      const cellNoWrap = 'white-space: nowrap;';
+
       return `
         <tr style="border-bottom: 1px solid ${rowDivider};">
-          <td style="padding: 10px 14px; vertical-align: middle;">
-            <div style="font-weight: 800; font-size: 14px; color: ${primaryText}; word-break: break-word;">
+          <td style="padding: 9px 14px; vertical-align: middle;">
+            <div style="font-weight: 800; font-size: 13px; color: ${primaryText}; ${cellNoWrap}">
               ${member.name}
             </div>
           </td>
-          <td style="padding: 10px 10px; vertical-align: middle; text-align: center;">
-            <span style="display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? '#1e293b' : '#f1f5f9'}; color: ${secondaryText}; border: 1px solid ${isDark ? '#334155' : '#e2e8f0'};">
+          <td style="padding: 9px 10px; vertical-align: middle; text-align: center;">
+            <span style="display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? '#1e293b' : '#f1f5f9'}; color: ${secondaryText}; border: 1px solid ${isDark ? '#334155' : '#e2e8f0'}; white-space: nowrap;">
               ${formatArabicNumeral(member.amountInJuz)}
             </span>
           </td>
-          <td style="padding: 10px 14px; vertical-align: middle;">
-            <div style="font-size: 10px; font-weight: 700; color: ${secondaryText};">
+          <td style="padding: 9px 14px; vertical-align: middle;">
+            <div style="font-size: 9.5px; font-weight: 700; color: ${secondaryText}; ${cellNoWrap}">
               ${startJuzStr}
             </div>
-            <div style="font-size: 12px; font-weight: 800; color: ${primaryText}; margin-top: 1px; word-break: break-word;">
+            <div style="font-size: 11px; font-weight: 800; color: ${primaryText}; margin-top: 1px; ${cellNoWrap}">
               ${startSurahStr}
             </div>
-            <div style="font-size: 10px; color: ${secondaryText}; margin-top: 1px;">
+            <div style="font-size: 9.5px; color: ${secondaryText}; margin-top: 1px; ${cellNoWrap}">
               ${startAyahStr}
             </div>
           </td>
-          <td style="padding: 10px 14px; vertical-align: middle;">
-            <div style="font-size: 10px; font-weight: 700; color: ${secondaryText};">
+          <td style="padding: 9px 14px; vertical-align: middle;">
+            <div style="font-size: 9.5px; font-weight: 700; color: ${secondaryText}; ${cellNoWrap}">
               ${endJuzStr}
             </div>
-            <div style="font-size: 12px; font-weight: 800; color: ${primaryText}; margin-top: 1px; word-break: break-word;">
+            <div style="font-size: 11px; font-weight: 800; color: ${primaryText}; margin-top: 1px; ${cellNoWrap}">
               ${endSurahStr}
             </div>
-            <div style="font-size: 10px; color: ${secondaryText}; margin-top: 1px;">
+            <div style="font-size: 9.5px; color: ${secondaryText}; margin-top: 1px; ${cellNoWrap}">
               ${endAyahStr}
             </div>
           </td>
@@ -206,25 +211,25 @@ export function buildWeeklyTableSectionHtml(
   return `
     <div style="margin-bottom: 24px; box-sizing: border-box;">
       <!-- Week Section Header -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid ${borderPrimary};">
-        <div style="font-size: 14px; font-weight: 800; color: ${primaryText}; display: flex; align-items: center; gap: 8px;">
-          <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #0d9488;"></span>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid ${borderPrimary};">
+        <div style="min-width: 0; font-size: 13px; font-weight: 800; color: ${primaryText}; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+          <span style="flex-shrink: 0; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #0d9488;"></span>
           <span>${weekLabelStr}</span>
         </div>
-        <div style="font-size: 11px; font-weight: 700; color: #10b981;">
+        <div style="flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: #10b981; white-space: nowrap;">
           ${completionText}
         </div>
       </div>
 
       <!-- Table Container -->
       <div style="background-color: ${cardBg}; border: 1px solid ${borderPrimary}; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <table style="width: 100%; border-collapse: collapse; text-align: ${isArabic ? 'right' : 'left'};">
+        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; text-align: ${isArabic ? 'right' : 'left'};">
           <thead>
-            <tr style="background-color: ${headerBg}; border-bottom: 1px solid ${borderPrimary}; font-size: 10px; font-weight: 800; letter-spacing: 0.5px; color: ${secondaryText}; text-transform: uppercase;">
-              <th style="padding: 10px 14px; text-align: ${isArabic ? 'right' : 'left'}; width: 28%;">${headerMember}</th>
-              <th style="padding: 10px 10px; text-align: center; width: 12%;">${headerAmount}</th>
-              <th style="padding: 10px 14px; text-align: ${isArabic ? 'right' : 'left'}; width: 30%; color: ${accentColor};">${headerStart}</th>
-              <th style="padding: 10px 14px; text-align: ${isArabic ? 'right' : 'left'}; width: 30%; color: ${accentColor};">${headerEnd}</th>
+            <tr style="background-color: ${headerBg}; border-bottom: 1px solid ${borderPrimary}; font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; color: ${secondaryText}; text-transform: uppercase;">
+              <th style="padding: 9px 14px; text-align: ${isArabic ? 'right' : 'left'}; width: 28%; white-space: nowrap;">${headerMember}</th>
+              <th style="padding: 9px 10px; text-align: center; width: 12%; white-space: nowrap;">${headerAmount}</th>
+              <th style="padding: 9px 14px; text-align: ${isArabic ? 'right' : 'left'}; width: 30%; color: ${accentColor}; white-space: nowrap;">${headerStart}</th>
+              <th style="padding: 9px 14px; text-align: ${isArabic ? 'right' : 'left'}; width: 30%; color: ${accentColor}; white-space: nowrap;">${headerEnd}</th>
             </tr>
           </thead>
           <tbody>
@@ -280,21 +285,21 @@ export function buildStandaloneWeekExportHtml(
     <div dir="${dir}" style="width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
       
       <!-- Top Header -->
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 24px;">
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <img src="${logoSrc}" alt="Wirddy" style="height: 40px; width: auto; object-fit: contain;" />
-          <div>
-            <div style="display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3);">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1 1 auto;">
+          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 40px; width: auto; object-fit: contain;" />
+          <div style="min-width: 0;">
+            <div style="display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap;">
               ${planTag}
             </div>
-            <div style="font-size: 22px; font-weight: 800; color: ${textPrimary}; margin-top: 2px; word-break: break-word;">
+            <div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">
               ${week.groupName}
             </div>
           </div>
         </div>
 
-        <div style="text-align: ${isArabic ? 'left' : 'right'};">
-          <div style="font-size: 13px; font-weight: 800; padding: 6px 14px; border-radius: 10px; background-color: ${isDark ? '#0f172a' : '#ffffff'}; border: 1px solid ${borderPrimary}; color: ${textPrimary}; display: inline-block;">
+        <div style="flex-shrink: 0; text-align: ${isArabic ? 'left' : 'right'};">
+          <div style="font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 10px; background-color: ${isDark ? '#0f172a' : '#ffffff'}; border: 1px solid ${borderPrimary}; color: ${textPrimary}; display: inline-block; white-space: nowrap;">
             ${isArabic ? `الأسبوع ${formatArabicNumeral(week.weekNumber)} من ${formatArabicNumeral(week.totalWeeks)}` : `Week ${week.weekNumber} of ${week.totalWeeks}`}
           </div>
         </div>
@@ -306,9 +311,8 @@ export function buildStandaloneWeekExportHtml(
       </div>
 
       <!-- Bottom Footer -->
-      <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid ${borderPrimary}; padding-top: 16px; font-size: 11px; color: ${textSecondary}; margin-top: 12px;">
-        <span>${footerText}</span>
-        <span style="font-weight: 700; color: #0d9488;">wirddy.app</span>
+      <div style="display: flex; align-items: center; border-top: 1px solid ${borderPrimary}; padding-top: 16px; font-size: 10.5px; color: ${textSecondary}; margin-top: 12px;">
+        <span style="white-space: nowrap;">${footerText}</span>
       </div>
     </div>
   `;
@@ -352,38 +356,38 @@ export function buildPdfPageHtml(
   // Page Header (Full header for page 1, compact continuation header for subsequent pages)
   const headerHtml = isFirstPage
     ? `
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 18px; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <img src="${logoSrc}" alt="Wirddy" style="height: 38px; width: auto; object-fit: contain;" />
-          <div>
-            <div style="display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3);">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 18px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1 1 auto;">
+          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 38px; width: auto; object-fit: contain;" />
+          <div style="min-width: 0;">
+            <div style="display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap;">
               ${planTag}
             </div>
-            <div style="font-size: 22px; font-weight: 800; color: ${textPrimary}; margin-top: 2px; word-break: break-word;">
+            <div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">
               ${schedule.groupName}
             </div>
           </div>
         </div>
 
-        <div style="text-align: ${isArabic ? 'left' : 'right'}; display: flex; flex-direction: column; align-items: ${isArabic ? 'flex-start' : 'flex-end'}; gap: 4px;">
-          <div style="font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: 8px; background-color: ${isDark ? '#0f172a' : '#ffffff'}; border: 1px solid ${borderPrimary}; color: ${textPrimary};">
+        <div style="flex-shrink: 0; text-align: ${isArabic ? 'left' : 'right'}; display: flex; flex-direction: column; align-items: ${isArabic ? 'flex-start' : 'flex-end'}; gap: 4px;">
+          <div style="font-size: 11.5px; font-weight: 800; padding: 4px 12px; border-radius: 8px; background-color: ${isDark ? '#0f172a' : '#ffffff'}; border: 1px solid ${borderPrimary}; color: ${textPrimary}; white-space: nowrap;">
             ${isArabic ? `${formatArabicNumeral(schedule.totalWeeks)} أسابيع` : `${schedule.totalWeeks} Weeks Plan`}
           </div>
-          <div style="font-size: 11px; font-weight: 700; color: #10b981;">
+          <div style="font-size: 10.5px; font-weight: 700; color: #10b981; white-space: nowrap;">
             ${isArabic ? '٣٠ جزءًا أسبوعيًا' : '30 Juz / Week'}
           </div>
         </div>
       </div>
     `
     : `
-      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 12px; margin-bottom: 18px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <img src="${logoSrc}" alt="Wirddy" style="height: 28px; width: auto; object-fit: contain;" />
-          <span style="font-size: 14px; font-weight: 800; color: ${textPrimary}; word-break: break-word;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 12px; margin-bottom: 18px;">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto;">
+          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 28px; width: auto; object-fit: contain;" />
+          <span style="min-width: 0; font-size: 13px; font-weight: 800; color: ${textPrimary}; white-space: nowrap;">
             ${schedule.groupName}
           </span>
         </div>
-        <div style="font-size: 11px; font-weight: 700; color: ${textSecondary};">
+        <div style="flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: ${textSecondary}; white-space: nowrap;">
           ${pageLabelStr}
         </div>
       </div>
@@ -402,12 +406,9 @@ export function buildPdfPageHtml(
       </div>
 
       <!-- Page-Level Single Footer -->
-      <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid ${borderPrimary}; padding-top: 14px; font-size: 11px; color: ${textSecondary}; margin-top: 20px;">
-        <span>${footerText}</span>
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="font-weight: 600;">${pageLabelStr}</span>
-          <span style="font-weight: 700; color: #0d9488;">wirddy.app</span>
-        </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid ${borderPrimary}; padding-top: 14px; font-size: 10.5px; color: ${textSecondary}; margin-top: 20px;">
+        <span style="min-width: 0; white-space: nowrap;">${footerText}</span>
+        <span style="flex-shrink: 0; font-weight: 600; white-space: nowrap;">${pageLabelStr}</span>
       </div>
     </div>
   `;
