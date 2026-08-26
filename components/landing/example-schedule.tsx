@@ -2,15 +2,18 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { IconCheck, IconRotate } from '@tabler/icons-react';
+import { IconCheck, IconLayoutGrid, IconRotate, IconTable } from '@tabler/icons-react';
 import { useI18n } from '@/lib/i18n/context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+type PreviewViewMode = 'cards' | 'table';
+
 export function ExampleSchedule() {
   const { language, t, formatNumber } = useI18n();
   const [activeWeek, setActiveWeek] = useState<number>(1);
+  const [viewMode, setViewMode] = useState<PreviewViewMode>('cards');
 
   // Sample rotating data for 3 weeks
   const sampleWeeks = [
@@ -141,26 +144,55 @@ export function ExampleSchedule() {
           </p>
         </div>
 
-        {/* Week Switcher Buttons */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {[1, 2, 3].map((week) => (
-            <Button
-              key={week}
-              variant={activeWeek === week ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setActiveWeek(week)}
-              className="rounded-xl px-4 h-9 text-xs font-semibold transition-all"
+        {/* Week Switcher Buttons + Cards/Table View Toggle */}
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 mb-8">
+          <div className="flex items-center gap-2">
+            {[1, 2, 3].map((week) => (
+              <Button
+                key={week}
+                variant={activeWeek === week ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveWeek(week)}
+                className="rounded-xl px-4 h-9 text-xs font-semibold transition-all"
+              >
+                <span>
+                  {t.weekLabel} {formatNumber(week)}
+                </span>
+                {activeWeek === week && <IconCheck className="h-3.5 w-3.5 ms-1.5" />}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex items-center p-0.5 rounded-xl bg-muted/60 dark:bg-muted/40 border border-border/50">
+            <button
+              type="button"
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'cards'
+                  ? 'bg-card text-foreground shadow-xs border border-border/60'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
-              <span>
-                {t.weekLabel} {formatNumber(week)}
-              </span>
-              {activeWeek === week && <IconCheck className="h-3.5 w-3.5 ms-1.5" />}
-            </Button>
-          ))}
+              <IconLayoutGrid className="h-3.5 w-3.5" />
+              <span>{t.viewCards}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-semibold transition-all ${
+                viewMode === 'table'
+                  ? 'bg-card text-foreground shadow-xs border border-border/60'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <IconTable className="h-3.5 w-3.5" />
+              <span>{t.viewTable}</span>
+            </button>
+          </div>
         </div>
 
         {/* Schedule Display */}
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <Card className="border border-border/60 bg-card/50 backdrop-blur-md rounded-2xl p-6 sm:p-8 shadow-lg">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-border/40 gap-4">
               <div>
@@ -182,61 +214,129 @@ export function ExampleSchedule() {
               </div>
             </div>
 
-            {/* Assignments Grid */}
+            {/* Assignments: Cards or Table, depending on the selected preview style */}
             <AnimatePresence mode="wait">
-              <motion.div
-                key={activeWeek}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-5"
-              >
-                {currentWeekData.assignments.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 sm:p-5 rounded-2xl border border-border/60 bg-card/90 dark:bg-card/70 shadow-sm flex flex-col justify-between hover:border-primary/30 transition-all text-start"
-                  >
-                    <div className="flex items-start justify-between gap-2.5 border-b border-border/40 pb-3 mb-3">
-                      <span className="font-extrabold text-base text-foreground break-words">
-                        {item.name}
-                      </span>
-                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-muted/60 dark:bg-muted/40 border border-border/50 text-muted-foreground shrink-0">
-                        {formatNumber(item.amount)} {t.juzUnit}
-                      </span>
-                    </div>
-
-                    {/* Symmetrical Paired Start & End Section */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Start */}
-                      <div className="flex flex-col space-y-0.5">
-                        <span className="text-[10px] uppercase font-extrabold tracking-wider text-primary">
-                          {t.startLabel}
+              {viewMode === 'cards' ? (
+                <motion.div
+                  key={`cards-${activeWeek}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-5"
+                >
+                  {currentWeekData.assignments.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 sm:p-5 rounded-2xl border border-border/60 bg-card/90 dark:bg-card/70 shadow-sm flex flex-col justify-between hover:border-primary/30 transition-all text-start"
+                    >
+                      <div className="flex items-start justify-between gap-2.5 border-b border-border/40 pb-3 mb-3">
+                        <span className="font-extrabold text-base text-foreground break-words">
+                          {item.name}
                         </span>
-                        <span className="text-xs font-bold text-muted-foreground">
-                          {t.juzLabel} {formatNumber(item.startJuz)}
-                        </span>
-                        <span className="text-sm font-extrabold text-foreground pt-0.5 break-words">
-                          {language === 'ar' ? `سورة ${item.startAyah}` : item.startAyah}
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-muted/60 dark:bg-muted/40 border border-border/50 text-muted-foreground shrink-0">
+                          {formatNumber(item.amount)} {t.juzUnit}
                         </span>
                       </div>
 
-                      {/* End */}
-                      <div className="flex flex-col space-y-0.5">
-                        <span className="text-[10px] uppercase font-extrabold tracking-wider text-primary">
-                          {t.endLabel}
-                        </span>
-                        <span className="text-xs font-bold text-muted-foreground">
-                          {t.juzLabel} {formatNumber(item.endJuz)}
-                        </span>
-                        <span className="text-sm font-extrabold text-foreground pt-0.5 break-words">
-                          {language === 'ar' ? `سورة ${item.endAyah}` : item.endAyah}
-                        </span>
+                      {/* Symmetrical Paired Start & End Section */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Start */}
+                        <div className="flex flex-col space-y-0.5">
+                          <span className="text-[10px] uppercase font-extrabold tracking-wider text-primary">
+                            {t.startLabel}
+                          </span>
+                          <span className="text-xs font-bold text-muted-foreground">
+                            {t.juzLabel} {formatNumber(item.startJuz)}
+                          </span>
+                          <span className="text-sm font-extrabold text-foreground pt-0.5 break-words">
+                            {language === 'ar' ? `سورة ${item.startAyah}` : item.startAyah}
+                          </span>
+                        </div>
+
+                        {/* End */}
+                        <div className="flex flex-col space-y-0.5">
+                          <span className="text-[10px] uppercase font-extrabold tracking-wider text-primary">
+                            {t.endLabel}
+                          </span>
+                          <span className="text-xs font-bold text-muted-foreground">
+                            {t.juzLabel} {formatNumber(item.endJuz)}
+                          </span>
+                          <span className="text-sm font-extrabold text-foreground pt-0.5 break-words">
+                            {language === 'ar' ? `سورة ${item.endAyah}` : item.endAyah}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={`table-${activeWeek}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="mt-5 rounded-2xl border border-border/60 overflow-hidden"
+                >
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-start text-sm">
+                      <thead>
+                        <tr className="border-b border-border/60 bg-muted/50 dark:bg-muted/25 text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                          <th className="py-3 px-4 sm:px-5 text-start w-[28%] min-w-[140px]">
+                            {t.tableHeaderMember}
+                          </th>
+                          <th className="py-3 px-3 text-center w-[12%] min-w-[70px]">
+                            {t.tableHeaderAmount}
+                          </th>
+                          <th className="py-3 px-4 sm:px-5 text-start w-[30%] min-w-[160px]">
+                            <span className="text-primary">{t.tableHeaderStart}</span>
+                          </th>
+                          <th className="py-3 px-4 sm:px-5 text-start w-[30%] min-w-[160px]">
+                            <span className="text-primary">{t.tableHeaderEnd}</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {currentWeekData.assignments.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                            <td className="py-3.5 px-4 sm:px-5 align-middle">
+                              <span className="font-extrabold text-sm sm:text-base text-foreground break-words leading-tight">
+                                {item.name}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-3 text-center align-middle">
+                              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-xs font-bold text-muted-foreground bg-muted/60 dark:bg-muted/40 border border-border/50">
+                                {formatNumber(item.amount)}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 sm:px-5 align-middle">
+                              <div className="flex flex-col space-y-0.5">
+                                <span className="text-[11px] font-bold text-muted-foreground">
+                                  {t.juzLabel} {formatNumber(item.startJuz)}
+                                </span>
+                                <span className="text-sm font-extrabold text-foreground break-words leading-tight">
+                                  {language === 'ar' ? `سورة ${item.startAyah}` : item.startAyah}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 sm:px-5 align-middle">
+                              <div className="flex flex-col space-y-0.5">
+                                <span className="text-[11px] font-bold text-muted-foreground">
+                                  {t.juzLabel} {formatNumber(item.endJuz)}
+                                </span>
+                                <span className="text-sm font-extrabold text-foreground break-words leading-tight">
+                                  {language === 'ar' ? `سورة ${item.endAyah}` : item.endAyah}
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
-              </motion.div>
+                </motion.div>
+              )}
             </AnimatePresence>
           </Card>
         </div>
