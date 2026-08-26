@@ -289,7 +289,7 @@ export function buildStandaloneWeekExportHtml(
         <div style="display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1 1 auto;">
           <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 40px; width: auto; object-fit: contain;" />
           <div style="min-width: 0;">
-            <div style="display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap;">
+            <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
             </div>
             <div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">
@@ -360,7 +360,7 @@ export function buildPdfPageHtml(
         <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1 1 auto;">
           <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 38px; width: auto; object-fit: contain;" />
           <div style="min-width: 0;">
-            <div style="display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap;">
+            <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
             </div>
             <div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">
