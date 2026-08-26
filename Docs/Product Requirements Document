@@ -1,0 +1,2342 @@
+
+# Wirddy
+
+## Product Requirements Document
+
+Version: 1.0
+
+Product type: Responsive web application / PWA
+
+Primary languages: Arabic and English
+
+Primary direction: RTL for Arabic, LTR for English
+
+UI foundation: Exact shadcn/ui preset selected by the owner
+
+Motion: Motion for React
+
+Frontend: Next.js + TypeScript
+
+Styling: Tailwind CSS
+
+Backend: Supabase
+
+Deployment: Vercel
+
+---
+
+# 1. Product Overview
+
+Wirddy is a Quran reading division and planning application for groups.
+
+A group can be a family, friends, students, colleagues, a mosque group, or any other group that wants to complete the Quran together.
+
+The user creates a group, adds members, defines what each member knows from the Quran, defines how many Juz each member should read every week, selects the number of weeks, and Wirddy automatically generates a beautiful rotating Quran reading schedule.
+
+The central rule is:
+
+The group's weekly reading allocation must equal exactly 30 Juz.
+
+The application must distribute the complete Quran from Juz 1 through Juz 30 while respecting each person's Quran knowledge limits and weekly reading amount.
+
+The result should look like a polished modern product, not a spreadsheet.
+
+---
+
+# 2. Product Positioning
+
+Do not position Wirddy as a family-only application.
+
+The product must support any group.
+
+Examples:
+
+Family
+
+Friends
+
+University group
+
+Ramadan group
+
+Quran circle
+
+Mosque group
+
+Study group
+
+Brothers
+
+Sisters
+
+Couples
+
+Any custom group
+
+The primary terminology throughout the application should therefore be:
+
+Group
+
+Member
+
+Plan
+
+Schedule
+
+Week
+
+Reading
+
+Juz
+
+Do not hard-code terminology such as Family Member.
+
+---
+
+# 3. Brand
+
+Product name:
+
+Wirddy
+
+Brand concept:
+
+A modern digital tool for organizing a group's Quran reading portion.
+
+The brand should feel:
+
+Calm
+
+Respectful
+
+Modern
+
+Minimal
+
+Premium
+
+Warm
+
+The interface must not look overly decorative or stereotypically religious.
+
+Avoid excessive:
+
+Mosque illustrations
+
+Crescents
+
+Gold ornaments
+
+Arabic calligraphy
+
+Decorative Islamic patterns
+
+The Quran should be represented through clean typography, subtle details, and excellent information design.
+
+---
+
+# 4. Existing UI Foundation
+
+The project must use the exact shadcn setup selected by the owner.
+
+The existing initialization is:
+
+npx shadcn@latest init --preset b1smHqVbc --template next --monorepo --rtl --pointer
+
+Treat this preset as the source of truth for:
+
+Colors
+
+Design tokens
+
+Radius
+
+Typography
+
+Component styling
+
+Shadows
+
+Spacing
+
+Dark mode behavior
+
+shadcn/ui components
+
+RTL configuration
+
+Do not replace the preset.
+
+Do not introduce another component library.
+
+Do not rebuild shadcn components from scratch unless a specific missing component is required.
+
+Use the existing shadcn components wherever possible.
+
+Before implementing custom UI, inspect the existing shadcn setup and reuse its tokens and components.
+
+---
+
+# 5. Motion System
+
+Install and use Motion for React.
+
+Use the current Motion package rather than importing the old Framer Motion package unless the existing project specifically requires otherwise.
+
+Motion should make the interface feel alive without becoming distracting.
+
+Motion should be used for:
+
+Page transitions
+
+Card entrance
+
+Schedule generation
+
+Member cards
+
+Week switching
+
+Accordion expansion
+
+Modal/dialog appearance
+
+Form progression
+
+Success states
+
+Validation messages
+
+Hover states
+
+Press states
+
+Drag interactions if later introduced
+
+Schedule regeneration
+
+Language switching where appropriate
+
+Do not animate everything.
+
+The motion system must feel subtle and intentional.
+
+Recommended motion principles:
+
+Fast interactions: approximately 150 to 220ms
+
+Normal transitions: approximately 250 to 400ms
+
+Larger page transitions: approximately 400 to 600ms
+
+Use spring animations selectively for cards and interactive controls.
+
+Respect prefers-reduced-motion.
+
+When reduced motion is enabled, disable nonessential movement and use simple opacity/state transitions.
+
+---
+
+# 6. Core User Journey
+
+The main user journey should be:
+
+Landing page
+
+↓
+
+Create group
+
+↓
+
+Enter group name
+
+↓
+
+Add members
+
+↓
+
+Configure each member
+
+↓
+
+Validate weekly total
+
+↓
+
+Choose number of weeks
+
+↓
+
+Generate schedule
+
+↓
+
+Review schedule
+
+↓
+
+Switch Arabic / English
+
+↓
+
+View individual weeks
+
+↓
+
+Download week as image
+
+↓
+
+Download schedule as PDF
+
+↓
+
+Share schedule
+
+The flow must be simple enough that a user can generate a schedule without needing an account.
+
+---
+
+# 7. Landing Page
+
+Create a beautiful landing page.
+
+Hero section:
+
+Wirddy
+
+Plan your Quran reading together.
+
+Arabic:
+
+وِردي
+
+نظّموا وردكم واقرؤوا القرآن معًا
+
+Primary CTA:
+
+Create a group
+
+Arabic:
+
+إنشاء مجموعة
+
+Secondary CTA:
+
+See how it works
+
+Arabic:
+
+كيف يعمل؟
+
+The hero should immediately communicate the product.
+
+Do not make the landing page text-heavy.
+
+---
+
+# 8. Landing Page Sections
+
+## Hero
+
+Large Wirddy branding.
+
+Short description.
+
+Primary CTA.
+
+Subtle animated Quran-related visual representation using cards or schedule elements.
+
+Do not use stock photos.
+
+## How it works
+
+Three steps:
+
+1. Create your group
+2. Set each member's reading
+3. Generate your schedule
+
+Each step should use a shadcn card with subtle Motion animation.
+
+## Example schedule
+
+Show a beautiful sample schedule.
+
+Use fictional members.
+
+Do not use personal information.
+
+Example:
+
+Abdulrahman
+
+5 Juz
+
+Juz 1 → Juz 5
+
+Ismail
+
+2 Juz
+
+Juz 6 → Juz 7
+
+## Features
+
+Show:
+
+Smart Quran division
+
+Flexible group sizes
+
+Arabic and English
+
+Rotating weekly schedules
+
+Exact start and end ayahs
+
+PDF export
+
+Image export
+
+Shareable schedules
+
+## Final CTA
+
+Create your first group.
+
+---
+
+# 9. Create Group
+
+Screen title:
+
+Create a group
+
+Arabic:
+
+إنشاء مجموعة
+
+Input:
+
+Group name
+
+Arabic:
+
+اسم المجموعة
+
+Examples:
+
+Family
+
+Friends
+
+Ramadan 2027
+
+Quran Circle
+
+The group name is required.
+
+Validation:
+
+Minimum 1 character
+
+Maximum 60 characters
+
+Trim whitespace.
+
+Do not allow an empty group name.
+
+After entering the group name:
+
+Continue
+
+Use a smooth Motion transition into member setup.
+
+---
+
+# 10. Add Members
+
+Screen:
+
+Add your group members.
+
+Arabic:
+
+أضف أعضاء مجموعتك
+
+Each member requires:
+
+Name
+
+What they know from the Quran
+
+How many Juz they will read each week
+
+Members can be added dynamically.
+
+Actions:
+
+Add member
+
+Remove member
+
+Edit member
+
+Continue
+
+Minimum:
+
+1 member
+
+Maximum:
+
+Do not impose an unnecessarily small limit.
+
+The UI must remain usable with large groups.
+
+---
+
+# 11. Member Configuration
+
+Each member should have a beautiful shadcn card.
+
+Example:
+
+Abdulrahman
+
+Knowledge:
+
+Entire Quran
+
+Weekly reading:
+
+5 Juz
+
+Another example:
+
+Asia
+
+Knowledge:
+
+From Surah Al-Ahqaf to Surah An-Nas
+
+Weekly reading:
+
+2 Juz
+
+The card should clearly distinguish:
+
+Knowledge range
+
+Weekly amount
+
+---
+
+# 12. Quran Knowledge Options
+
+The user should be able to choose:
+
+Entire Quran
+
+Specific Juz range
+
+Specific Surah range
+
+Custom range
+
+The first version should support at least:
+
+Entire Quran
+
+Juz range
+
+Surah range
+
+Do not make users manually enter raw ayah numbers unless they choose advanced/custom mode.
+
+---
+
+# 13. Knowledge Range
+
+If the user selects:
+
+Entire Quran
+
+Store:
+
+start = Juz 1
+
+end = Juz 30
+
+If the user selects:
+
+Juz range
+
+Allow:
+
+Start Juz
+
+End Juz
+
+Example:
+
+Juz 26 → Juz 30
+
+If the user selects:
+
+Surah range
+
+Allow:
+
+Start Surah
+
+End Surah
+
+The application must resolve this into an exact Quran range internally.
+
+---
+
+# 14. Weekly Reading Amount
+
+Each member must have:
+
+Weekly Juz amount.
+
+Examples:
+
+1
+
+2
+
+3
+
+5
+
+Allow decimal values only if the scheduling engine can correctly handle partial Juz.
+
+The preferred initial implementation should support whole Juz values first.
+
+The interface should clearly show:
+
+2 Juz per week
+
+Arabic:
+
+جزآن أسبوعيًا
+
+---
+
+# 15. Total Validation
+
+This is a critical rule.
+
+Calculate:
+
+sum of every member's weekly Juz amount
+
+The result must equal exactly:
+
+30 Juz.
+
+Example:
+
+5 + 2 + 2 + 2 + 2 + 2 + 3 + 2 + 2 + 3 + 2 + 2 + 1 = 32
+
+Show an error state:
+
+Weekly reading total is 32 Juz.
+
+It must equal exactly 30 Juz.
+
+Arabic:
+
+مجموع القراءة الأسبوعية هو ٣٢ جزءًا.
+
+يجب أن يساوي المجموع ٣٠ جزءًا بالضبط.
+
+Do not allow schedule generation when total != 30.
+
+If total = 30:
+
+Show success state:
+
+Perfect. Your group will complete exactly 30 Juz each week.
+
+Arabic:
+
+ممتاز. ستكمل المجموعة ٣٠ جزءًا كاملًا كل أسبوع.
+
+Use a subtle animated validation state.
+
+Do not overuse green/red.
+
+---
+
+# 16. Number of Weeks
+
+After member configuration:
+
+How many weeks?
+
+Arabic:
+
+كم أسبوعًا؟
+
+Provide a clean number input.
+
+Examples:
+
+1
+
+2
+
+3
+
+4
+
+5
+
+10
+
+20
+
+The schedule engine must support arbitrary reasonable week counts.
+
+Validate:
+
+Minimum 1 week.
+
+Maximum should be defined in application configuration rather than hard-coded throughout the UI.
+
+---
+
+# 17. Schedule Generation
+
+After all inputs are valid:
+
+Generate schedule.
+
+The generation button should feel important.
+
+Button:
+
+Generate schedule
+
+Arabic:
+
+إنشاء الجدول
+
+When clicked:
+
+Disable the button temporarily.
+
+Show an animated generation state.
+
+Example:
+
+Creating your schedule...
+
+Arabic:
+
+جارٍ إنشاء جدولك...
+
+Then transition to the generated schedule.
+
+Do not fake long loading times.
+
+If generation is fast, use a short polished transition rather than an artificial spinner lasting several seconds.
+
+---
+
+# 18. Scheduling Engine
+
+This is the most important technical part of the product.
+
+The engine must:
+
+1. Cover exactly Juz 1 through Juz 30 every week.
+2. Assign exactly 30 Juz worth of reading every week.
+3. Respect each member's weekly Juz amount.
+4. Never assign a member Quran material outside their knowledge range.
+5. Change assignments between weeks whenever mathematically possible.
+6. Avoid giving the same member the same Juz repeatedly.
+7. Keep the distribution sequential where possible.
+8. Support partial Juz boundaries when required.
+9. Calculate exact starting ayah.
+10. Calculate exact ending ayah.
+11. Produce deterministic results for the same input.
+12. Validate the generated schedule before displaying it.
+
+The generated schedule must pass an internal validation step.
+
+Validation must confirm:
+
+Total assigned reading = 30 Juz.
+
+All Quran coverage from Juz 1 through Juz 30 is covered.
+
+No overlapping assignments.
+
+No uncovered sections.
+
+Every member receives their required weekly amount.
+
+Every assignment is inside the member's allowed Quran range.
+
+All start and end Quran references are valid.
+
+If validation fails, do not display a broken schedule.
+
+Return a clear error state.
+
+---
+
+# 19. Rotation
+
+The primary reason for supporting multiple weeks is rotation.
+
+Example:
+
+Week 1:
+
+Abdulrahman → Juz 1 to 5
+
+Ismail → Juz 6 to 7
+
+Week 2:
+
+Abdulrahman → Juz 4 to 8
+
+Ismail → Juz 11 to 12
+
+Week 3:
+
+Abdulrahman → Juz 6 to 10
+
+Ismail → Juz 20 to 21
+
+The algorithm should optimize rotation.
+
+Do not simply randomize.
+
+Use a deterministic rotation strategy.
+
+For members with full Quran knowledge, the engine should maximize variation.
+
+For members with restricted knowledge, the engine should rotate within their permissible range.
+
+If perfect rotation is mathematically impossible, prioritize correctness and knowledge restrictions over rotation.
+
+---
+
+# 20. Quran Boundary Data
+
+The application needs structured Quran metadata.
+
+Each Quran ayah should be addressable by:
+
+Surah number
+
+Surah name Arabic
+
+Surah name English
+
+Ayah number
+
+Juz number
+
+Page number if available
+
+A Juz boundary should identify the exact starting ayah and ending ayah.
+
+The scheduling engine must use this structured data.
+
+Do not approximate Juz boundaries.
+
+Do not invent ayah numbers.
+
+Do not calculate boundaries from rounded percentages.
+
+The schedule must be based on actual Quran ayah boundaries.
+
+---
+
+# 21. Exact Start and End Display
+
+Every assignment must show:
+
+Start
+
+Juz number
+
+Surah
+
+Ayah
+
+End
+
+Juz number
+
+Surah
+
+Ayah
+
+Example:
+
+Start
+
+الجزء ١
+سورة الفاتحة، الآية ١
+
+End
+
+الجزء ٥
+سورة النساء، الآية ١٤٧
+
+English:
+
+Start
+
+Juz 1
+Al-Fatihah, Ayah 1
+
+End
+
+Juz 5
+An-Nisa, Ayah 147
+
+If an assignment begins or ends in the middle of a Juz, show the exact ayah.
+
+This is a core feature.
+
+---
+
+# 22. Schedule Design
+
+Do not use a basic spreadsheet as the primary design.
+
+Use a polished schedule layout.
+
+Top section:
+
+Wirddy
+
+Group name
+
+Quran completion plan
+
+Week 1 of 5
+
+Summary:
+
+30 Juz
+
+13 members
+
+1 complete Quran
+
+Then member cards.
+
+Each member card should contain:
+
+Member name
+
+Reading amount
+
+Start
+
+Start Juz
+
+Start Surah
+
+Start Ayah
+
+End
+
+End Juz
+
+End Surah
+
+End Ayah
+
+Example:
+
+Abdulrahman
+
+5 Juz
+
+START
+
+Juz 1
+
+Al-Fatihah
+Ayah 1
+
+END
+
+Juz 5
+
+An-Nisa
+Ayah 147
+
+Cards should be visually clean.
+
+Use shadcn Card components.
+
+---
+
+# 23. Desktop Schedule Layout
+
+On desktop:
+
+Use a centered max-width container.
+
+Cards can be arranged in a responsive grid.
+
+Do not make the schedule excessively wide.
+
+Recommended structure:
+
+Header
+
+Summary
+
+Week selector
+
+Member cards
+
+Footer
+
+---
+
+# 24. Mobile Schedule Layout
+
+Mobile is a priority.
+
+Cards should stack vertically.
+
+Each member should be immediately readable.
+
+Do not create horizontal tables that require excessive scrolling.
+
+The exact Quran reference must remain visible without opening another screen.
+
+Use compact but readable typography.
+
+---
+
+# 25. Week Navigation
+
+The generated plan needs a week selector.
+
+Example:
+
+الأسبوع ١
+
+الأسبوع ٢
+
+الأسبوع ٣
+
+الأسبوع ٤
+
+الأسبوع ٥
+
+On mobile, use a horizontally scrollable tab/list if necessary.
+
+Use Motion for the active week transition.
+
+Changing week should not reload the page.
+
+The schedule should update smoothly.
+
+---
+
+# 26. Language Switching
+
+Support:
+
+Arabic
+
+English
+
+The language selector must be available after schedule creation.
+
+If Arabic:
+
+Entire interface becomes RTL.
+
+If English:
+
+Entire interface becomes LTR.
+
+This includes:
+
+Cards
+
+Tables if used
+
+Dialogs
+
+Dropdowns
+
+Buttons
+
+Navigation
+
+Icons where directional behavior matters
+
+Animations where directional movement matters
+
+The generated schedule must also switch language.
+
+Example:
+
+Arabic:
+
+الأسبوع الأول
+
+الجزء ١
+
+سورة الفاتحة، الآية ١
+
+English:
+
+Week 1
+
+Juz 1
+
+Al-Fatihah, Ayah 1
+
+Do not simply translate text while keeping the layout LTR.
+
+Arabic must be a real RTL layout.
+
+---
+
+# 27. Arabic Typography
+
+Use the existing project typography unless the preset requires a compatible Arabic font.
+
+The Arabic interface must be highly readable.
+
+Prioritize:
+
+Numbers
+
+Names
+
+Surah names
+
+Ayah numbers
+
+Juz numbers
+
+Avoid decorative Arabic fonts for normal UI.
+
+---
+
+# 28. Motion Design
+
+Use Motion for React throughout the interface.
+
+## Page transitions
+
+Use subtle opacity and vertical movement.
+
+## Cards
+
+Cards should enter with staggered animation.
+
+Example:
+
+First card appears.
+
+Second card follows.
+
+Third card follows.
+
+Keep the stagger short.
+
+## Week switching
+
+When changing week, animate the schedule content smoothly.
+
+Do not make cards fly across the screen.
+
+## Validation
+
+When the total becomes 30:
+
+Use a subtle success transition.
+
+When the total is incorrect:
+
+Use a restrained shake or positional feedback.
+
+Do not overdo error animation.
+
+## Buttons
+
+Use small press/hover feedback.
+
+## Dialogs
+
+Use scale + opacity.
+
+## Member addition
+
+When a member is added, animate the card into the list.
+
+When removed, animate it out.
+
+## Schedule generation
+
+Use a polished transition from the generation state into the final schedule.
+
+---
+
+# 29. Accessibility
+
+Respect:
+
+prefers-reduced-motion
+
+Keyboard navigation
+
+Focus states
+
+Screen readers
+
+Color contrast
+
+Semantic HTML
+
+Do not rely on animation to communicate information.
+
+All important validation information must be available as text.
+
+---
+
+# 30. Export as Image
+
+Allow:
+
+Download this week
+
+Download entire schedule
+
+Image format:
+
+PNG
+
+The exported image must look like a designed document.
+
+It must include:
+
+Wirddy
+
+Group name
+
+Week
+
+Member assignments
+
+Exact start and end references
+
+Language
+
+Do not simply screenshot the browser viewport.
+
+Create a dedicated export layout.
+
+The export should be high resolution and suitable for WhatsApp sharing.
+
+---
+
+# 31. Export as PDF
+
+Allow:
+
+Download current week
+
+Download complete plan
+
+PDF should have:
+
+Proper margins
+
+Correct Arabic RTL rendering
+
+Clean typography
+
+High-quality layout
+
+One week per page is preferred for the full schedule.
+
+The PDF should contain:
+
+Group name
+
+Week number
+
+Members
+
+Reading amounts
+
+Start Quran reference
+
+End Quran reference
+
+The PDF should not contain browser UI.
+
+---
+
+# 32. Share
+
+Add:
+
+Share
+
+If the browser supports native sharing, use Web Share API.
+
+Otherwise provide:
+
+Copy link
+
+Download image
+
+The share action should not require an account in version 1.
+
+---
+
+# 33. Save and Persistence
+
+Version 1 should prioritize frictionless use.
+
+Do not require account creation before generating a schedule.
+
+The generated plan can be kept in local storage initially.
+
+If Supabase is already configured, plans can optionally be persisted.
+
+Design the data model so accounts can be introduced later without rewriting the scheduling engine.
+
+---
+
+# 34. Supabase Data Model
+
+Prepare a clean schema around:
+
+groups
+
+members
+
+member_knowledge_ranges
+
+plans
+
+plan_weeks
+
+assignments
+
+quran_ayahs
+
+Each assignment should be able to reference:
+
+plan
+
+week
+
+member
+
+start ayah
+
+end ayah
+
+start Juz
+
+end Juz
+
+reading amount
+
+The Quran metadata should be treated as reference data.
+
+Do not store duplicated Quran text unnecessarily.
+
+---
+
+# 35. Authentication
+
+Version 1:
+
+Optional.
+
+The user can create and export a plan without signing in.
+
+Future:
+
+Supabase Auth.
+
+Potential providers:
+
+Email
+
+Google
+
+Apple
+
+Do not build authentication complexity unless required for the initial product.
+
+---
+
+# 36. Error Handling
+
+Every important failure needs a useful message.
+
+Examples:
+
+No members added.
+
+Arabic:
+
+لم تتم إضافة أي عضو.
+
+Weekly total is not 30.
+
+Arabic:
+
+يجب أن يساوي مجموع القراءة الأسبوعية ٣٠ جزءًا.
+
+A member's requested amount exceeds their known Quran range.
+
+Arabic:
+
+مقدار القراءة المطلوب لهذا العضو يتجاوز نطاق القرآن الذي حدده.
+
+The schedule could not be generated.
+
+Arabic:
+
+تعذر إنشاء الجدول. يرجى مراجعة بيانات الأعضاء والمحاولة مرة أخرى.
+
+Never show raw technical errors to users.
+
+Log technical errors separately.
+
+---
+
+# 37. Validation Before Generation
+
+Before generation:
+
+Validate group name.
+
+Validate member names.
+
+Validate knowledge ranges.
+
+Validate weekly amounts.
+
+Validate total = 30.
+
+Validate number of weeks.
+
+Only then enable:
+
+Generate schedule.
+
+---
+
+# 38. Validation After Generation
+
+The generated schedule must be independently validated.
+
+Check:
+
+Every Juz is covered.
+
+No Juz section is duplicated.
+
+No gap exists.
+
+Total reading equals 30 Juz.
+
+Every member receives their configured amount.
+
+Every assignment is within their knowledge range.
+
+Start and end ayahs are valid.
+
+The number of generated weeks equals the requested number.
+
+Only display the schedule after all checks pass.
+
+---
+
+# 39. Schedule Details Page
+
+When a schedule exists, provide:
+
+Back
+
+Edit plan
+
+Language
+
+Share
+
+Download
+
+Week navigation
+
+Regenerate
+
+The user should be able to return to member settings and edit them.
+
+If they edit the plan, clearly indicate that the schedule needs to be regenerated.
+
+Do not silently modify an existing schedule.
+
+---
+
+# 40. Regeneration
+
+Add:
+
+Regenerate schedule
+
+Arabic:
+
+إعادة إنشاء الجدول
+
+Show a confirmation dialog if a schedule already exists.
+
+Example:
+
+Regenerating will replace the current schedule.
+
+Arabic:
+
+إعادة إنشاء الجدول ستستبدل الجدول الحالي.
+
+This prevents accidental loss.
+
+---
+
+# 41. Design System Rules
+
+Use the existing shadcn preset exactly.
+
+Use:
+
+Button
+
+Card
+
+Input
+
+Label
+
+Select
+
+Dialog
+
+Dropdown Menu
+
+Tabs
+
+Tooltip
+
+Alert
+
+Badge
+
+Separator
+
+Scroll Area
+
+Sheet
+
+Progress
+
+Skeleton
+
+and other existing shadcn components when appropriate.
+
+Do not introduce Material UI.
+
+Do not introduce Chakra UI.
+
+Do not introduce Bootstrap.
+
+Do not introduce another design system.
+
+Do not create inconsistent custom buttons when shadcn Button can handle the requirement.
+
+Custom components should compose shadcn components.
+
+---
+
+# 42. Visual Design Rules
+
+Keep the interface:
+
+Clean
+
+Spacious
+
+Modern
+
+Readable
+
+Calm
+
+Use subtle borders.
+
+Use the preset's existing color system.
+
+Do not manually override the entire color system.
+
+Do not introduce a separate green/gold palette if the chosen shadcn preset already defines the theme.
+
+The owner's selected shadcn preset is the source of truth.
+
+---
+
+# 43. Dark Mode
+
+If the selected shadcn preset supports dark mode, support it properly.
+
+Do not build a separate visual design for dark mode.
+
+Use the existing theme variables.
+
+Test:
+
+Arabic light
+
+Arabic dark
+
+English light
+
+English dark
+
+---
+
+# 44. Responsive Breakpoints
+
+Test at minimum:
+
+360px
+
+390px
+
+430px
+
+768px
+
+1024px
+
+1280px
+
+1440px
+
+The application must remain usable at all sizes.
+
+---
+
+# 45. Navigation
+
+Desktop:
+
+Simple top navigation.
+
+Logo:
+
+Wirddy
+
+Possible navigation:
+
+How it works
+
+Create group
+
+Language
+
+Mobile:
+
+Compact header.
+
+Do not create unnecessary navigation.
+
+The product is primarily a workflow tool, so the user should get to "Create group" immediately.
+
+---
+
+# 46. Empty States
+
+If there are no members:
+
+Show a friendly empty state.
+
+Example:
+
+ابدأ بإضافة أعضاء مجموعتك
+
+Add your first member.
+
+Use a subtle Motion entrance.
+
+---
+
+# 47. Loading States
+
+Use shadcn Skeleton components where appropriate.
+
+Do not use spinners everywhere.
+
+For schedule generation, use a dedicated generation state.
+
+For PDF/image export, show export progress if the operation takes long enough to warrant it.
+
+---
+
+# 48. Performance
+
+The schedule generation algorithm should run quickly for normal group sizes.
+
+Do not perform unnecessary database requests.
+
+Do not load the entire Quran UI unnecessarily.
+
+Load Quran reference data efficiently.
+
+Avoid rendering all weeks at once if the plan contains a large number of weeks.
+
+Only render the active week when appropriate.
+
+---
+
+# 49. SEO
+
+Landing page should have:
+
+Title:
+
+Wirddy | Quran Reading Planner
+
+Arabic metadata:
+
+ويردي | تنظيم ورد القرآن للمجموعات
+
+Description:
+
+A simple way for families, friends, and groups to divide the Quran and complete it together.
+
+Arabic:
+
+طريقة بسيطة لتنظيم ورد القرآن وتقسيمه بين أفراد المجموعة وإكمال القرآن معًا.
+
+Use proper Open Graph metadata.
+
+---
+
+# 50. PWA
+
+Prepare the application as a Progressive Web App.
+
+Users should be able to install Wirddy on their phone.
+
+Include:
+
+App icon
+
+Manifest
+
+Theme color
+
+Mobile-friendly viewport
+
+Offline-friendly shell where practical
+
+The generated schedule should remain available locally after creation where possible.
+
+---
+
+# 51. Security
+
+Validate all user input.
+
+Do not trust client-side schedule data.
+
+If schedules are persisted:
+
+Use Supabase Row Level Security.
+
+Do not expose private group data publicly without authorization.
+
+Do not put service role keys in client code.
+
+Use environment variables correctly.
+
+---
+
+# 52. Project Structure
+
+Keep the project modular.
+
+Suggested structure:
+
+app/
+
+components/
+
+components/ui/
+
+features/
+
+features/groups/
+
+features/members/
+
+features/schedule/
+
+features/quran/
+
+features/export/
+
+lib/
+
+lib/quran/
+
+lib/scheduler/
+
+lib/validation/
+
+lib/i18n/
+
+types/
+
+Do not put the scheduling algorithm directly inside page components.
+
+The scheduling engine must be independent and testable.
+
+---
+
+# 53. Scheduling Engine API
+
+Create a clean function similar to:
+
+generateQuranSchedule(input)
+
+Input should contain:
+
+group
+
+members
+
+knowledge ranges
+
+weekly reading amounts
+
+number of weeks
+
+language-independent Quran metadata
+
+Output:
+
+validated schedule
+
+The scheduler must not depend on React components.
+
+It should be pure business logic.
+
+---
+
+# 54. Testing
+
+Write automated tests for the scheduling engine.
+
+At minimum test:
+
+One member reading 30 Juz.
+
+Multiple members totaling 30.
+
+Members with full Quran knowledge.
+
+Members with restricted knowledge.
+
+Five-week plans.
+
+Different group sizes.
+
+Invalid total.
+
+Invalid knowledge ranges.
+
+Amount greater than allowed knowledge.
+
+Boundary at Juz start.
+
+Boundary in the middle of a Juz.
+
+Boundary at Juz end.
+
+Exact ayah resolution.
+
+No overlap.
+
+No gaps.
+
+Rotation across weeks.
+
+Arabic display.
+
+English display.
+
+---
+
+# 55. Example Test Case
+
+Input:
+
+Abdulrahman
+
+Knowledge:
+
+Juz 1 to 30
+
+Weekly:
+
+5
+
+Ismail
+
+Knowledge:
+
+Juz 1 to 30
+
+Weekly:
+
+2
+
+Asia
+
+Knowledge:
+
+Juz 26 to 30
+
+Weekly:
+
+2
+
+The sum of all members must equal 30.
+
+If the total is not 30, generation must fail.
+
+If Asia receives Juz 12, generation must fail validation.
+
+---
+
+# 56. Important Quran Accuracy Requirement
+
+Quran references are religious content and must be treated as accuracy-critical.
+
+Do not invent:
+
+Surah names
+
+Ayah numbers
+
+Juz boundaries
+
+Quran ranges
+
+The Quran metadata source must be reliable and verified before production.
+
+The scheduler must use the verified structured data rather than hard-coded approximations.
+
+---
+
+# 57. Export Design
+
+Create a separate print/export design.
+
+It should not simply export the application's dashboard.
+
+Export design:
+
+Top:
+
+Wirddy
+
+Group name
+
+Plan title
+
+Week
+
+Then:
+
+Member cards
+
+Each card:
+
+Name
+
+Amount
+
+Start
+
+End
+
+At the bottom:
+
+30 Juz
+
+Completion plan
+
+Language
+
+The export should be visually balanced on an A4 page.
+
+For image exports, use a social/share-friendly aspect ratio while keeping the text readable.
+
+---
+
+# 58. UX Principle
+
+The user should never have to understand how the scheduling algorithm works.
+
+They only provide:
+
+Who?
+
+What do they know?
+
+How much do they read?
+
+How many weeks?
+
+Wirddy handles the complexity.
+
+The app should communicate:
+
+Your schedule is ready.
+
+not:
+
+Your constraint satisfaction algorithm has completed.
+
+---
+
+# 59. Product Personality
+
+Wirddy should feel:
+
+Simple
+
+Trustworthy
+
+Calm
+
+Modern
+
+Respectful
+
+Useful
+
+Avoid:
+
+Gamification overload
+
+Points
+
+Leaderboards
+
+Badges everywhere
+
+Confetti
+
+Excessive animations
+
+Religious decorative clutter
+
+The focus is Quran reading.
+
+---
+
+# 60. Future Features
+
+Do not implement these in version 1 unless they are easy to support architecturally.
+
+Potential future features:
+
+Accounts
+
+Invite links
+
+Join group
+
+Member-specific dashboard
+
+Mark reading complete
+
+Group progress
+
+Notifications
+
+Weekly reminders
+
+WhatsApp sharing
+
+Recurring plans
+
+Ramadan mode
+
+Multiple simultaneous plans
+
+Group history
+
+Completion history
+
+Public/shared plans
+
+Admin controls
+
+---
+
+# 61. Version 1 Scope
+
+The first production version must include:
+
+Responsive web application
+
+Arabic
+
+English
+
+RTL
+
+LTR
+
+Wirddy branding
+
+Create group
+
+Add members
+
+Member knowledge configuration
+
+Weekly Juz amount
+
+Total validation
+
+30 Juz validation
+
+Number of weeks
+
+Schedule generation
+
+Rotation
+
+Exact start Juz
+
+Exact end Juz
+
+Exact start Surah
+
+Exact end Surah
+
+Exact start Ayah
+
+Exact end Ayah
+
+Week navigation
+
+Beautiful schedule cards
+
+Motion animations
+
+Edit plan
+
+Regenerate
+
+PNG export
+
+PDF export
+
+Share
+
+Responsive mobile design
+
+Dark mode if supported by the selected preset
+
+Accessibility
+
+Scheduling engine tests
+
+---
+
+# 62. Definition of Done
+
+The project is not complete when the pages merely look good.
+
+It is complete when:
+
+A user can open Wirddy.
+
+Create a group.
+
+Add members.
+
+Define what each member knows.
+
+Define each member's weekly reading amount.
+
+See the live total.
+
+Receive an error when the total is not exactly 30.
+
+Correct the total.
+
+Choose the number of weeks.
+
+Generate the schedule.
+
+The schedule covers the Quran exactly.
+
+Every member receives the correct amount.
+
+Restricted members never receive Quran sections outside their allowed range.
+
+Assignments rotate across weeks where possible.
+
+Every assignment has exact start and end Quran references.
+
+The user can switch Arabic to English after generation.
+
+The entire layout changes correctly between RTL and LTR.
+
+The schedule works beautifully on mobile.
+
+The user can download a week as a high-quality image.
+
+The user can download the full plan as a PDF.
+
+The user can share the schedule.
+
+Motion feels polished and subtle.
+
+Reduced-motion users are respected.
+
+No console errors remain.
+
+No TypeScript errors remain.
+
+No broken responsive layouts remain.
+
+No placeholder content remains in production UI.
+
+---
+
+# 63. Agent Implementation Instructions
+
+Before writing code:
+
+1. Inspect the existing repository.
+2. Confirm the existing Next.js structure.
+3. Confirm the shadcn preset is installed.
+4. Inspect the existing theme variables.
+5. Inspect existing shadcn components.
+6. Do not replace the existing theme.
+7. Install Motion for React.
+8. Establish the i18n and RTL architecture.
+9. Establish the Quran data model.
+10. Establish the scheduler as independent business logic.
+
+Implement in logical phases.
+
+Do not create one enormous component.
+
+Do not duplicate UI for Arabic and English.
+
+Use translation dictionaries.
+
+Use one shared component system.
+
+Use direction-aware CSS.
+
+Use logical CSS properties where appropriate.
+
+For example:
+
+ms instead of ml
+
+me instead of mr
+
+ps instead of pl
+
+pe instead of pr
+
+text-start instead of hard-coded left/right
+
+---
+
+# 64. Critical Design Instruction
+
+The schedule is the most important screen in the application.
+
+Spend the most design attention there.
+
+It must look like something a user would genuinely want to:
+
+Save
+
+Screenshot
+
+Print
+
+Send to WhatsApp
+
+Share with friends
+
+The schedule must not look like an admin dashboard.
+
+It should feel like a carefully designed Quran reading plan.
+
+Use the existing shadcn design system as the foundation and Motion to add subtle movement.
+
+Do not sacrifice readability for visual effects.
+
+---
+
+# 65. Final Product Direction
+
+Wirddy is not a Quran reader.
+
+It is not a Quran search engine.
+
+It is not primarily a social network.
+
+It is a Quran group planning tool.
+
+Its core promise is:
+
+Create your group.
+
+Tell Wirddy what everyone can read.
+
+Tell Wirddy how much everyone should read.
+
+Choose how many weeks.
+
+Wirddy creates the complete rotating Quran plan.
+
+The user should be able to understand the product within seconds.
+
+The final experience should feel polished enough to be a real standalone product, while remaining extremely simple to use.
