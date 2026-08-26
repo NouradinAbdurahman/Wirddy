@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og-image.jpg',
+        url: '/wirddy-og-image.png',
         width: 1200,
         height: 630,
         alt: 'Wirddy — Quran Completion Planner for Groups',
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     title: 'Wirddy | وِردي — خطة ختم القرآن الكريم',
     description:
       'طريقة بسيطة لتنظيم ورد القرآن وتقسيمه بين أفراد المجموعة. A simple way for families and friends to divide the Quran and complete it together.',
-    images: ['/og-image.jpg'],
+    images: ['/wirddy-og-image.png'],
   },
   icons: {
     icon: [
