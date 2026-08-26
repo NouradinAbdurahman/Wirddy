@@ -24,10 +24,16 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
       <div className="container mx-auto max-w-5xl px-4 sm:px-6 text-center">
         {/* Main Heading */}
         <h1
-          className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground leading-[1.15]"
+          className={`text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground ${
+            language === 'ar' ? 'leading-[1.4]' : 'leading-[1.15]'
+          }`}
         >
           <span className="block text-primary">{t.appName}</span>
-          <span className="block mt-2 text-2xl sm:text-3xl md:text-4xl font-semibold text-muted-foreground">
+          <span
+            className={`block text-2xl sm:text-3xl md:text-4xl font-semibold text-muted-foreground ${
+              language === 'ar' ? 'mt-3 sm:mt-4 leading-relaxed' : 'mt-2'
+            }`}
+          >
             {t.tagline}
           </span>
         </h1>
