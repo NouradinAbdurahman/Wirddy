@@ -95,6 +95,23 @@ export function MemberList({
               />
             ))}
           </AnimatePresence>
+
+          {/* Bottom Add Member button — visible after members exist so user doesn't scroll up */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <Button
+              type="button"
+              onClick={onAddMember}
+              variant="outline"
+              className="w-full h-11 rounded-2xl border-dashed border-border/70 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 gap-2 font-semibold transition-all"
+            >
+              <IconPlus className="h-4 w-4" />
+              <span>{t.addMemberBtn}</span>
+            </Button>
+          </motion.div>
         </div>
       )}
     </div>
