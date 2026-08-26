@@ -22,7 +22,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://wirddy.app'),
+  metadataBase: new URL('https://wirddy.vercel.app'),
   title: 'وِردي | Wirddy - Quran Reading Planner for Groups',
   description:
     'طريقة بسيطة لتنظيم ورد القرآن وتقسيمه بين أفراد المجموعة وإكمال القرآن معًا. A simple way for families, friends, and groups to divide the Quran and complete it together.',

@@ -151,7 +151,7 @@ export function ExportCard({
           <span>{language === 'ar' ? 'تم التحقق من توزيع ٣٠ جزءًا بدقة متناهية' : 'Verified 30/30 Juz Complete Allocation'}</span>
         </div>
         <div className="text-slate-500 font-medium">
-          <span>wirddy.app</span>
+          <span>wirddy.vercel.app</span>
         </div>
       </div>
     </div>
