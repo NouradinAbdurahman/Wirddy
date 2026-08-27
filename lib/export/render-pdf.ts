@@ -1,6 +1,6 @@
 import { toBlob } from 'html-to-image';
 import { jsPDF } from 'jspdf';
-import { ensureFontsReady, preloadExportAssets } from './assets';
+import { ensureFontsReady, preloadExportAssets, waitForImagesToLoad } from './assets';
 import { triggerBrowserDownload } from './download';
 import { getPdfExportFilename } from './filenames';
 import { buildPdfPageHtml } from './render-week';
@@ -145,12 +145,13 @@ export async function exportScheduleAsPdf(
     document.body.appendChild(container);
 
     try {
-      await new Promise((r) => setTimeout(r, 60));
-
       const targetElement = container.firstElementChild as HTMLElement;
       if (!targetElement) {
         throw new Error('Failed to render PDF page container.');
       }
+
+      await waitForImagesToLoad(targetElement);
+      await new Promise((r) => setTimeout(r, 40));
 
       const pageBlob = await toBlob(targetElement, {
         quality: 0.98,

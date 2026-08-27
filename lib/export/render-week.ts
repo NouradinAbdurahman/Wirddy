@@ -1,5 +1,5 @@
 import { toBlob } from 'html-to-image';
-import { ensureFontsReady, preloadExportAssets } from './assets';
+import { ensureFontsReady, preloadExportAssets, waitForImagesToLoad } from './assets';
 import { formatArabicNumeral } from './filenames';
 import { ExportMember, ExportRenderOptions, ExportSchedule, ExportViewMode, ExportWeek } from './types';
 
@@ -442,12 +442,13 @@ export async function renderWeekToPngBlob(
   document.body.appendChild(container);
 
   try {
-    await new Promise((r) => setTimeout(r, 60));
-
     const targetElement = container.firstElementChild as HTMLElement;
     if (!targetElement) {
       throw new Error('Failed to create export DOM element.');
     }
+
+    await waitForImagesToLoad(targetElement);
+    await new Promise((r) => setTimeout(r, 40));
 
     const blob = await toBlob(targetElement, {
       quality: 0.98,

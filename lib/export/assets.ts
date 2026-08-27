@@ -71,3 +71,39 @@ export async function ensureFontsReady(): Promise<void> {
     }
   }
 }
+
+/**
+ * Waits for every <img> inside a container to finish loading (or fail) before
+ * resolving, instead of assuming a fixed delay is enough. A fixed timeout is
+ * often fine on a fast desktop connection but unreliable on mobile, where a
+ * slower first-load network fetch can still be in flight when the export
+ * snapshot is taken, silently dropping images like the brand logo. Falls
+ * back to resolving after `timeoutMs` so a single stuck image can't hang the
+ * export indefinitely.
+ */
+export function waitForImagesToLoad(container: HTMLElement, timeoutMs = 4000): Promise<void> {
+  const images = Array.from(container.querySelectorAll('img'));
+  if (images.length === 0) {
+    return Promise.resolve();
+  }
+
+  const imageReady = (img: HTMLImageElement) =>
+    new Promise<void>((resolve) => {
+      if (img.complete) {
+        resolve();
+        return;
+      }
+      const onSettle = () => {
+        img.removeEventListener('load', onSettle);
+        img.removeEventListener('error', onSettle);
+        resolve();
+      };
+      img.addEventListener('load', onSettle);
+      img.addEventListener('error', onSettle);
+    });
+
+  const allImagesReady = Promise.all(images.map(imageReady)).then(() => undefined);
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, timeoutMs));
+
+  return Promise.race([allImagesReady, timeout]);
+}
