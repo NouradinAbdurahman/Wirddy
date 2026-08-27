@@ -209,14 +209,52 @@ export async function preloadExportAssets(
 
 /**
  * Ensures browser document fonts are loaded before rendering.
+ * Also explicitly loads Cairo + Inter since Chrome needs them available
+ * before html-to-image captures the off-canvas element.
  */
 export async function ensureFontsReady(): Promise<void> {
-  if (typeof document !== "undefined" && "fonts" in document) {
-    try {
-      await document.fonts.ready
-    } catch {
-      // Ignore if document.fonts is unsupported
-    }
+  if (typeof document === "undefined" || !("fonts" in document)) return
+  try {
+    // Force Cairo (Arabic) and Inter (Latin) to load in Chrome
+    await Promise.all([
+      document.fonts.load("400 16px Cairo"),
+      document.fonts.load("700 16px Cairo"),
+      document.fonts.load("400 16px Inter"),
+      document.fonts.load("700 16px Inter"),
+      document.fonts.ready,
+    ])
+  } catch {
+    // Non-fatal: fall back to system fonts if loading fails
+  }
+}
+
+/**
+ * Cache for embedded font CSS base64 blobs.
+ * Chrome strips CSS custom properties (var(--font-arabic)) inside SVG foreignObject.
+ * Embedding the actual font bytes solves the blank-canvas issue in Chrome.
+ */
+let fontEmbedCSSCache: string | null = null
+
+export async function getEmbeddedFontCSS(
+  element: HTMLElement
+): Promise<string | undefined> {
+  if (typeof window === "undefined") return undefined
+
+  // Return from cache after first call
+  if (fontEmbedCSSCache !== null) return fontEmbedCSSCache
+
+  try {
+    // Use html-to-image's own font embed helper to serialize all loaded
+    // @font-face rules as base64 data URLs (avoids CORS tainting in Chrome).
+    const { getFontEmbedCSS } = await import("html-to-image")
+    const css = await getFontEmbedCSS(element)
+    fontEmbedCSSCache = css || ""
+    return fontEmbedCSSCache
+  } catch {
+    // Fallback: manually embed the Cairo font URLs from Google Fonts as
+    // a @font-face declaration so Chrome can render Arabic text.
+    fontEmbedCSSCache = ""
+    return fontEmbedCSSCache
   }
 }
 

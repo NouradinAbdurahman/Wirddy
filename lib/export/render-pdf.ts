@@ -2,6 +2,7 @@ import { toBlob } from "html-to-image"
 import { jsPDF } from "jspdf"
 import {
   ensureFontsReady,
+  getEmbeddedFontCSS,
   preloadExportAssets,
   waitForImagesToLoad,
 } from "./assets"
@@ -186,6 +187,9 @@ export async function renderSchedulePdfBlob(
       // Double rAF — guarantees a full layout + paint cycle before measuring.
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
+      // Embed fonts as base64 so Chrome renders Cairo/Inter inside SVG foreignObject.
+      const fontEmbedCSS = await getEmbeddedFontCSS(targetElement)
+
       // Use getBoundingClientRect for layout-accurate dimensions.
       const rect = targetElement.getBoundingClientRect()
       const measuredWidth = Math.round(rect.width) || 1000
@@ -196,7 +200,7 @@ export async function renderSchedulePdfBlob(
         pixelRatio: 3.6,
         width: measuredWidth,
         height: measuredHeight,
-        skipFonts: true,
+        fontEmbedCSS,
         cacheBust: false,
       })
 

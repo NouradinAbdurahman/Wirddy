@@ -2,6 +2,7 @@ import { toBlob } from "html-to-image"
 import {
   ensureFontsReady,
   ExportAssets,
+  getEmbeddedFontCSS,
   preloadExportAssets,
   waitForImagesToLoad,
 } from "./assets"
@@ -377,7 +378,7 @@ export function buildStandaloneWeekExportHtml(
   )
 
   return `
-    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
+    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: Cairo, Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
       
       <!-- Top Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 24px;">
@@ -500,7 +501,7 @@ export function buildPdfPageHtml(
     `
 
   return `
-    <div dir="${dir}" style="width: 1000px; min-width: 1000px; max-width: 1000px; height: 1414px; min-height: 1414px; max-height: 1414px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; position: relative;">
+    <div dir="${dir}" style="width: 1000px; min-width: 1000px; max-width: 1000px; height: 1414px; min-height: 1414px; max-height: 1414px; background-color: ${bg}; color: ${textPrimary}; font-family: Cairo, Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; position: relative;">
       
       <!-- Page Header -->
       <div>
@@ -606,7 +607,7 @@ export function buildMemberPersonalScheduleHtml(
     .join("")
 
   return `
-    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
+    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: Cairo, Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
       <!-- Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; gap: 16px; min-width: 0;">
@@ -698,6 +699,10 @@ export async function renderMemberPersonalSchedulePngBlob(
     // Double rAF guarantees the browser has completed a full layout + paint cycle.
     await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
+    // Embed fonts as base64 so Chrome can render Cairo/Inter inside SVG foreignObject.
+    // Chrome strips CSS custom properties (var(--font-arabic)) in that context.
+    const fontEmbedCSS = await getEmbeddedFontCSS(targetElement)
+
     // Measure the ACTUAL rendered size — clientWidth/clientHeight are unreliable
     // for off-canvas elements. getBoundingClientRect is layout-accurate.
     const rect = targetElement.getBoundingClientRect()
@@ -709,7 +714,7 @@ export async function renderMemberPersonalSchedulePngBlob(
       pixelRatio,
       width: measuredWidth,
       height: measuredHeight,
-      skipFonts: true,
+      fontEmbedCSS,
       cacheBust: false,
     })
 
@@ -780,8 +785,10 @@ export async function renderWeekToPngBlob(
     // Double rAF guarantees browser completes full layout + paint before we measure.
     await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
+    // Embed fonts as base64 so Chrome renders Cairo/Inter inside SVG foreignObject.
+    const fontEmbedCSS = await getEmbeddedFontCSS(targetElement)
+
     // Use getBoundingClientRect for layout-accurate dimensions.
-    // clientWidth/clientHeight are unreliable for off-canvas elements and give 0 height.
     const rect = targetElement.getBoundingClientRect()
     const measuredWidth = Math.round(rect.width) || 880
     const measuredHeight = Math.round(rect.height) || 1200
@@ -791,7 +798,7 @@ export async function renderWeekToPngBlob(
       pixelRatio,
       width: measuredWidth,
       height: measuredHeight,
-      skipFonts: true,
+      fontEmbedCSS,
       cacheBust: false,
     })
 

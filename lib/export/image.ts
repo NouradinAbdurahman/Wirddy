@@ -1,4 +1,5 @@
 import { toPng } from "html-to-image"
+import { getEmbeddedFontCSS } from "./assets"
 import { triggerBrowserDownload } from "./download"
 
 export async function exportElementAsPng(
@@ -12,10 +13,13 @@ export async function exportElementAsPng(
   }
 
   try {
+    // Embed fonts as base64 so Chrome renders Cairo/Inter inside SVG foreignObject.
+    const fontEmbedCSS = await getEmbeddedFontCSS(element)
+
     const dataUrl = await toPng(element, {
       quality: 0.98,
       pixelRatio: 2.2,
-      skipFonts: true,
+      fontEmbedCSS,
       cacheBust: false,
       filter: (node) => {
         if (node instanceof HTMLElement && node.dataset.noExport === "true") {
