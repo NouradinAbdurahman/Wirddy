@@ -1,6 +1,8 @@
 export type Language = "ar" | "en"
+export type Direction = "rtl" | "ltr"
 
 export interface Translations {
+  // Navigation & General
   appName: string
   tagline: string
   heroSubtitle: string
@@ -18,10 +20,19 @@ export interface Translations {
   step3Title: string
   step3Desc: string
 
-  // Example schedule
+  // Value Badges
+  badgeFree: string
+  badgeNoLogin: string
+  badgeBilingual: string
+  badgeMultiDevice: string
+
+  // Example schedule section
   exampleTitle: string
   exampleSubtitle: string
-  exampleTag: string
+  exampleBadge: string
+  exampleGroupName: string
+  exampleSummary: string
+  exampleTryTemplate: string
 
   // Features
   featuresTitle: string
@@ -39,37 +50,77 @@ export interface Translations {
   feature6Title: string
   feature6Desc: string
 
-  // Add to Home Screen (PWA)
-  pwaSectionBadge: string
-  pwaSectionTitle: string
-  pwaSectionDesc: string
-  pwaIphoneTab: string
-  pwaAndroidTab: string
-  pwaIphoneTitle: string
-  pwaIphoneStep1: string
-  pwaIphoneStep2: string
-  pwaIphoneStep3: string
-  pwaIphoneStep4: string
-  pwaIphoneNote: string
-  pwaAndroidTitle: string
-  pwaAndroidStep1: string
-  pwaAndroidStep2: string
-  pwaAndroidStep3: string
-  pwaAndroidStep4: string
-  pwaAndroidNote: string
-  pwaGifAlt: string
+  // Section Headers
+  sectionGroup: string
+  sectionQuranRange: string
+  sectionMembers: string
+  sectionRotation: string
+  sectionWeeks: string
 
-  // Group creation & form
+  // Rotation Styles
+  rotationStyleTitle: string
+  rotationStyleDesc: string
+  rotationLarge: string
+  rotationLargeDesc: string
+  rotationMedium: string
+  rotationMediumDesc: string
+  rotationSmall: string
+  rotationSmallDesc: string
+  rotationRandom: string
+  rotationRandomDesc: string
+
+  // Starting Point
+  startingPointTitle: string
+  startingPointDesc: string
+  startJuzLabel: string
+  endJuzLabel: string
+
+  // Quran Range
+  quranRangeTitle: string
+  quranRangeFull: string
+  quranRangeFullDesc: string
+  quranRangeCustom: string
+  quranRangeCustomDesc: string
+  rangeFrom: string
+  rangeTo: string
+  surahLabel: string
+  ayahLabel: string
+  rangeSummary: string
+  customRangeAmountNotice: string
+
+  // Group Form
   createGroupTitle: string
   createGroupSubtitle: string
+  formTitle: string
+  formSubtitle: string
   groupNameLabel: string
   groupNamePlaceholder: string
   groupNameHelp: string
+  weeksCountLabel: string
+  weeksCountHelper: string
+  weekUnit: string
+  weeksOption: string
+  btnContinue: string
 
-  // Member setup
+  // Total Indicator
+  totalLabel: string
+  totalSuccess: string
+  totalErrorLess: string
+  totalErrorMore: string
+  totalExactRequired: string
+  totalJuzLabel: string
+  totalExactMsg: string
+  totalLessMsg: string
+  totalMoreMsg: string
+  juzUnit: string
+
+  // Member Management
   membersTitle: string
   membersSubtitle: string
+  membersListTitle: string
   addMemberBtn: string
+  removeMemberBtn: string
+  removeMember: string
   noMembersTitle: string
   noMembersDesc: string
   memberNameLabel: string
@@ -78,65 +129,72 @@ export interface Translations {
   knowledgeEntire: string
   knowledgeJuzRange: string
   knowledgeSurahRange: string
-  startJuzLabel: string
-  endJuzLabel: string
+  fromJuz: string
+  toJuz: string
+  fromSurah: string
+  toSurah: string
   startSurahLabel: string
   endSurahLabel: string
   weeklyAmountLabel: string
   weeklyAmountUnit: string
   weeklyAmountHelp: string
-  removeMember: string
+  amountJuz: string
   memberCount: string
 
-  // Total validation
-  totalLabel: string
-  totalSuccess: string
-  totalErrorLess: string
-  totalErrorMore: string
-  totalExactRequired: string
-  juzUnit: string
-
-  // Number of weeks
+  // Weeks Selector
   weeksTitle: string
   weeksSubtitle: string
   weeksLabel: string
   weeksUnit: string
 
-  // Actions & Buttons
-  btnContinue: string
-  btnBack: string
+  // Generate Button & Common Actions
   btnGenerate: string
   btnGenerating: string
-  btnEditPlan: string
   btnRegenerate: string
+  btnEditPlan: string
+  btnBack: string
+  btnSave: string
   btnShare: string
   btnExportImage: string
   btnExportPdf: string
   btnCopyLink: string
+  btnQrCode: string
+  btnCopyEditLink: string
   linkCopied: string
 
-  // Schedule view
+  // Validation Messages
+  errGroupNameRequired: string
+  errAtLeastOneMember: string
+  errMemberNameRequired: string
+  errTotalMustBe30: string
+  errKnowledgeInvalid: string
+  errAmountExceedsKnowledge: string
+
+  // Schedule View
   planTitle: string
+  scheduleGeneratedSuccess: string
   weekLabel: string
   weekOf: string
   startLabel: string
   endLabel: string
   juzLabel: string
-  ayahLabel: string
   viewCards: string
   viewTable: string
   tableHeaderMember: string
   tableHeaderAmount: string
   tableHeaderStart: string
   tableHeaderEnd: string
+  tableHeaderJuzRange: string
+  tableHeaderAyahRange: string
   summaryTitle: string
   summaryTotal: string
   summaryMembers: string
   summaryQuran: string
   currentWeekOnly: string
   fullPlan: string
+  shareSchedule: string
 
-  // Dialogs & Modals
+  // Modal Dialogs
   regenerateTitle: string
   regenerateWarning: string
   regenerateConfirm: string
@@ -165,6 +223,19 @@ export interface Translations {
   exportShareFallbackError: string
   preparingExport: string
 
+  // Export Options & Branding
+  exportOptionsTitle: string
+  optShowLogo: string
+  optShowQr: string
+  optShowGroupName: string
+  optShowDate: string
+
+  // Print & Duplicate
+  btnPrint: string
+  btnDuplicate: string
+  duplicatingSchedule: string
+  scheduleDuplicatedSuccess: string
+
   // Save & Share / Persistence
   btnSaveAndShare: string
   saveModalTitle: string
@@ -172,6 +243,10 @@ export interface Translations {
   savingSchedule: string
   scheduleSavedSuccess: string
   scheduleSavedDesc: string
+  sectionViewLink: string
+  sectionViewLinkDesc: string
+  sectionEditLink: string
+  sectionEditLinkDesc: string
   publicShareLink: string
   copyPublicLink: string
   shareGroupLink: string
@@ -183,6 +258,7 @@ export interface Translations {
   secretEditLinkDesc: string
   copyEditLink: string
   editLinkCopied: string
+  scanToOpen: string
   saveOfflineWarning: string
   viewOnlyBadge: string
   editorBadge: string
@@ -193,6 +269,41 @@ export interface Translations {
   btnCreateNewSchedule: string
   btnDeleteSchedule: string
   deleteScheduleConfirm: string
+
+  // Recent Schedules
+  recentSchedulesTitle: string
+  recentSchedulesSubtitle: string
+  lastUsedToday: string
+  lastUsedYesterday: string
+  btnOpenRecent: string
+  btnRemoveRecent: string
+  btnClearAll: string
+  noRecentSchedules: string
+
+  // PWA Add to Home Screen
+  pwaTitle: string
+  pwaDesc: string
+  pwaSectionBadge: string
+  pwaSectionTitle: string
+  pwaSectionDesc: string
+  pwaIosStep: string
+  pwaAndroidStep: string
+  pwaIosTab: string
+  pwaAndroidTab: string
+  pwaIphoneTab: string
+  pwaIphoneTitle: string
+  pwaAndroidTitle: string
+  pwaIphoneStep1: string
+  pwaIphoneStep2: string
+  pwaIphoneStep3: string
+  pwaIphoneStep4: string
+  pwaAndroidStep1: string
+  pwaAndroidStep2: string
+  pwaAndroidStep3: string
+  pwaAndroidStep4: string
+  pwaIphoneNote: string
+  pwaAndroidNote: string
+  pwaGifAlt: string
 
   // Quick groups suggestions
   suggestionsTitle: string
@@ -220,177 +331,245 @@ export const translations: Record<Language, Translations> = {
     howItWorksTitle: "كيف يعمل وِردي؟",
     howItWorksSubtitle:
       "ثلاث خطوات بسيطة لإنشاء جدول قراءة متكامل ومتوازن لمجموعتك.",
-    step1Title: "١. أنشئ مجموعتك",
-    step1Desc:
-      "اختر اسمًا لمجموعتك (العائلة، الأصدقاء، حلقة المسجد، أو أي مجموعة).",
-    step2Title: "٢. حدد مقدار كل عضو",
-    step2Desc:
-      "أضف الأعضاء، وحدد ما يحفظه أو يتقنه كل عضو ومقدار قراءته أسبوعيًا حتى يكتمل المجموع ٣٠ جزءًا.",
-    step3Title: "٣. أنشئ جدولك المدوّر",
-    step3Desc:
-      "اختر عدد الأسابيع، ويقوم وِردي بتوليد جدول دوري ذكي ومحدد بآيات البداية والنهاية.",
+    step1Title: "أنشئ مجموعتك",
+    step1Desc: "أضف الأعضاء وحدد مقدار قراءة كل شخص.",
+    step2Title: "أنشئ جدولك",
+    step2Desc: "وِردي يقسم القرآن ويغيّر التوزيع بين الأسابيع.",
+    step3Title: "شارك الجدول",
+    step3Desc: "أرسل الرابط أو رمز QR إلى مجموعتك.",
 
-    exampleTitle: "نموذج من الجدول",
-    exampleSubtitle:
-      "تصميم أنيق وواضح يسهل قراءته ومشاركته عبر واتساب أو طباعته.",
-    exampleTag: "معاينة مباشرة",
+    badgeFree: "مجاني",
+    badgeNoLogin: "بدون تسجيل دخول",
+    badgeBilingual: "بالعربية والإنجليزية",
+    badgeMultiDevice: "يعمل على الهاتف والكمبيوتر",
 
-    featuresTitle: "مميزات وِردي",
-    featuresSubtitle: "صُمم ليكون هادئًا، دقيقًا، وخاليًا من التعقيد.",
-    feature1Title: "تقسيم قرآني ذكي",
-    feature1Desc: "يضمن قراءة الـ ٣٠ جزءًا كاملة كل أسبوع دون أي نقص أو تكرار.",
-    feature2Title: "مرونة في معرفة الأعضاء",
+    exampleTitle: "نموذج لجدول أسبوعي",
+    exampleSubtitle: "شاهد كيف يبدو جدول الورد المنظم لمجموعة مكونة من ٤ أعضاء",
+    exampleBadge: "معاينة مباشرة",
+    exampleGroupName: "ختمة العائلة المباركة",
+    exampleSummary: "٤ أعضاء • ٣٠ جزءًا أسبوعيًا",
+    exampleTryTemplate: "استخدم هذا النموذج",
+
+    featuresTitle: "لماذا وِردي؟",
+    featuresSubtitle:
+      "صُمم ليكون التطبيق الأكثر دقة وسهولة في تنظيم قراءة القرآن للمجموعات.",
+    feature1Title: "تدوير ذكي ومستمر",
+    feature1Desc:
+      "خوارزمية ذكية تضمن عدم تكرار قراءة الأجزاء نفسها لكل عضو أسبوعًا بعد أسبوع.",
+    feature2Title: "مراعاة ما يحفظه كل شخص",
     feature2Desc:
-      "مراعاة مستوى معرفة كل عضو (القرآن كاملًا، أجزاء محددة، أو سور محددة).",
-    feature3Title: "تدوير أسبوعي متوازن",
+      "حدد للأعضاء الأجزاء التي يحفظونها فقط ليتم توزيع القراءة بما يناسب قدرة كل شخص.",
+    feature3Title: "دقة الآية والسورة",
     feature3Desc:
-      "يغير أجزاء الأعضاء أسبوعيًا ليتنقل كل قارئ بين أجزاء القرآن المختلفة.",
-    feature4Title: "تحديد دقيق للآيات",
+      "بيانات موثقة تحدد لك بالضبط من أي آية وسورة تبدأ وأين تنتهي في كل أسبوع.",
+    feature4Title: "تصدير فوري ومشاركة سهلة",
     feature4Desc:
-      "عرض اسم السورة ورقم الآية لبداية ونهاية كل ورد بدقة متناهية.",
-    feature5Title: "تصدير صور و PDF",
+      "حمّل جدول مجموعتك كصورة أنيقة، أو ملف PDF، أو شاركه مباشرة مع أحبابك برابط دائم.",
+    feature5Title: "تصدير صور وPDF عالي الجودة",
     feature5Desc:
-      "تحميل الجداول كصور عالية الجودة للمشاركة في واتساب أو ملفات PDF للطباعة.",
-    feature6Title: "ثنائي اللغة والتوجيه",
-    feature6Desc:
-      "دعم كامل للغتين العربية (RTL) والإنجليزية (LTR) مع توافق تام.",
+      "حمل صوراً جاهزة للواتساب أو ملفات PDF منسقة للطباعة بحجم A4.",
+    feature6Title: "واجهة ثنائية اللغة",
+    feature6Desc: "دعم كامل للغتين العربية والإنجليزية مع اتجاهات RTL وLTR.",
 
-    pwaSectionBadge: "استخدم وردي مثل التطبيق",
-    pwaSectionTitle: "أضف وردي إلى الشاشة الرئيسية",
-    pwaSectionDesc:
-      "لا حاجة إلى تحميل تطبيق أو إنشاء حساب. أضف وردي إلى الشاشة الرئيسية وافتحه متى شئت.",
-    pwaIphoneTab: "iPhone",
-    pwaAndroidTab: "Android",
-    pwaIphoneTitle: "أضف وردي إلى جهاز iPhone",
-    pwaIphoneStep1: "افتح وردي في متصفح Safari.",
-    pwaIphoneStep2: "اضغط على زر المشاركة.",
-    pwaIphoneStep3: "اختر «إضافة إلى الشاشة الرئيسية».",
-    pwaIphoneStep4: "اضغط على «إضافة».",
-    pwaIphoneNote: "يمكنك فتح وردي من الشاشة الرئيسية مثل أي تطبيق آخر.",
-    pwaAndroidTitle: "أضف وردي إلى جهاز Android",
-    pwaAndroidStep1: "افتح وردي في متصفح Chrome.",
-    pwaAndroidStep2: "افتح قائمة المتصفح.",
-    pwaAndroidStep3:
-      "اختر «إضافة إلى الشاشة الرئيسية» أو «تثبيت التطبيق» عند توفر الخيار.",
-    pwaAndroidStep4: "أكد الإضافة.",
-    pwaAndroidNote: "يمكنك فتح وردي من الشاشة الرئيسية متى شئت.",
-    pwaGifAlt: "كيفية إضافة وردي إلى الشاشة الرئيسية",
+    sectionGroup: "المجموعة",
+    sectionQuranRange: "نطاق القراءة والبداية",
+    sectionMembers: "الأعضاء وتوزيع الأجزاء",
+    sectionRotation: "طريقة التغيير",
+    sectionWeeks: "المدة وعدد الأسابيع",
 
-    createGroupTitle: "إنشاء مجموعة جديدة",
-    createGroupSubtitle: "ابدأ بتسمية مجموعتك",
+    rotationStyleTitle: "طريقة التغيير",
+    rotationStyleDesc: "اختر كيف يتم تدوير الأجزاء بين الأعضاء من أسبوع لآخر",
+    rotationLarge: "تغيير كبير كل أسبوع",
+    rotationLargeDesc:
+      "يغيّر توزيع الأجزاء بين الأعضاء بشكل واضح من أسبوع إلى آخر.",
+    rotationMedium: "تغيير متوسط",
+    rotationMediumDesc: "يوازن بين الاستقرار والتغيير.",
+    rotationSmall: "تغيير بسيط",
+    rotationSmallDesc: "يحافظ على توزيع قريب من الأسبوع السابق مع بعض التغيير.",
+    rotationRandom: "عشوائي",
+    rotationRandomDesc:
+      "ينشئ توزيعًا مختلفًا لكل أسبوع مع الالتزام بجميع القيود.",
+
+    startingPointTitle: "بداية الورد",
+    startingPointDesc: "حدد من أي جزء تبدأ القراءة للأسبوع الأول",
+    startJuzLabel: "يبدأ من",
+    endJuzLabel: "إلى الجزء",
+
+    quranRangeTitle: "نطاق القراءة",
+    quranRangeFull: "القرآن كاملًا",
+    quranRangeFullDesc: "قراءة القرآن كاملًا (٣٠ جزءًا)",
+    quranRangeCustom: "تحديد نطاق مخصص",
+    quranRangeCustomDesc: "حدد سورًا أو آيات معينة للقراءة",
+    rangeFrom: "من",
+    rangeTo: "إلى",
+    surahLabel: "السورة",
+    ayahLabel: "الآية",
+    rangeSummary: "المقدار",
+    customRangeAmountNotice: "المجموع يتناسب مع النطاق المحدد",
+
+    createGroupTitle: "أنشئ مجموعتك",
+    createGroupSubtitle: "اختر اسماً لمجموعتك لبدء تنظيم الورد وتوزيع القراءة",
+    formTitle: "إعداد خطة القراءة",
+    formSubtitle:
+      "أدخل بيانات مجموعتك وأعضائها لنقوم بإنشاء جدول منظم ودقيق تلقائيًا.",
     groupNameLabel: "اسم المجموعة",
-    groupNamePlaceholder: "مثال: عائلة الفرح، حلقة الإيمان، أصدقاء رمضان...",
-    groupNameHelp: "يمكن لأي مجموعة (عائلة، زملاء، طلاب، أصدقاء) القراءة معًا.",
+    groupNamePlaceholder: "مثال: عائلة الفرح، أصدقاء القرآن...",
+    groupNameHelp: "يمكنك تغيير اسم المجموعة في أي وقت لاحقاً.",
+    weeksCountLabel: "عدد الأسابيع",
+    weeksCountHelper: "اختر مدة الخطة (من أسبوع واحد حتى ٥٢ أسبوعًا)",
+    weekUnit: "أسابيع",
+    weeksOption: "أسابيع",
+    btnContinue: "متابعة وإضافة الأعضاء",
 
-    membersTitle: "أعضاء المجموعة وتوزيع الورد",
-    membersSubtitle: "أضف الأعضاء وحدد نطاق المعرفة والمقدار الأسبوعي لكل عضو.",
-    addMemberBtn: "إضافة عضو جديد",
-    noMembersTitle: "ابدأ بإضافة أعضاء مجموعتك",
-    noMembersDesc:
-      "أضف أسماء المشاركين في الورد القرآني وحدد المقدار الأسبوعي لكل منهم.",
+    totalLabel: "مجموع الأجزاء الأسبوعية",
+    totalSuccess: "ممتاز! سيكمل أفراد المجموعة قراءة ٣٠ جزءاً بالضبط كل أسبوع.",
+    totalErrorLess:
+      "مجموع القراءة الأسبوعية أقل من ٣٠ جزءاً. المطلوب ٣٠ جزءاً بالضبط.",
+    totalErrorMore:
+      "مجموع القراءة الأسبوعية تجاوز ٣٠ جزءاً. المطلوب ٣٠ جزءاً بالضبط.",
+    totalExactRequired:
+      "يجب أن يكون مجموع القراءة الأسبوعية مساوياً لـ ٣٠ جزءاً بالضبط.",
+    totalJuzLabel: "مجموع الأجزاء الأسبوعية",
+    totalExactMsg: "المجموع مكتمل (٣٠/٣٠ جزءًا). جاهز لإنشاء الجدول!",
+    totalLessMsg: "المجموع الحالي أقل من ٣٠ جزءًا. تبقّى",
+    totalMoreMsg: "المجموع الحالي تجاوز ٣٠ جزءًا. الزيادة",
+    juzUnit: "أجزاء",
+
+    membersTitle: "إضافة أعضاء المجموعة",
+    membersSubtitle:
+      "حدد أسماء الأعضاء، ونطاق ما يتقنونه، ومقدار قراءة كل عضو أسبوعياً.",
+    membersListTitle: "أعضاء المجموعة",
+    addMemberBtn: "إضافة عضو",
+    removeMemberBtn: "حذف العضو",
+    removeMember: "حذف العضو",
+    noMembersTitle: "لم تتم إضافة أي عضو بعد",
+    noMembersDesc: "ابدأ بإضافة الأعضاء وتحديد مقدار قراءتهم الأسبوعية.",
     memberNameLabel: "اسم العضو",
-    memberNamePlaceholder: "مثال: طارق، خديجة، يوسف...",
-    knowledgeLabel: "نطاق معرفة القرآن",
-    knowledgeEntire: "القرآن كاملًا (الجزء ١ إلى ٣٠)",
+    memberNamePlaceholder: "اسم العضو",
+    knowledgeLabel: "نطاق المعرفة / الحفظ",
+    knowledgeEntire: "القرآن كاملًا (١-٣٠)",
     knowledgeJuzRange: "أجزاء محددة",
     knowledgeSurahRange: "سور محددة",
-    startJuzLabel: "من الجزء",
-    endJuzLabel: "إلى الجزء",
+    fromJuz: "من الجزء",
+    toJuz: "إلى الجزء",
+    fromSurah: "من سورة",
+    toSurah: "إلى سورة",
     startSurahLabel: "من سورة",
     endSurahLabel: "إلى سورة",
-    weeklyAmountLabel: "المقدار الأسبوعي",
+    weeklyAmountLabel: "مقدار القراءة الأسبوعي",
     weeklyAmountUnit: "أجزاء / أسبوع",
-    weeklyAmountHelp: "كم جزءًا سيقرأ هذا العضو في الأسبوع؟",
-    removeMember: "حذف العضو",
+    weeklyAmountHelp: "كم جزءاً يقرأ هذا العضو في الأسبوع؟",
+    amountJuz: "أجزاء أسبوعيًا",
     memberCount: "الأعضاء",
 
-    totalLabel: "مجموع القراءة الأسبوعية للمجموعة",
-    totalSuccess: "ممتاز. ستكمل المجموعة ٣٠ جزءًا كاملًا كل أسبوع.",
-    totalErrorLess: "المجموع الحالي أقل من ٣٠ جزءًا. المطلوب إكمال ٣٠ جزءًا.",
-    totalErrorMore: "المجموع الحالي يتجاوز ٣٠ جزءًا. المطلوب ٣٠ جزءًا بالضبط.",
-    totalExactRequired: "يجب أن يساوي مجموع القراءة الأسبوعية ٣٠ جزءًا بالضبط.",
-    juzUnit: "جزء",
-
     weeksTitle: "مدة الخطة",
-    weeksSubtitle: "كم أسبوعًا تريد توليد الجدول له؟",
+    weeksSubtitle: "كم أسبوعاً ترغب في جدولته للمجموعة؟",
     weeksLabel: "عدد الأسابيع",
     weeksUnit: "أسابيع",
 
-    btnContinue: "المتابعة",
-    btnBack: "رجوع",
-    btnGenerate: "إنشاء الجدول",
-    btnGenerating: "جارٍ إنشاء جدولك...",
-    btnEditPlan: "تعديل الخطة والأعضاء",
+    btnGenerate: "إنشاء جدول الورد",
+    btnGenerating: "جارٍ الحساب والإنشاء...",
     btnRegenerate: "إعادة إنشاء الجدول",
+    btnEditPlan: "تعديل الخطة والأعضاء",
+    btnBack: "الرجوع للخلف",
+    btnSave: "حفظ ومتابعة",
     btnShare: "مشاركة",
-    btnExportImage: "تحميل كصورة",
-    btnExportPdf: "تحميل PDF",
+    btnExportImage: "تنزيل صورة",
+    btnExportPdf: "تنزيل PDF",
     btnCopyLink: "نسخ الرابط",
-    linkCopied: "تم نسخ الرابط بنجاح",
+    btnQrCode: "رمز QR",
+    btnCopyEditLink: "نسخ رابط التعديل",
 
-    planTitle: "خطة إتمام القرآن الكريم",
+    errGroupNameRequired: "يرجى كتابة اسم المجموعة.",
+    errAtLeastOneMember: "يجب إضافة عضو واحد على الأقل.",
+    errMemberNameRequired: "يرجى كتابة أسماء جميع الأعضاء.",
+    errTotalMustBe30: "يجب أن يكون مجموع الأجزاء ٣٠ جزءًا بالضبط.",
+    errKnowledgeInvalid: "نطاق الحفظ غير صحيح لبعض الأعضاء.",
+    errAmountExceedsKnowledge: "مقدار القراءة أكبر من الأجزاء المحددة للعضو.",
+
+    planTitle: "خطة ختمة القرآن",
+    scheduleGeneratedSuccess: "تم إنشاء جدول الورد بنجاح!",
     weekLabel: "الأسبوع",
     weekOf: "من",
     startLabel: "البداية",
     endLabel: "النهاية",
     juzLabel: "الجزء",
-    ayahLabel: "الآية",
-    viewCards: "البطاقات",
-    viewTable: "الجدول",
+    viewCards: "بطاقات",
+    viewTable: "جدول",
     tableHeaderMember: "العضو",
-    tableHeaderAmount: "الورد",
+    tableHeaderAmount: "المقدار",
     tableHeaderStart: "البداية",
     tableHeaderEnd: "النهاية",
-    summaryTitle: "ملخص الورد",
-    summaryTotal: "٣٠ جزءًا أسبوعيًا",
+    tableHeaderJuzRange: "الأجزاء",
+    tableHeaderAyahRange: "بداية ونهاية القراءة",
+    summaryTitle: "ملخص الخطة",
+    summaryTotal: "٣٠ جزءاً أسبوعياً",
     summaryMembers: "أعضاء",
-    summaryQuran: "ختمة كاملة كل أسبوع",
+    summaryQuran: "ختمة واحدة كاملة كل أسبوع",
     currentWeekOnly: "الأسبوع الحالي",
     fullPlan: "الخطة كاملة",
+    shareSchedule: "مشاركة الجدول",
+    linkCopied: "تم نسخ الرابط بنجاح",
 
     regenerateTitle: "إعادة إنشاء الجدول؟",
     regenerateWarning:
-      "إعادة إنشاء الجدول ستستبدل الجدول الحالي بجدول جديد يتم توليده وفق الإعدادات الحالية.",
+      "سيؤدي هذا إلى إعادة توزيع الأجزاء وتوليد جدول جديد بالكامل لجميع الأسابيع.",
     regenerateConfirm: "نعم، أعد الإنشاء",
     cancel: "إلغاء",
-    exportTitle: "تحميل ومشاركة الجدول",
-    exportSubtitle: "اختر التنسيق المناسب لتنزيل الجدول أو مشاركته مباشرة.",
+    exportTitle: "تنزيل ومشاركة الجدول",
+    exportSubtitle: "اختر الصيغة لتنزيل الجدول أو مشاركته مباشرة.",
     exportDownloadSection: "تنزيل الملفات",
-    exportShareSection: "مشاركة مباشرة",
-    exportPngCurrent: "صورة الأسبوع الحالي",
+    exportShareSection: "المشاركة المباشرة",
+    exportPngCurrent: "صورة الأسبوع الحالي (PNG)",
     exportPngCurrentFormat: "PNG",
-    exportZipAll: "جميع الأسابيع",
+    exportZipAll: "جميع الأسابيع (ملف ZIP)",
     exportZipAllFormat: "ZIP",
-    exportPdfAll: "الخطة كاملة",
+    exportPdfAll: "الخطة كاملة (مستند PDF)",
     exportPdfAllFormat: "PDF",
-    exportSharePdfAll: "مشاركة الخطة الكاملة",
+    exportSharePdfAll: "مشاركة الخطة كاملة (PDF)",
     exportLoadingCurrent: "جارٍ تجهيز صورة الأسبوع الحالي...",
-    exportLoadingAll: "جارٍ تجهيز صور جميع الأسابيع...",
-    exportLoadingPdf: "جارٍ إنشاء ملف PDF...",
-    exportLoadingShare: "جارٍ تجهيز الخطة للمشاركة...",
-    exportOpeningShare: "جارٍ فتح قائمة المشاركة...",
-    exportSuccess: "تم تنزيل الملف بنجاح.",
-    exportShareSuccess: "تمت مشاركة الخطة بنجاح.",
-    exportError: "تعذر إنشاء الملف. يرجى المحاولة مرة أخرى.",
-    exportLogoError: "تعذر تحميل شعار وردي. يرجى المحاولة مرة أخرى.",
+    exportLoadingAll: "جارٍ تجهيز جميع الأسابيع وضغطها...",
+    exportLoadingPdf: "جارٍ إنشاء وتنسيق ملف PDF...",
+    exportLoadingShare: "جارٍ تجهيز ملف PDF للمشاركة...",
+    exportOpeningShare: "جارٍ فتح نافذة المشاركة في جهازك...",
+    exportSuccess: "تم تنزيل الملف بنجاح!",
+    exportShareSuccess: "تم فتح نافذة المشاركة بنجاح!",
+    exportError: "حدث خطأ أثناء إنشاء ملف التصدير. يرجى المحاولة مجددًا.",
+    exportLogoError: "تعذر تحميل الشعار بجودة عالية للتصدير.",
     exportShareFallbackUnsupported:
-      "المشاركة المباشرة غير مدعومة في هذا المتصفح. تم تنزيل ملف PDF ويمكنك مشاركته من جهازك.",
+      "المشاركة المباشرة للملفات غير مدعومة في هذا المتصفح. تم تنزيل الملف بدلاً من ذلك.",
     exportShareFallbackError:
-      "تعذرت مشاركة الجدول. تم تنزيل الملف بدلًا من ذلك.",
-    preparingExport: "جارٍ تجهيز الملف للتحميل...",
+      "تعذرت المشاركة المباشرة. تم تنزيل الملف إلى جهازك بدلاً من ذلك.",
+    preparingExport: "جارٍ تجهيز التصدير...",
 
-    // Save & Share / Persistence
+    exportOptionsTitle: "خيارات التصدير",
+    optShowLogo: "إظهار شعار Wirddy",
+    optShowQr: "إظهار رمز QR",
+    optShowGroupName: "إظهار اسم المجموعة",
+    optShowDate: "إظهار تاريخ الإنشاء",
+
+    btnPrint: "طباعة",
+    btnDuplicate: "نسخ الجدول",
+    duplicatingSchedule: "جارٍ نسخ الجدول...",
+    scheduleDuplicatedSuccess: "تم نسخ الجدول بنجاح كخطة جديدة!",
+
     btnSaveAndShare: "حفظ ومشاركة",
-    saveModalTitle: "حفظ ومشاركة الجدول",
+    saveModalTitle: "مشاركة الجدول",
     saveModalSubtitle:
       "احصل على رابط مباشر لمشاركة الجدول مع مجموعتك أو إعادة فتحه في أي وقت دون تسجيل حساب.",
     savingSchedule: "جارٍ حفظ الجدول على الإنترنت...",
     scheduleSavedSuccess: "تم حفظ الجدول بنجاح!",
     scheduleSavedDesc:
       "يمكنك الآن مشاركة هذا الرابط مع أعضاء المجموعة للاطلاع على الجدول من أي جهاز.",
+    sectionViewLink: "رابط المشاهدة",
+    sectionViewLinkDesc:
+      "يمكنك مشاركة هذا الرابط مع أفراد المجموعة. لا يحتاج إلى تسجيل الدخول.",
+    sectionEditLink: "رابط التعديل",
+    sectionEditLinkDesc:
+      "هذا الرابط سري ويسمح لك بتعديل الجدول وإعادة إنشائه. احتفظ به في مكان آمن.",
     publicShareLink: "رابط المشاهدة للمجموعة",
     copyPublicLink: "نسخ الرابط",
-    shareGroupLink: "مشاركة الرابط",
+    shareGroupLink: "مشاركة",
     qrCodeTitle: "رمز الاستجابة السريعة (QR)",
     qrCodeDesc: "امسح الرمز بكاميرا الهاتف لفتح الجدول فوراً.",
     btnShowQrCode: "عرض رمز QR",
@@ -400,72 +579,116 @@ export const translations: Record<Language, Translations> = {
       "احتفظ بهذا الرابط لتتمكن من تعديل أسماء الأعضاء أو إعادة إنشاء الجدول لاحقاً. لا تشاركه إلا مع من يملك صلاحية التعديل.",
     copyEditLink: "نسخ رابط التعديل",
     editLinkCopied: "تم نسخ رابط التعديل!",
+    scanToOpen: "امسح لفتح الجدول",
     saveOfflineWarning:
       "تم إنشاء جدولك محلياً، ولكن تعذر حفظه على الإنترنت. يمكنك الاستمرار في استخدامه وتنزيله الآن.",
-    viewOnlyBadge: "للمشاهدة فقط",
+    viewOnlyBadge: "وضع المشاهدة",
     editorBadge: "وضع التعديل",
-    scheduleNotFoundTitle: "لم يتم العثور على الجدول",
+    scheduleNotFoundTitle: "الجدول غير موجود",
     scheduleNotFoundDesc:
-      "الرابط الذي تحاول الوصول إليه غير موجود أو تم حذفه. يمكنك إنشاء جدول جديد بكل سهولة.",
-    scheduleExpiredTitle: "الجدول غير متاح",
-    scheduleExpiredDesc: "انتهت صلاحية هذا الجدول ولم يعد متاحاً على الإنترنت.",
+      "عذراً، لم نتمكن من العثور على هذا الجدول. قد يكون الرابط خاطئاً أو تم حذفه.",
+    scheduleExpiredTitle: "انتهت صلاحية الجدول",
+    scheduleExpiredDesc:
+      "هذا الجدول تجاوز المدة المحددة (سنة واحدة) ولم يعد متاحاً على الخادم.",
     btnCreateNewSchedule: "إنشاء جدول جديد",
     btnDeleteSchedule: "حذف الجدول",
-    deleteScheduleConfirm: "هل أنت متأكد من رغبتك في حذف هذا الجدول نهائياً؟",
+    deleteScheduleConfirm: "هل أنت متأكد من حذف هذا الجدول نهائياً؟",
 
-    suggestionsTitle: "أفكار سريعة لأسماء المجموعات:",
-    suggFamily: "عائلة الهدى",
-    suggFriends: "صحبة الخير",
-    suggRamadan: "ورد رمضان",
-    suggMosque: "حلقة النور",
+    recentSchedulesTitle: "جداولك الأخيرة",
+    recentSchedulesSubtitle:
+      "الجداول التي قمت بإنشائها أو فتحها مؤخراً على هذا الجهاز",
+    lastUsedToday: "اليوم",
+    lastUsedYesterday: "أمس",
+    btnOpenRecent: "فتح الجدول",
+    btnRemoveRecent: "إزالة",
+    btnClearAll: "مسح السجل",
+    noRecentSchedules: "لا توجد جداول محفوظة مؤخراً على هذا الجهاز",
+
+    pwaTitle: "استخدم وِردي كتطبيق",
+    pwaDesc:
+      "أضفه إلى الشاشة الرئيسية للوصول إليه بسرعة وسهولة دون الحاجة لتنزيل أي تطبيق من المتجر.",
+    pwaSectionBadge: "استخدم وِردي كتطبيق",
+    pwaSectionTitle: "استخدم وِردي كتطبيق على هاتفك",
+    pwaSectionDesc:
+      "يمكنك إضافة وِردي مباشرة إلى شاشة هاتفك الرئيسية للوصول إلى جداولك بلمسة واحدة دون الحاجة لتحميل تطبيقات من المتجر.",
+    pwaIosStep:
+      "في متصفح Safari، اضغط على زر المشاركة ثم اختر 'إضافة إلى الشاشة الرئيسية'.",
+    pwaAndroidStep:
+      "في متصفح Chrome، اضغط على خيارات المتصفح (⋮) ثم اختر 'تثبيت التطبيق' أو 'إضافة إلى الشاشة الرئيسية'.",
+    pwaIosTab: "أجهزة آيفون (iOS)",
+    pwaAndroidTab: "أجهزة أندرويد (Android)",
+    pwaIphoneTab: "iPhone (iOS)",
+    pwaIphoneTitle: "إضافة وِردي إلى شاشة الآيفون",
+    pwaAndroidTitle: "تثبيت وِردي على أندرويد",
+    pwaIphoneStep1: "افتح موقع وِردي في متصفح Safari",
+    pwaIphoneStep2: "اضغط على زر المشاركة في أسفل الشاشة",
+    pwaIphoneStep3: "مرر للأسفل واختر 'إضافة إلى الشاشة الرئيسية'",
+    pwaIphoneStep4: "اضغط على 'إضافة' في الزاوية العلوية",
+    pwaAndroidStep1: "افتح موقع وِردي في متصفح Chrome",
+    pwaAndroidStep2: "اضغط على القائمة (الثلاث نقاط) أعلى المتصفح",
+    pwaAndroidStep3: "اختر 'تثبيت التطبيق' أو 'إضافة إلى الشاشة الرئيسية'",
+    pwaAndroidStep4: "أكّد التثبيت لتجده مباشرة بين تطبيقاتك",
+    pwaIphoneNote: "يعمل بسلاسة حتى في حال انقطاع الاتصال بعد الفتح الأول.",
+    pwaAndroidNote: "تثبيت خفيف وسريع ولا يستهلك مساحة التخزين.",
+    pwaGifAlt: "خطوات إضافة وِردي إلى الشاشة الرئيسية على الآيفون",
+
+    suggestionsTitle: "مجموعات مقترحة",
+    suggFamily: "ختمة العائلة",
+    suggFriends: "أصدقاء المسجد",
+    suggRamadan: "ختمة رمضان",
+    suggMosque: "حلقة التحفيظ",
     suggStudy: "مجموعة التدارس",
 
-    footerText: "وِردي — تنظيم ورد القرآن الكريم للمجموعات والأسَر",
+    footerText: "وِردي - تنظيم قراءة القرآن الكريم للمجموعات",
     footerRights: "جميع الحقوق محفوظة",
   },
-
   en: {
     appName: "Wirddy",
-    tagline: "Plan your Quran reading together.",
+    tagline: "Organize your Quran reading together",
     heroSubtitle:
-      "A modern, clean web application for groups to divide and complete the Quran together with rotating weekly schedules and exact Ayah references.",
-    ctaCreateGroup: "Create a group",
-    ctaHowItWorks: "See how it works",
-    ctaGetStarted: "Create your first group",
+      "A smart and simple app to distribute Quran reading among group members, with accurate weekly rotating schedules down to the exact Surah and Ayah.",
+    ctaCreateGroup: "Create a Group",
+    ctaHowItWorks: "How It Works",
+    ctaGetStarted: "Start organizing your group",
 
     howItWorksTitle: "How Wirddy Works",
     howItWorksSubtitle:
-      "Three simple steps to generate a balanced rotating reading schedule.",
-    step1Title: "1. Create your group",
-    step1Desc:
-      "Enter a group name (family, friends, university peers, study circle, etc.).",
-    step2Title: "2. Configure each member",
-    step2Desc:
-      "Set each member's Quran knowledge range and weekly reading amount until the total equals 30 Juz.",
-    step3Title: "3. Generate rotating schedule",
-    step3Desc:
-      "Choose the number of weeks and Wirddy creates a verified schedule with exact start and end Ayahs.",
+      "Three simple steps to create a balanced, rotating Quran schedule for your group.",
+    step1Title: "Create your group",
+    step1Desc: "Add members and choose how much each person reads.",
+    step2Title: "Generate your schedule",
+    step2Desc: "Wirddy divides the Quran and rotates assignments across weeks.",
+    step3Title: "Share your schedule",
+    step3Desc: "Send the link or QR code to your group.",
 
-    exampleTitle: "Sample Schedule Preview",
+    badgeFree: "Free",
+    badgeNoLogin: "No login",
+    badgeBilingual: "Arabic + English",
+    badgeMultiDevice: "Works on phone and desktop",
+
+    exampleTitle: "Weekly Schedule Preview",
     exampleSubtitle:
-      "Clean, modern, and easily shareable on WhatsApp or printable as PDF.",
-    exampleTag: "Live Preview",
+      "See how an organized reading plan looks for a group of 4 members",
+    exampleBadge: "Live Preview",
+    exampleGroupName: "Family Quran Reading",
+    exampleSummary: "4 members • 30 Juz / week",
+    exampleTryTemplate: "Use this template",
 
-    featuresTitle: "Why Wirddy",
+    featuresTitle: "Why Wirddy?",
     featuresSubtitle:
-      "Built to be calm, mathematically rigorous, and effortless.",
-    feature1Title: "Smart Quran Division",
+      "Designed to be the most accurate and effortless Quran group planner.",
+    feature1Title: "Smart Rotating Schedules",
     feature1Desc:
-      "Ensures exactly 30 Juz are covered every week with 0 overlaps and 0 gaps.",
-    feature2Title: "Knowledge Range Flexibility",
+      "An intelligent algorithm ensures members rotate through different Juz each week without repeating.",
+    feature2Title: "Personalized Knowledge Ranges",
     feature2Desc:
-      "Accommodates members with full Quran knowledge or specific Juz/Surah limits.",
-    feature3Title: "Weekly Rotation Engine",
+      "Assign members only the parts they have memorized or feel comfortable reading.",
+    feature3Title: "Surah & Ayah Precision",
     feature3Desc:
-      "Cycles readings so each member experiences different portions of the Quran.",
-    feature4Title: "Exact Ayah Precision",
+      "Verified Quranic data tells each member exactly which Surah and Ayah to start and finish with.",
+    feature4Title: "Instant Export & Easy Sharing",
     feature4Desc:
-      "Displays exact Surah and Ayah numbers for both the start and end of every portion.",
+      "Download your schedule as a sleek image, clean PDF, or share it via a permanent link.",
     feature5Title: "Image & PDF Exports",
     feature5Desc:
       "Download WhatsApp-ready high-resolution images or multi-page A4 PDFs.",
@@ -473,56 +696,59 @@ export const translations: Record<Language, Translations> = {
     feature6Desc:
       "Seamlessly switch between Arabic (RTL) and English (LTR) layouts anytime.",
 
-    pwaSectionBadge: "USE WIRDDY LIKE AN APP",
-    pwaSectionTitle: "Add Wirddy to your Home Screen",
-    pwaSectionDesc:
-      "No download. No account. Just add Wirddy to your Home Screen and open it whenever you want.",
-    pwaIphoneTab: "iPhone",
-    pwaAndroidTab: "Android",
-    pwaIphoneTitle: "Add Wirddy to your iPhone",
-    pwaIphoneStep1: "Open Wirddy in Safari.",
-    pwaIphoneStep2: "Tap the Share button.",
-    pwaIphoneStep3: 'Select "Add to Home Screen".',
-    pwaIphoneStep4: 'Tap "Add".',
-    pwaIphoneNote: "Open Wirddy from your Home Screen like any other app.",
-    pwaAndroidTitle: "Add Wirddy to your Android",
-    pwaAndroidStep1: "Open Wirddy in Chrome.",
-    pwaAndroidStep2: "Open the browser menu.",
-    pwaAndroidStep3:
-      'Select "Add to Home screen" or "Install app" when available.',
-    pwaAndroidStep4: "Confirm.",
-    pwaAndroidNote: "Open Wirddy from your Home Screen whenever you want.",
-    pwaGifAlt: "How to add Wirddy to your Home Screen",
+    sectionGroup: "Group",
+    sectionQuranRange: "Quran Range & Starting Point",
+    sectionMembers: "Members & Allocations",
+    sectionRotation: "Rotation Style",
+    sectionWeeks: "Duration & Weeks",
 
-    createGroupTitle: "Create a group",
-    createGroupSubtitle: "Start with your group name",
-    groupNameLabel: "Group Name",
-    groupNamePlaceholder: "e.g. Family, Friends, Ramadan 2027, Quran Circle...",
-    groupNameHelp:
-      "Any group (family, study circle, mosque group, colleagues) can read together.",
+    rotationStyleTitle: "Rotation style",
+    rotationStyleDesc:
+      "Choose how Quran assignments rotate between members across weeks",
+    rotationLarge: "Large change",
+    rotationLargeDesc:
+      "Creates a significantly different assignment between weeks.",
+    rotationMedium: "Medium change",
+    rotationMediumDesc: "Balances stability and variation.",
+    rotationSmall: "Small change",
+    rotationSmallDesc:
+      "Keeps assignments relatively close while still introducing variation.",
+    rotationRandom: "Random",
+    rotationRandomDesc:
+      "Creates varied assignments while respecting all Quran and member constraints.",
 
-    membersTitle: "Add Group Members",
-    membersSubtitle:
-      "Define each member, their known Quran range, and their weekly Juz reading amount.",
-    addMemberBtn: "Add Member",
-    noMembersTitle: "Add your group members",
-    noMembersDesc:
-      "Start by adding members and configuring how much they will read each week.",
-    memberNameLabel: "Member Name",
-    memberNamePlaceholder: "e.g. Tariq, Khadijah, Yousef...",
-    knowledgeLabel: "Quran Knowledge Range",
-    knowledgeEntire: "Entire Quran (Juz 1 to 30)",
-    knowledgeJuzRange: "Specific Juz Range",
-    knowledgeSurahRange: "Specific Surah Range",
-    startJuzLabel: "From Juz",
+    startingPointTitle: "Starting point",
+    startingPointDesc:
+      "Choose which Juz to begin reading from in the first week",
+    startJuzLabel: "Starts from",
     endJuzLabel: "To Juz",
-    startSurahLabel: "From Surah",
-    endSurahLabel: "To Surah",
-    weeklyAmountLabel: "Weekly Reading Amount",
-    weeklyAmountUnit: "Juz / week",
-    weeklyAmountHelp: "How many Juz will this member read each week?",
-    removeMember: "Remove Member",
-    memberCount: "Members",
+
+    quranRangeTitle: "Quran range",
+    quranRangeFull: "Full Quran",
+    quranRangeFullDesc: "Complete 30 Juz reading",
+    quranRangeCustom: "Custom range",
+    quranRangeCustomDesc: "Choose specific Surahs or Ayahs to read",
+    rangeFrom: "From",
+    rangeTo: "To",
+    surahLabel: "Surah",
+    ayahLabel: "Ayah",
+    rangeSummary: "Amount",
+    customRangeAmountNotice: "Total matches the selected range",
+
+    createGroupTitle: "Create Your Group",
+    createGroupSubtitle:
+      "Choose a name for your group to start organizing your reading schedule",
+    formTitle: "Reading Plan Setup",
+    formSubtitle:
+      "Enter your group details and members to automatically generate an organized schedule.",
+    groupNameLabel: "Group Name",
+    groupNamePlaceholder: "e.g., Family Circle, Quran Study Group...",
+    groupNameHelp: "You can change the group name anytime later.",
+    weeksCountLabel: "Number of Weeks",
+    weeksCountHelper: "Choose plan duration (from 1 to 52 weeks)",
+    weekUnit: "weeks",
+    weeksOption: "weeks",
+    btnContinue: "Continue to Members",
 
     totalLabel: "Group Weekly Reading Total",
     totalSuccess: "Perfect. Your group will complete exactly 30 Juz each week.",
@@ -531,48 +757,93 @@ export const translations: Record<Language, Translations> = {
     totalErrorMore:
       "Weekly reading total exceeds 30 Juz. Exactly 30 Juz is required.",
     totalExactRequired: "The weekly reading total must equal exactly 30 Juz.",
+    totalJuzLabel: "Total Weekly Juz",
+    totalExactMsg: "Total complete (30/30 Juz). Ready to generate!",
+    totalLessMsg: "Total is currently less than 30 Juz. Remaining:",
+    totalMoreMsg: "Total exceeds 30 Juz. Overflow:",
     juzUnit: "Juz",
+
+    membersTitle: "Add Group Members",
+    membersSubtitle:
+      "Define each member, their known Quran range, and their weekly Juz reading amount.",
+    membersListTitle: "Group Members",
+    addMemberBtn: "Add Member",
+    removeMemberBtn: "Remove Member",
+    removeMember: "Remove Member",
+    noMembersTitle: "Add your group members",
+    noMembersDesc:
+      "Start by adding members and configuring how much they will read each week.",
+    memberNameLabel: "Member Name",
+    memberNamePlaceholder: "Member Name",
+    knowledgeLabel: "Knowledge / Memorization Range",
+    knowledgeEntire: "Entire Quran (1-30)",
+    knowledgeJuzRange: "Specific Juz Range",
+    knowledgeSurahRange: "Specific Surahs",
+    fromJuz: "From Juz",
+    toJuz: "To Juz",
+    fromSurah: "From Surah",
+    toSurah: "To Surah",
+    startSurahLabel: "From Surah",
+    endSurahLabel: "To Surah",
+    weeklyAmountLabel: "Weekly Reading Amount",
+    weeklyAmountUnit: "Juz / week",
+    weeklyAmountHelp: "How many Juz will this member read each week?",
+    amountJuz: "Juz / week",
+    memberCount: "Members",
 
     weeksTitle: "Plan Duration",
     weeksSubtitle: "How many weeks would you like to schedule?",
     weeksLabel: "Number of Weeks",
     weeksUnit: "weeks",
 
-    btnContinue: "Continue",
-    btnBack: "Back",
     btnGenerate: "Generate Schedule",
-    btnGenerating: "Creating your schedule...",
-    btnEditPlan: "Edit Plan & Members",
+    btnGenerating: "Calculating & Generating...",
     btnRegenerate: "Regenerate Schedule",
+    btnEditPlan: "Edit Plan & Members",
+    btnBack: "Back",
+    btnSave: "Save & Continue",
     btnShare: "Share",
     btnExportImage: "Download Image",
     btnExportPdf: "Download PDF",
     btnCopyLink: "Copy Link",
+    btnQrCode: "QR Code",
+    btnCopyEditLink: "Copy Edit Link",
     linkCopied: "Link copied to clipboard",
 
+    errGroupNameRequired: "Please enter a group name.",
+    errAtLeastOneMember: "At least one member is required.",
+    errMemberNameRequired: "Please enter names for all members.",
+    errTotalMustBe30: "Total reading amount must equal exactly 30 Juz.",
+    errKnowledgeInvalid: "Invalid knowledge range for some members.",
+    errAmountExceedsKnowledge:
+      "Reading amount exceeds member's selected range.",
+
     planTitle: "Quran Completion Plan",
+    scheduleGeneratedSuccess: "Schedule generated successfully!",
     weekLabel: "Week",
     weekOf: "of",
     startLabel: "START",
     endLabel: "END",
     juzLabel: "Juz",
-    ayahLabel: "Ayah",
     viewCards: "Cards",
     viewTable: "Table",
     tableHeaderMember: "Member",
     tableHeaderAmount: "Juz",
     tableHeaderStart: "Start",
     tableHeaderEnd: "End",
+    tableHeaderJuzRange: "Juz Range",
+    tableHeaderAyahRange: "Start & End Ayah",
     summaryTitle: "Plan Summary",
     summaryTotal: "30 Juz weekly",
     summaryMembers: "members",
     summaryQuran: "1 complete Quran per week",
     currentWeekOnly: "Current Week",
     fullPlan: "Full Plan",
+    shareSchedule: "Share Schedule",
 
     regenerateTitle: "Regenerate Schedule?",
     regenerateWarning:
-      "Regenerating will replace the current schedule with a freshly computed one based on your current settings.",
+      "This will reassign all Juz portions and generate a completely new schedule for all weeks.",
     regenerateConfirm: "Yes, Regenerate",
     cancel: "Cancel",
     exportTitle: "Download & Share Schedule",
@@ -580,40 +851,57 @@ export const translations: Record<Language, Translations> = {
       "Choose a format to download or share the generated schedule directly.",
     exportDownloadSection: "Download Files",
     exportShareSection: "Direct Share",
-    exportPngCurrent: "Current week image",
+    exportPngCurrent: "Current week image (PNG)",
     exportPngCurrentFormat: "PNG",
-    exportZipAll: "All weeks",
+    exportZipAll: "All weeks (ZIP archive)",
     exportZipAllFormat: "ZIP",
-    exportPdfAll: "Full plan",
+    exportPdfAll: "Full plan (PDF document)",
     exportPdfAllFormat: "PDF",
     exportSharePdfAll: "Share full plan (PDF)",
     exportLoadingCurrent: "Preparing current week image...",
-    exportLoadingAll: "Generating all weeks...",
-    exportLoadingPdf: "Generating PDF file...",
-    exportLoadingShare: "Preparing full plan for sharing...",
-    exportOpeningShare: "Opening share sheet...",
-    exportSuccess: "File downloaded successfully.",
-    exportShareSuccess: "Full plan shared successfully.",
-    exportError: "Unable to create the file. Please try again.",
-    exportLogoError: "Unable to load the Wirddy logo. Please try again.",
+    exportLoadingAll: "Rendering and compressing all weeks...",
+    exportLoadingPdf: "Creating and formatting PDF document...",
+    exportLoadingShare: "Preparing full PDF for sharing...",
+    exportOpeningShare: "Opening native share dialog...",
+    exportSuccess: "File downloaded successfully!",
+    exportShareSuccess: "Share dialog opened successfully!",
+    exportError:
+      "An error occurred while generating the export file. Please try again.",
+    exportLogoError: "Unable to load high-resolution logo for export.",
     exportShareFallbackUnsupported:
-      "Direct sharing is not supported in this browser. The PDF has been downloaded so you can share it from your device.",
+      "Direct file sharing is unsupported in this browser. The file has been downloaded instead.",
     exportShareFallbackError:
-      "Unable to share the schedule. The file has been downloaded instead.",
-    preparingExport: "Preparing your export...",
+      "Direct sharing failed. The file has been downloaded to your device instead.",
+    preparingExport: "Preparing export...",
 
-    // Save & Share / Persistence
+    exportOptionsTitle: "Export options",
+    optShowLogo: "Show Wirddy logo",
+    optShowQr: "Show QR code",
+    optShowGroupName: "Show group name",
+    optShowDate: "Show creation date",
+
+    btnPrint: "Print",
+    btnDuplicate: "Duplicate schedule",
+    duplicatingSchedule: "Duplicating schedule...",
+    scheduleDuplicatedSuccess: "Schedule duplicated as a new group!",
+
     btnSaveAndShare: "Save & Share",
-    saveModalTitle: "Save & Share Schedule",
+    saveModalTitle: "Share schedule",
     saveModalSubtitle:
       "Get a direct link to share your schedule with your group or reopen it anytime without creating an account.",
     savingSchedule: "Saving schedule online...",
     scheduleSavedSuccess: "Schedule Saved Successfully!",
     scheduleSavedDesc:
       "You can now share this link with group members to view the schedule from any device.",
+    sectionViewLink: "View link",
+    sectionViewLinkDesc:
+      "Share this link with your group. No account or login is required.",
+    sectionEditLink: "Edit link",
+    sectionEditLinkDesc:
+      "This private link lets you edit and regenerate the schedule. Keep it somewhere safe.",
     publicShareLink: "Group View Link",
-    copyPublicLink: "Copy Link",
-    shareGroupLink: "Share Link",
+    copyPublicLink: "Copy link",
+    shareGroupLink: "Share",
     qrCodeTitle: "QR Code",
     qrCodeDesc: "Scan with your phone camera to open the schedule instantly.",
     btnShowQrCode: "Show QR Code",
@@ -623,29 +911,68 @@ export const translations: Record<Language, Translations> = {
       "Keep this link safe to modify member names or regenerate the schedule later. Only share with organizers.",
     copyEditLink: "Copy Edit Link",
     editLinkCopied: "Edit link copied!",
+    scanToOpen: "Scan to open schedule",
     saveOfflineWarning:
       "Your schedule was created locally, but could not be saved online. You can still download and use it right now.",
     viewOnlyBadge: "View Only",
-    editorBadge: "Editor Mode",
+    editorBadge: "Edit Mode",
     scheduleNotFoundTitle: "Schedule Not Found",
     scheduleNotFoundDesc:
-      "The schedule link you are trying to access does not exist or has been deleted. You can create a new one easily.",
-    scheduleExpiredTitle: "Schedule Unavailable",
+      "Sorry, we could not find this schedule. The link may be incorrect or it has been deleted.",
+    scheduleExpiredTitle: "Schedule Expired",
     scheduleExpiredDesc:
-      "This schedule has expired and is no longer available online.",
+      "This schedule has exceeded its 1-year lifetime and is no longer available on the server.",
     btnCreateNewSchedule: "Create New Schedule",
     btnDeleteSchedule: "Delete Schedule",
     deleteScheduleConfirm:
       "Are you sure you want to permanently delete this schedule?",
 
-    suggestionsTitle: "Quick name suggestions:",
-    suggFamily: "Family",
-    suggFriends: "Good Friends",
-    suggRamadan: "Ramadan 2027",
-    suggMosque: "Mosque Study Circle",
-    suggStudy: "Quran Study Group",
+    recentSchedulesTitle: "Your recent schedules",
+    recentSchedulesSubtitle:
+      "Schedules recently created or opened on this device",
+    lastUsedToday: "Today",
+    lastUsedYesterday: "Yesterday",
+    btnOpenRecent: "Open",
+    btnRemoveRecent: "Remove",
+    btnClearAll: "Clear all",
+    noRecentSchedules: "No recently opened schedules on this device",
 
-    footerText: "Wirddy — Group Quran Reading & Division Planner",
+    pwaTitle: "Use Wirddy like an app",
+    pwaDesc:
+      "Add it to your home screen for quick access without downloading an app store binary.",
+    pwaSectionBadge: "USE WIRDDY LIKE AN APP",
+    pwaSectionTitle: "Use Wirddy Like an App on Your Phone",
+    pwaSectionDesc:
+      "Add Wirddy directly to your mobile home screen to access your reading schedules with one tap—no app store downloads needed.",
+    pwaIosStep:
+      "In Safari, tap the Share icon and select 'Add to Home Screen'.",
+    pwaAndroidStep:
+      "In Chrome, tap the menu (⋮) and select 'Install app' or 'Add to Home Screen'.",
+    pwaIosTab: "iPhone (iOS)",
+    pwaAndroidTab: "Android",
+    pwaIphoneTab: "iPhone (iOS)",
+    pwaIphoneTitle: "Add Wirddy to iPhone Home Screen",
+    pwaAndroidTitle: "Install Wirddy on Android",
+    pwaIphoneStep1: "Open Wirddy website in Safari",
+    pwaIphoneStep2: "Tap the Share button at the bottom of the screen",
+    pwaIphoneStep3: "Scroll down and select 'Add to Home Screen'",
+    pwaIphoneStep4: "Tap 'Add' in the top right corner",
+    pwaAndroidStep1: "Open Wirddy website in Chrome",
+    pwaAndroidStep2: "Tap the menu (three dots) in the browser toolbar",
+    pwaAndroidStep3: "Select 'Install app' or 'Add to Home screen'",
+    pwaAndroidStep4: "Confirm installation to see Wirddy among your apps",
+    pwaIphoneNote: "Works seamlessly offline once opened on your device.",
+    pwaAndroidNote: "Ultra-lightweight with zero storage footprint.",
+    pwaGifAlt: "Steps to add Wirddy to Home Screen on iPhone",
+
+    suggestionsTitle: "Suggested Groups",
+    suggFamily: "Family Completion",
+    suggFriends: "Mosque Friends",
+    suggRamadan: "Ramadan Reading",
+    suggMosque: "Memorization Circle",
+    suggStudy: "Study Group",
+
+    footerText: "Wirddy - Quran Reading Planner for Groups",
     footerRights: "All rights reserved",
   },
 }

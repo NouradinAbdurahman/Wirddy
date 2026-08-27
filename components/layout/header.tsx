@@ -17,6 +17,7 @@ interface HeaderProps {
   onNewGroup?: () => void
   onShowHowItWorks?: () => void
   onGoHome?: () => void
+  onLogoClick?: () => void
   inPlanner?: boolean
 }
 
@@ -24,6 +25,7 @@ export function Header({
   onNewGroup,
   onShowHowItWorks,
   onGoHome,
+  onLogoClick,
   inPlanner,
 }: HeaderProps) {
   const { language, setLanguage, t } = useI18n()
@@ -45,7 +47,9 @@ export function Header({
             href="/"
             onClick={(e) => {
               e.preventDefault()
-              if (onGoHome) {
+              if (onLogoClick) {
+                onLogoClick()
+              } else if (onGoHome) {
                 onGoHome()
               } else {
                 window.location.href = "/"

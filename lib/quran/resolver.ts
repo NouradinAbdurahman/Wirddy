@@ -18,6 +18,21 @@ export interface ExactQuranRange {
   startLocation: QuranLocation
   endLocation: QuranLocation
   totalJuz: number
+  totalAyahs?: number
+}
+
+/**
+ * Converts a QuranLocation to AyahRef.
+ */
+export function locationToAyahRef(loc: QuranLocation): AyahRef {
+  return {
+    surahNumber: loc.surahNumber,
+    surahNameAr: loc.surahNameArabic,
+    surahNameEn: loc.surahNameEnglish,
+    ayahNumber: loc.ayahNumber,
+    juzNumber: loc.juzNumber,
+    globalAyahNumber: loc.globalAyahNumber,
+  }
 }
 
 /**
@@ -39,32 +54,51 @@ export function resolveJuzRange(
 
   const { start, end } = quranService.resolveJuzRange(startJuz, endJuz)
 
-  const startAyah: AyahRef = {
-    surahNumber: start.surahNumber,
-    surahNameAr: start.surahNameArabic,
-    surahNameEn: start.surahNameEnglish,
-    ayahNumber: start.ayahNumber,
-    juzNumber: start.juzNumber,
-    globalAyahNumber: start.globalAyahNumber,
-  }
-
-  const endAyah: AyahRef = {
-    surahNumber: end.surahNumber,
-    surahNameAr: end.surahNameArabic,
-    surahNameEn: end.surahNameEnglish,
-    ayahNumber: end.ayahNumber,
-    juzNumber: end.juzNumber,
-    globalAyahNumber: end.globalAyahNumber,
-  }
-
   return {
     startJuz,
     endJuz,
-    startAyah,
-    endAyah,
+    startAyah: locationToAyahRef(start),
+    endAyah: locationToAyahRef(end),
     startLocation: start,
     endLocation: end,
     totalJuz: endJuz - startJuz + 1,
+    totalAyahs: end.globalAyahNumber - start.globalAyahNumber + 1,
+  }
+}
+
+/**
+ * Resolves a custom Quran location range defined by start and end Surah & Ayah numbers.
+ */
+export function resolveCustomQuranRange(
+  startSurah: number,
+  startAyah: number,
+  endSurah: number,
+  endAyah: number
+): ExactQuranRange {
+  const startLoc = quranService.getLocationFromSurahAyah(startSurah, startAyah)
+  const endLoc = quranService.getLocationFromSurahAyah(endSurah, endAyah)
+
+  if (startLoc.globalAyahNumber > endLoc.globalAyahNumber) {
+    throw new Error(
+      `Invalid custom range: Start (${startSurah}:${startAyah}) is after End (${endSurah}:${endAyah})`
+    )
+  }
+
+  const totalAyahs = endLoc.globalAyahNumber - startLoc.globalAyahNumber + 1
+  const approximateJuz = Math.max(
+    1,
+    Math.round((totalAyahs / 6236) * 30 * 10) / 10
+  )
+
+  return {
+    startJuz: startLoc.juzNumber,
+    endJuz: endLoc.juzNumber,
+    startAyah: locationToAyahRef(startLoc),
+    endAyah: locationToAyahRef(endLoc),
+    startLocation: startLoc,
+    endLocation: endLoc,
+    totalJuz: endLoc.juzNumber - startLoc.juzNumber + 1,
+    totalAyahs,
   }
 }
 

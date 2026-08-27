@@ -18,6 +18,13 @@ export interface ExportMember {
   end: ExportQuranLocation
 }
 
+export interface ExportBrandingOptions {
+  showLogo?: boolean
+  showQr?: boolean
+  showGroupName?: boolean
+  showDate?: boolean
+}
+
 export interface ExportWeek {
   weekNumber: number
   totalWeeks: number
@@ -26,6 +33,7 @@ export interface ExportWeek {
   direction: ExportDirection
   theme: ExportTheme
   view?: ExportViewMode
+  branding?: ExportBrandingOptions
   members: ExportMember[]
 }
 
@@ -36,6 +44,7 @@ export interface ExportSchedule {
   direction: ExportDirection
   theme: ExportTheme
   view?: ExportViewMode
+  branding?: ExportBrandingOptions
   weeks: ExportWeek[]
 }
 
@@ -45,6 +54,7 @@ export interface ExportRenderOptions {
   view?: ExportViewMode
   language?: ExportLanguage
   direction?: ExportDirection
+  branding?: ExportBrandingOptions
 }
 
 export interface ExportProgressCallback {

@@ -9,6 +9,7 @@ import {
 import { checkRateLimit } from "./rate-limit"
 import {
   deleteGroup,
+  duplicateGroupSchedule,
   getGroupByPublicId,
   LoadedPublicGroup,
   SavedGroupResult,
@@ -219,6 +220,39 @@ export async function deleteGroupAction(
     return {
       success: false,
       error: "Failed to delete schedule.",
+    }
+  }
+}
+
+/**
+ * Server Action: Duplicates a saved group schedule into a new group.
+ */
+export async function duplicateGroupAction(
+  sourcePublicId: string,
+  lang: "ar" | "en" = "ar"
+): Promise<ActionResponse<SavedGroupResult>> {
+  try {
+    const ip = await getClientIp()
+    const rate = checkRateLimit(`dup_${ip}`, 10, 600000)
+    if (!rate.allowed) {
+      return {
+        success: false,
+        error:
+          lang === "ar"
+            ? "تجاوزت الحد المسموح به لنسخ الجداول. يرجى المحاولة بعد قليل."
+            : "Too many duplicate requests. Please try again later.",
+      }
+    }
+
+    const result = await duplicateGroupSchedule(sourcePublicId, lang)
+    return {
+      success: true,
+      data: result,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to duplicate schedule",
     }
   }
 }

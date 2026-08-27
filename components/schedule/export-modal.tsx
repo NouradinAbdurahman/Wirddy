@@ -10,11 +10,13 @@ import {
   IconFileZip,
   IconInfoCircle,
   IconLoader2,
+  IconSettings,
   IconShare,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { GeneratedSchedule } from "@/lib/scheduler/types"
 import {
+  ExportBrandingOptions,
   ExportTheme,
   ExportViewMode,
   exportAllWeeksAsZip,
@@ -57,8 +59,21 @@ export function ExportModal({
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // Branding Customization Toggles
+  const [showLogo, setShowLogo] = useState(true)
+  const [showQr, setShowQr] = useState(true)
+  const [showGroupName, setShowGroupName] = useState(true)
+  const [showDate, setShowDate] = useState(true)
+
   const activeExportTheme: ExportTheme =
     theme === "light" || resolvedTheme === "light" ? "light" : "dark"
+
+  const branding: ExportBrandingOptions = {
+    showLogo,
+    showQr,
+    showGroupName,
+    showDate,
+  }
 
   const resetStatus = () => {
     setSuccessMessage(null)
@@ -84,12 +99,14 @@ export function ExportModal({
         schedule.groupName,
         language,
         activeExportTheme,
-        viewMode
+        viewMode,
+        branding
       )
 
       await exportWeekAsPng(exportWeek, {
         theme: activeExportTheme,
         view: viewMode,
+        branding,
       })
       setSuccessMessage(t.exportSuccess)
       setTimeout(() => {
@@ -117,11 +134,12 @@ export function ExportModal({
         schedule,
         language,
         activeExportTheme,
-        viewMode
+        viewMode,
+        branding
       )
       await exportAllWeeksAsZip(
         exportSchedule,
-        { theme: activeExportTheme, view: viewMode },
+        { theme: activeExportTheme, view: viewMode, branding },
         (_curr, _total, msg) => {
           setExportProgress(msg)
         }
@@ -153,11 +171,12 @@ export function ExportModal({
         schedule,
         language,
         activeExportTheme,
-        viewMode
+        viewMode,
+        branding
       )
       await exportScheduleAsPdf(
         exportSchedule,
-        { theme: activeExportTheme, view: viewMode },
+        { theme: activeExportTheme, view: viewMode, branding },
         (_curr, _total, msg) => {
           setExportProgress(msg)
         }
@@ -189,12 +208,13 @@ export function ExportModal({
         schedule,
         language,
         activeExportTheme,
-        viewMode
+        viewMode,
+        branding
       )
 
       const result = await shareScheduleAsPdf(
         exportSchedule,
-        { theme: activeExportTheme, view: viewMode },
+        { theme: activeExportTheme, view: viewMode, branding },
         (_curr, _total, msg) => {
           setExportProgress(msg)
         }
@@ -270,6 +290,61 @@ export function ExportModal({
             <span>{errorMessage}</span>
           </div>
         )}
+
+        {/* Branding Options Section */}
+        <div className="space-y-2 rounded-2xl border border-border/60 bg-muted/20 p-3.5 text-start">
+          <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+            <IconSettings className="h-3.5 w-3.5 text-primary" />
+            <span>{t.exportOptionsTitle}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[11.5px]">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-3 py-2 transition-colors hover:bg-card">
+              <input
+                type="checkbox"
+                checked={showLogo}
+                onChange={(e) => setShowLogo(e.target.checked)}
+                className="h-3.5 w-3.5 rounded-sm text-primary accent-primary"
+              />
+              <span className="font-medium text-foreground">
+                {t.optShowLogo}
+              </span>
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-3 py-2 transition-colors hover:bg-card">
+              <input
+                type="checkbox"
+                checked={showQr}
+                onChange={(e) => setShowQr(e.target.checked)}
+                className="h-3.5 w-3.5 rounded-sm text-primary accent-primary"
+              />
+              <span className="font-medium text-foreground">{t.optShowQr}</span>
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-3 py-2 transition-colors hover:bg-card">
+              <input
+                type="checkbox"
+                checked={showGroupName}
+                onChange={(e) => setShowGroupName(e.target.checked)}
+                className="h-3.5 w-3.5 rounded-sm text-primary accent-primary"
+              />
+              <span className="font-medium text-foreground">
+                {t.optShowGroupName}
+              </span>
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-3 py-2 transition-colors hover:bg-card">
+              <input
+                type="checkbox"
+                checked={showDate}
+                onChange={(e) => setShowDate(e.target.checked)}
+                className="h-3.5 w-3.5 rounded-sm text-primary accent-primary"
+              />
+              <span className="font-medium text-foreground">
+                {t.optShowDate}
+              </span>
+            </label>
+          </div>
+        </div>
 
         {/* 1. Direct Share Actions Section (Single Full Plan PDF Share) */}
         <div className="space-y-2 pt-1">

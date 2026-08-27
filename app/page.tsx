@@ -4,8 +4,11 @@ import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useI18n } from "@/lib/i18n/context"
 import {
+  CustomQuranRange,
   GeneratedSchedule,
   MemberConfig,
+  RangeType,
+  RotationStyle,
   ScheduleInput,
 } from "@/lib/scheduler/types"
 import { generateQuranSchedule } from "@/lib/scheduler/engine"
@@ -13,11 +16,13 @@ import { validateScheduleInput } from "@/lib/scheduler/validator"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Hero } from "@/components/landing/hero"
+import { RecentSchedules } from "@/components/landing/recent-schedules"
 import { HowItWorks } from "@/components/landing/how-it-works"
 import { ExampleSchedule } from "@/components/landing/example-schedule"
 import { Features } from "@/components/landing/features"
 import { AddToHomeScreen } from "@/components/landing/add-to-home-screen"
-import { GroupForm } from "@/components/planner/group-form"
+import { RangeSelector } from "@/components/planner/range-selector"
+import { RotationSelector } from "@/components/planner/rotation-selector"
 import { MemberList } from "@/components/planner/member-list"
 import { TotalIndicator } from "@/components/planner/total-indicator"
 import { WeeksSelector } from "@/components/planner/weeks-selector"
@@ -25,17 +30,34 @@ import { GenerateButton } from "@/components/planner/generate-button"
 import { ScheduleView } from "@/components/schedule/schedule-view"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  IconArrowLeft,
+  IconArrowRight,
+  IconSparkles,
+  IconUsersGroup,
+} from "@tabler/icons-react"
+import { saveRecentSchedule } from "@/lib/storage/recent-schedules"
 
-type AppStep = "landing" | "group_name" | "members" | "schedule"
+type AppStep = "landing" | "planner" | "schedule"
 
-const STORAGE_STATE_KEY = "wirddy_planner_state_v1"
+const STORAGE_STATE_KEY = "wirddy_planner_state_v2"
 
 export default function HomePage() {
   const { language, dir, t, formatNumber } = useI18n()
   const [step, setStep] = useState<AppStep>("landing")
   const [groupName, setGroupName] = useState<string>("")
   const [weeksCount, setWeeksCount] = useState<number>(4)
+  const [rotationStyle, setRotationStyle] = useState<RotationStyle>("medium")
+  const [rangeType, setRangeType] = useState<RangeType>("full")
+  const [startJuz, setStartJuz] = useState<number>(1)
+  const [customRange, setCustomRange] = useState<CustomQuranRange>({
+    startSurah: 2,
+    startAyah: 1,
+    endSurah: 4,
+    endAyah: 147,
+  })
   const [members, setMembers] = useState<MemberConfig[]>([])
   const [schedule, setSchedule] = useState<GeneratedSchedule | null>(null)
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
@@ -43,6 +65,14 @@ export default function HomePage() {
 
   const ArrowIcon = dir === "rtl" ? IconArrowLeft : IconArrowRight
   const BackArrowIcon = dir === "rtl" ? IconArrowRight : IconArrowLeft
+
+  const suggestions = [
+    t.suggFamily,
+    t.suggFriends,
+    t.suggRamadan,
+    t.suggMosque,
+    t.suggStudy,
+  ]
 
   // Load persisted state on mount
   useEffect(() => {
@@ -52,6 +82,10 @@ export default function HomePage() {
         const parsed = JSON.parse(stored)
         if (parsed.groupName) setGroupName(parsed.groupName)
         if (parsed.weeksCount) setWeeksCount(parsed.weeksCount)
+        if (parsed.rotationStyle) setRotationStyle(parsed.rotationStyle)
+        if (parsed.rangeType) setRangeType(parsed.rangeType)
+        if (parsed.startJuz) setStartJuz(parsed.startJuz)
+        if (parsed.customRange) setCustomRange(parsed.customRange)
         if (Array.isArray(parsed.members) && parsed.members.length > 0)
           setMembers(parsed.members)
         if (parsed.schedule) {
@@ -72,6 +106,10 @@ export default function HomePage() {
         JSON.stringify({
           groupName,
           weeksCount,
+          rotationStyle,
+          rangeType,
+          startJuz,
+          customRange,
           members,
           schedule,
         })
@@ -79,10 +117,18 @@ export default function HomePage() {
     } catch {
       // ignore
     }
-  }, [groupName, weeksCount, members, schedule])
+  }, [
+    groupName,
+    weeksCount,
+    rotationStyle,
+    rangeType,
+    startJuz,
+    customRange,
+    members,
+    schedule,
+  ])
 
   const startNewGroup = () => {
-    // Reset to a clean fresh 1-member group
     const defaultMembers: MemberConfig[] = [
       {
         id: `m-${Date.now()}-1`,
@@ -90,19 +136,29 @@ export default function HomePage() {
         knowledgeType: "entire",
         startJuz: 1,
         endJuz: 30,
-        weeklyAmount: 5,
+        weeklyAmount: 10,
+      },
+      {
+        id: `m-${Date.now()}-2`,
+        name: language === "ar" ? "زينب" : "Zainab",
+        knowledgeType: "entire",
+        startJuz: 1,
+        endJuz: 30,
+        weeklyAmount: 10,
+      },
+      {
+        id: `m-${Date.now()}-3`,
+        name: language === "ar" ? "بلال" : "Bilal",
+        knowledgeType: "entire",
+        startJuz: 1,
+        endJuz: 30,
+        weeklyAmount: 10,
       },
     ]
-    setGroupName("")
+    setGroupName(language === "ar" ? "ختمة العائلة" : "Family Completion")
     setSchedule(null)
     setMembers(defaultMembers)
-    setStep("group_name")
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
-  const handleGroupNameContinue = (name: string) => {
-    setGroupName(name)
-    setStep("members")
+    setStep("planner")
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
@@ -110,11 +166,11 @@ export default function HomePage() {
     const newId = `m-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     const newMember: MemberConfig = {
       id: newId,
-      name: "",
+      name: `${language === "ar" ? "عضو" : "Member"} ${members.length + 1}`,
       knowledgeType: "entire",
       startJuz: 1,
       endJuz: 30,
-      weeklyAmount: 2,
+      weeklyAmount: 5,
     }
     setMembers((prev) => [...prev, newMember])
   }
@@ -129,6 +185,7 @@ export default function HomePage() {
   }
 
   const handleRemoveMember = (index: number) => {
+    if (members.length <= 1) return
     setMembers((prev) => prev.filter((_, i) => i !== index))
     setValidationError(null)
   }
@@ -141,14 +198,21 @@ export default function HomePage() {
 
   const inputPayload: ScheduleInput = {
     group: {
-      name: groupName || (language === "ar" ? "مجموعتي" : "My Group"),
+      name: groupName.trim() || (language === "ar" ? "مجموعتي" : "My Group"),
       weeksCount,
+      rotationStyle,
+      rangeType,
+      startJuz: rangeType === "full" ? startJuz : undefined,
+      customRange: rangeType === "custom" ? customRange : undefined,
     },
     members,
   }
 
   const validationResult = validateScheduleInput(inputPayload)
-  const isInputValid = validationResult.isValid && currentTotal === 30
+  const isInputValid =
+    validationResult.isValid &&
+    (rangeType === "custom" || currentTotal === 30) &&
+    groupName.trim().length > 0
 
   const handleGenerateSchedule = async () => {
     setValidationError(null)
@@ -160,19 +224,27 @@ export default function HomePage() {
     }
 
     setIsGenerating(true)
-    // Short polished smooth transition (no fake delay longer than 350ms)
     setTimeout(() => {
       try {
         const generated = generateQuranSchedule(inputPayload)
         setSchedule(generated)
         setStep("schedule")
+
+        // Track in device-local recent schedules
+        saveRecentSchedule({
+          groupName: inputPayload.group.name,
+          weeksCount: inputPayload.group.weeksCount,
+          totalJuz: 30,
+          updatedAt: new Date().toISOString(),
+        })
+
         window.scrollTo({ top: 0, behavior: "smooth" })
       } catch (err: any) {
         setValidationError(err?.message || "Error generating schedule")
       } finally {
         setIsGenerating(false)
       }
-    }, 350)
+    }, 250)
   }
 
   const scrollToHowItWorks = () => {
@@ -182,64 +254,51 @@ export default function HomePage() {
     }
   }
 
-  const handleGoHome = () => {
-    setStep("landing")
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
   return (
-    <div className="flex min-h-screen flex-col justify-between bg-background text-foreground selection:bg-primary/20 selection:text-primary">
-      {/* App Header */}
-      <Header
-        onNewGroup={startNewGroup}
-        onShowHowItWorks={scrollToHowItWorks}
-        onGoHome={handleGoHome}
-        inPlanner={step !== "landing"}
-      />
+    <div className="flex min-h-screen flex-col bg-background font-sans antialiased">
+      <Header onLogoClick={() => setStep("landing")} />
 
-      {/* Main Content Area */}
-      <main className="container mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 md:py-10">
+      <main className="container mx-auto flex-1 px-4 py-8 sm:px-6">
         <AnimatePresence mode="wait">
-          {/* 1. Landing Page View */}
+          {/* 1. Landing Page */}
           {step === "landing" && (
             <motion.div
               key="landing"
+              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-12"
+              transition={{ duration: 0.25 }}
+              className="space-y-16 sm:space-y-24"
             >
               <Hero
                 onCreateGroup={startNewGroup}
                 onHowItWorks={scrollToHowItWorks}
               />
-              <HowItWorks />
-              <ExampleSchedule />
+
+              {/* Recent Schedules History (No Login Required) */}
+              <RecentSchedules
+                onOpenLocal={() => {
+                  if (schedule) setStep("schedule")
+                  else setStep("planner")
+                }}
+              />
+
+              <div id="how-it-works">
+                <HowItWorks />
+              </div>
+
+              <ExampleSchedule onTryTemplate={startNewGroup} />
               <Features />
               <AddToHomeScreen />
 
-              {/* Final CTA Banner */}
-              <section className="py-12 text-center">
-                <Card className="mx-auto max-w-3xl space-y-6 rounded-3xl border border-border/60 bg-card/60 p-8 shadow-lg backdrop-blur-md sm:p-12">
-                  <div className="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl border border-border/60 bg-muted/50 p-2.5 shadow-md sm:h-24 sm:w-24 sm:p-3 dark:bg-muted/20">
-                    <img
-                      src="/logo-black.png"
-                      alt="Wirddy"
-                      className="block h-full w-full object-contain dark:hidden"
-                      suppressHydrationWarning
-                    />
-                    <img
-                      src="/logo-white.png"
-                      alt="Wirddy"
-                      className="hidden h-full w-full object-contain dark:block"
-                      suppressHydrationWarning
-                    />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              {/* Bottom CTA Banner */}
+              <section className="py-6 text-center">
+                <Card className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-card/80 to-background p-8 shadow-xl backdrop-blur-md sm:p-12">
+                  <div className="mx-auto max-w-xl space-y-3 pb-6">
+                    <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
                       {t.ctaGetStarted}
                     </h2>
-                    <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+                    <p className="text-sm text-muted-foreground sm:text-base">
                       {t.tagline}
                     </p>
                   </div>
@@ -256,74 +315,132 @@ export default function HomePage() {
             </motion.div>
           )}
 
-          {/* 2. Step 1: Group Name */}
-          {step === "group_name" && (
+          {/* 2. Unified 5-Section Planner Form */}
+          {step === "planner" && (
             <motion.div
-              key="group_name"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
-              className="pt-6 sm:pt-10"
-            >
-              <GroupForm
-                initialGroupName={groupName}
-                onContinue={handleGroupNameContinue}
-                onBack={() => setStep("landing")}
-              />
-            </motion.div>
-          )}
-
-          {/* 3. Step 2: Member Setup & Total Validation */}
-          {step === "members" && (
-            <motion.div
-              key="members"
+              key="planner"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3 }}
               className="mx-auto max-w-3xl space-y-6"
             >
-              {/* Back to Group Name */}
-              <div className="flex items-center justify-between">
+              {/* Back to Home Header */}
+              <div className="flex items-center justify-between border-b border-border/40 pb-3">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setStep("group_name")}
+                  onClick={() => setStep("landing")}
                   className="gap-1.5 rounded-xl px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
                 >
                   <BackArrowIcon className="h-4 w-4" />
-                  <span>
-                    {groupName} ({t.groupNameLabel})
-                  </span>
+                  <span>{t.btnBack}</span>
                 </Button>
+
+                <div className="text-xs font-bold text-primary">
+                  {t.formTitle}
+                </div>
               </div>
 
-              {/* Live Total Indicator - Sticky Top */}
-              <div className="sticky top-16 z-20 -mx-2 bg-background/85 px-2 py-2 backdrop-blur-md transition-all">
-                <TotalIndicator currentTotal={currentTotal} />
-              </div>
+              {/* Section 1: Group Name */}
+              <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <IconUsersGroup className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground sm:text-base">
+                      {t.sectionGroup}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {t.createGroupSubtitle}
+                    </p>
+                  </div>
+                </div>
 
-              {/* Members List */}
-              <MemberList
-                members={members}
-                onAddMember={handleAddMember}
-                onUpdateMember={handleUpdateMember}
-                onRemoveMember={handleRemoveMember}
-              />
+                <div className="space-y-2">
+                  <Input
+                    value={groupName}
+                    onChange={(e) => {
+                      setGroupName(e.target.value)
+                      if (validationError) setValidationError(null)
+                    }}
+                    placeholder={t.groupNamePlaceholder}
+                    maxLength={60}
+                    className="h-10 rounded-xl text-sm font-medium"
+                  />
 
-              {/* Weeks Count Selector */}
-              <WeeksSelector weeksCount={weeksCount} onChange={setWeeksCount} />
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      {t.suggestionsTitle}:
+                    </span>
+                    {suggestions.map((s, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setGroupName(s)}
+                        className="rounded-lg border border-border/40 bg-muted/50 px-2.5 py-1 text-[11px] font-semibold text-foreground transition-all hover:bg-muted"
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </Card>
 
-              {/* Validation Error Message if any */}
+              {/* Section 2: Quran Range & Starting Point */}
+              <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+                <RangeSelector
+                  rangeType={rangeType}
+                  onRangeTypeChange={setRangeType}
+                  startJuz={startJuz}
+                  onStartJuzChange={setStartJuz}
+                  customRange={customRange}
+                  onCustomRangeChange={setCustomRange}
+                />
+              </Card>
+
+              {/* Section 3: Members & Knowledge Restrictions */}
+              <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+                {rangeType === "full" && (
+                  <div className="sticky top-16 z-20 -mx-2 bg-background/90 px-2 py-1 backdrop-blur-md">
+                    <TotalIndicator currentTotal={currentTotal} />
+                  </div>
+                )}
+
+                <MemberList
+                  members={members}
+                  onAddMember={handleAddMember}
+                  onUpdateMember={handleUpdateMember}
+                  onRemoveMember={handleRemoveMember}
+                />
+              </Card>
+
+              {/* Section 4: Rotation Style */}
+              <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+                <RotationSelector
+                  value={rotationStyle}
+                  onChange={setRotationStyle}
+                />
+              </Card>
+
+              {/* Section 5: Weeks Duration */}
+              <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+                <WeeksSelector
+                  weeksCount={weeksCount}
+                  onChange={setWeeksCount}
+                />
+              </Card>
+
+              {/* Validation Error Message */}
               {validationError && (
-                <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm font-medium text-destructive">
+                <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-semibold text-destructive">
                   {validationError}
                 </div>
               )}
 
-              {/* Generate Schedule Action Button */}
+              {/* Generate Button */}
               <GenerateButton
                 onGenerate={handleGenerateSchedule}
                 isGenerating={isGenerating}
@@ -332,7 +449,7 @@ export default function HomePage() {
             </motion.div>
           )}
 
-          {/* 4. Step 3: Generated Schedule View */}
+          {/* 3. Generated Schedule View */}
           {step === "schedule" && schedule && (
             <motion.div
               key={schedule.id}
@@ -343,17 +460,13 @@ export default function HomePage() {
             >
               <ScheduleView
                 schedule={schedule}
-                scheduleInput={{
-                  group: { name: groupName, weeksCount },
-                  members,
-                }}
+                scheduleInput={inputPayload}
                 onEditPlan={() => {
-                  setStep("members")
+                  setStep("planner")
                   window.scrollTo({ top: 0, behavior: "smooth" })
                 }}
                 onRegenerate={() => {
-                  setStep("members")
-                  window.scrollTo({ top: 0, behavior: "smooth" })
+                  handleGenerateSchedule()
                 }}
                 isRegenerating={isGenerating}
               />
@@ -362,7 +475,6 @@ export default function HomePage() {
         </AnimatePresence>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   )

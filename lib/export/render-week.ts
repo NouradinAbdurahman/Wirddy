@@ -327,8 +327,14 @@ export function buildStandaloneWeekExportHtml(
     : "rgba(226, 232, 240, 0.8)"
   const planTag = isArabic ? "خطة ختم القرآن الكريم" : "Quran Completion Plan"
   const footerText = isArabic
-    ? "تم إنشاء هذا الجدول عبر تطبيق وِردي — تنظيم قراءة القرآن في مجموعات"
-    : "Generated with Wirddy — Quran Reading Planner for Groups"
+  const showLogo = week.branding?.showLogo !== false
+  const showGroupName = week.branding?.showGroupName !== false
+  const showDate = week.branding?.showDate !== false
+  const dateStr = new Date().toLocaleDateString(isArabic ? "ar-SA" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
 
   const weeklyContentHtml = buildWeeklySectionHtml(
     week,
@@ -343,14 +349,12 @@ export function buildStandaloneWeekExportHtml(
       <!-- Top Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1 1 auto;">
-          <img src="${logoSrc}" alt="Wirddy" width="140" height="38" style="flex-shrink: 0; width: 140px; height: 38px; max-width: 140px; max-height: 38px; object-fit: contain; display: block;" />
+          ${showLogo ? `<img src="${logoSrc}" alt="Wirddy" width="140" height="38" style="flex-shrink: 0; width: 140px; height: 38px; max-width: 140px; max-height: 38px; object-fit: contain; display: block;" />` : ""}
           <div style="min-width: 0;">
             <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
             </div>
-            <div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">
-              ${week.groupName}
-            </div>
+            ${showGroupName ? `<div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">${week.groupName}</div>` : ""}
           </div>
         </div>
 
@@ -367,8 +371,9 @@ export function buildStandaloneWeekExportHtml(
       </div>
 
       <!-- Bottom Footer -->
-      <div style="display: flex; align-items: center; border-top: 1px solid ${borderPrimary}; padding-top: 16px; font-size: 10.5px; color: ${textSecondary}; margin-top: 12px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid ${borderPrimary}; padding-top: 16px; font-size: 10.5px; color: ${textSecondary}; margin-top: 12px;">
         <span style="white-space: nowrap;">${footerText}</span>
+        ${showDate ? `<span style="white-space: nowrap;">${dateStr}</span>` : ""}
       </div>
     </div>
   `

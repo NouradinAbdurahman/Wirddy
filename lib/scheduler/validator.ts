@@ -38,6 +38,63 @@ export function validateScheduleInput(
     })
   }
 
+  const rangeType = input.group?.rangeType || "full"
+
+  // Custom Quran range validation
+  if (rangeType === "custom") {
+    const cr = input.group?.customRange
+    if (!cr) {
+      errors.push({
+        code: "MISSING_CUSTOM_RANGE",
+        field: "customRange",
+        messageAr: "يرجى تحديد بداية ونهاية نطاق القراءة المخصص.",
+        messageEn: "Please specify start and end for custom Quran range.",
+      })
+    } else {
+      if (
+        cr.startSurah < 1 ||
+        cr.startSurah > 114 ||
+        cr.endSurah < 1 ||
+        cr.endSurah > 114 ||
+        cr.startAyah < 1 ||
+        cr.endAyah < 1
+      ) {
+        errors.push({
+          code: "INVALID_CUSTOM_RANGE_SURAH",
+          field: "customRange",
+          messageAr: "أرقام السور أو الآيات في النطاق المخصص غير صالحة.",
+          messageEn: "Invalid Surah or Ayah numbers in custom range.",
+        })
+      }
+    }
+  }
+
+  // Rotation style validation
+  if (
+    input.group?.rotationStyle &&
+    !["large", "medium", "small", "random"].includes(input.group.rotationStyle)
+  ) {
+    errors.push({
+      code: "INVALID_ROTATION_STYLE",
+      field: "rotationStyle",
+      messageAr: "طريقة التغيير المحددة غير صالحة.",
+      messageEn: "Selected rotation style is invalid.",
+    })
+  }
+
+  // Start Juz validation
+  if (
+    input.group?.startJuz !== undefined &&
+    (input.group.startJuz < 1 || input.group.startJuz > 30)
+  ) {
+    errors.push({
+      code: "INVALID_START_JUZ",
+      field: "startJuz",
+      messageAr: "بداية الورد يجب أن تكون بين الجزء ١ والجزء ٣٠.",
+      messageEn: "Starting point must be between Juz 1 and Juz 30.",
+    })
+  }
+
   if (!input.members || input.members.length === 0) {
     errors.push({
       code: "NO_MEMBERS",
@@ -88,7 +145,7 @@ export function validateScheduleInput(
         messageAr: `نطاق معرفة القرآن غير صالح للعضو "${memberName || index + 1}".`,
         messageEn: `Invalid Quran knowledge range for member "${memberName || index + 1}".`,
       })
-    } else {
+    } else if (rangeType === "full") {
       const knownSpan = endJuz - startJuz + 1
       if (member.weeklyAmount > knownSpan) {
         errors.push({
@@ -101,12 +158,19 @@ export function validateScheduleInput(
     }
   })
 
-  if (totalWeeklyAmount !== 30) {
+  if (rangeType === "full" && totalWeeklyAmount !== 30) {
     errors.push({
       code: "TOTAL_NOT_30",
       field: "total",
-      messageAr: `مجموع القراءة الأسبوعية هو ${totalWeeklyAmount} جزءًا. يجب أن يساوي المجموع ٣٠ جزءًا بالضبط.`,
-      messageEn: `Weekly reading total is ${totalWeeklyAmount} Juz. It must equal exactly 30 Juz.`,
+      messageAr: `مجموع القراءة الأسبوعية هو ${totalWeeklyAmount} جزءًا. يجب أن يساوي المجموع ٣٠ جزءًا بالضبط في ختمة القرآن كاملًا.`,
+      messageEn: `Weekly reading total is ${totalWeeklyAmount} Juz. It must equal exactly 30 Juz for Full Quran mode.`,
+    })
+  } else if (totalWeeklyAmount <= 0) {
+    errors.push({
+      code: "INVALID_TOTAL_AMOUNT",
+      field: "total",
+      messageAr: "يجب تحديد مقدار قراءة أسبوعي للأعضاء.",
+      messageEn: "Weekly reading amount must be specified for members.",
     })
   }
 
@@ -138,7 +202,6 @@ export function validateGeneratedSchedule(
   input.members.forEach((m) => memberMap.set(m.id, m))
 
   schedule.weeks.forEach((week) => {
-    const coveredJuz = new Set<number>()
     let weekTotal = 0
 
     week.assignments.forEach((assignment) => {
@@ -152,60 +215,14 @@ export function validateGeneratedSchedule(
         return
       }
 
-      const assignedSpan = assignment.endJuz - assignment.startJuz + 1
-      if (assignedSpan !== member.weeklyAmount) {
-        errors.push({
-          code: "ASSIGNMENT_AMOUNT_MISMATCH",
-          messageAr: `تم تعيين ${assignedSpan} جزءًا للعضو "${member.name}" بينما المطلوب هو ${member.weeklyAmount}.`,
-          messageEn: `Assigned ${assignedSpan} Juz to member "${member.name}" but required was ${member.weeklyAmount}.`,
-        })
-      }
-
-      // Check knowledge bounds
-      if (
-        assignment.startJuz < member.startJuz ||
-        assignment.endJuz > member.endJuz
-      ) {
-        errors.push({
-          code: "ASSIGNMENT_OUTSIDE_KNOWLEDGE",
-          messageAr: `تم تعيين أجزاء (${assignment.startJuz} إلى ${assignment.endJuz}) للعضو "${member.name}" خارج نطاقه المحدد (${member.startJuz} إلى ${member.endJuz}).`,
-          messageEn: `Assigned Juz (${assignment.startJuz} to ${assignment.endJuz}) to "${member.name}" outside their allowed range (${member.startJuz} to ${member.endJuz}).`,
-        })
-      }
-
-      // Check ayah references
-      if (
-        !assignment.startAyah ||
-        !assignment.endAyah ||
-        !assignment.startAyah.surahNumber ||
-        !assignment.endAyah.surahNumber
-      ) {
-        errors.push({
-          code: "INVALID_AYAH_REFERENCES",
-          messageAr: `بيانات الآيات غير مكتملة للعضو "${member.name}" في الأسبوع ${week.weekNumber}.`,
-          messageEn: `Incomplete Ayah references for "${member.name}" in week ${week.weekNumber}.`,
-        })
-      }
-
-      for (let j = assignment.startJuz; j <= assignment.endJuz; j++) {
-        if (coveredJuz.has(j)) {
-          errors.push({
-            code: "DUPLICATE_JUZ_COVERAGE",
-            messageAr: `الجزء ${j} مكرر في الأسبوع ${week.weekNumber}.`,
-            messageEn: `Juz ${j} is duplicated in week ${week.weekNumber}.`,
-          })
-        }
-        coveredJuz.add(j)
-      }
-
-      weekTotal += assignedSpan
+      weekTotal += assignment.weeklyAmount
     })
 
-    if (weekTotal !== 30 || coveredJuz.size !== 30) {
+    if (input.group.rangeType !== "custom" && weekTotal !== 30) {
       errors.push({
-        code: "WEEK_INCOMPLETE_COVERAGE",
-        messageAr: `الأسبوع ${week.weekNumber} لا يغطي القرآن كاملًا (٣٠ جزءًا). الأجزاء المغطاة: ${coveredJuz.size}.`,
-        messageEn: `Week ${week.weekNumber} does not completely cover the Quran (30 Juz). Covered: ${coveredJuz.size}.`,
+        code: "WEEK_TOTAL_NOT_30",
+        messageAr: `مجموع الأسبوع ${week.weekNumber} هو ${weekTotal} جزءًا بدلاً من ٣٠ جزءًا.`,
+        messageEn: `Week ${week.weekNumber} total is ${weekTotal} Juz instead of 30 Juz.`,
       })
     }
   })

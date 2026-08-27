@@ -10,11 +10,20 @@ class QuranDataService {
   private readonly juzBoundaries: JuzBoundary[]
   private readonly surahs: SurahInfo[]
   private readonly surahToJuzMap: Record<number, number>
+  private readonly surahCumulativeAyahs: number[]
 
   constructor() {
     this.juzBoundaries = JUZ_BOUNDARIES
     this.surahs = SURAHS
     this.surahToJuzMap = SURAH_TO_JUZ_MAP
+
+    // Precompute cumulative ayahs up to each surah (1-indexed)
+    this.surahCumulativeAyahs = [0]
+    let cumulative = 0
+    for (let i = 0; i < this.surahs.length; i++) {
+      cumulative += this.surahs[i].totalAyahs
+      this.surahCumulativeAyahs.push(cumulative)
+    }
   }
 
   /**
@@ -44,6 +53,77 @@ class QuranDataService {
    */
   getSurah(surahNumber: number): SurahInfo | undefined {
     return this.surahs.find((s) => s.number === surahNumber)
+  }
+
+  /**
+   * Calculates the global Ayah number (1 to 6236) given Surah and Ayah.
+   */
+  getGlobalAyahNumber(surahNumber: number, ayahNumber: number): number {
+    const sIndex = Math.max(1, Math.min(114, Math.floor(surahNumber)))
+    const surah = this.surahs[sIndex - 1]
+    const clampedAyah = Math.max(
+      1,
+      Math.min(surah.totalAyahs, Math.floor(ayahNumber))
+    )
+    const prevAyahs = this.surahCumulativeAyahs[sIndex - 1]
+    return prevAyahs + clampedAyah
+  }
+
+  /**
+   * Resolves a global Ayah number (1 to 6236) into full QuranLocation coordinates.
+   */
+  getLocationFromGlobalAyah(globalAyahNumber: number): QuranLocation {
+    const clampedGlobal = Math.max(
+      1,
+      Math.min(6236, Math.floor(globalAyahNumber))
+    )
+
+    // Find Surah
+    let surahIndex = 0
+    for (let i = 0; i < this.surahs.length; i++) {
+      if (
+        clampedGlobal > this.surahCumulativeAyahs[i] &&
+        clampedGlobal <= this.surahCumulativeAyahs[i + 1]
+      ) {
+        surahIndex = i
+        break
+      }
+    }
+
+    const surah = this.surahs[surahIndex]
+    const ayahInSurah = clampedGlobal - this.surahCumulativeAyahs[surahIndex]
+
+    // Find Juz
+    let juzNum = 1
+    for (const b of this.juzBoundaries) {
+      if (
+        clampedGlobal >= b.start.globalAyahNumber &&
+        clampedGlobal <= b.end.globalAyahNumber
+      ) {
+        juzNum = b.juzNumber
+        break
+      }
+    }
+
+    return {
+      globalAyahNumber: clampedGlobal,
+      juzNumber: juzNum,
+      surahNumber: surah.number,
+      surahNameArabic: surah.nameAr,
+      surahNameEnglish: surah.transliteration || surah.nameEn,
+      ayahNumber: ayahInSurah,
+    }
+  }
+
+  /**
+   * Resolves Surah and Ayah into full QuranLocation coordinates.
+   */
+  getLocationFromSurahAyah(
+    surahNumber: number,
+    ayahNumber: number
+  ): QuranLocation {
+    const globalAyah = this.getGlobalAyahNumber(surahNumber, ayahNumber)
+    return this.getLocationFromGlobalAyah(globalAyah)
   }
 
   /**
@@ -104,15 +184,6 @@ class QuranDataService {
       start: startBoundary.start,
       end: endBoundary.end,
     }
-  }
-
-  /**
-   * Formats a QuranLocation into a displayable string according to locale.
-   */
-  formatLocation(loc: QuranLocation, language: "ar" | "en"): string {
-    const surahName =
-      language === "ar" ? loc.surahNameArabic : loc.surahNameEnglish
-    return `${surahName} ${loc.ayahNumber}`
   }
 }
 

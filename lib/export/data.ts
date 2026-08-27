@@ -4,6 +4,7 @@ import {
   WeekSchedule,
 } from "@/lib/scheduler/types"
 import {
+  ExportBrandingOptions,
   ExportDirection,
   ExportLanguage,
   ExportMember,
@@ -43,7 +44,8 @@ export function normalizeWeekSchedule(
   groupName: string,
   language: ExportLanguage,
   theme: ExportTheme = "dark",
-  view: ExportViewMode = "cards"
+  view: ExportViewMode = "cards",
+  branding?: ExportBrandingOptions
 ): ExportWeek {
   const direction: ExportDirection = language === "ar" ? "rtl" : "ltr"
 
@@ -55,6 +57,7 @@ export function normalizeWeekSchedule(
     direction,
     theme,
     view,
+    branding,
     members: week.assignments.map((assignment) =>
       normalizeMemberAssignment(assignment, language)
     ),
@@ -65,7 +68,8 @@ export function normalizeScheduleToExport(
   schedule: GeneratedSchedule,
   language: ExportLanguage,
   theme: ExportTheme = "dark",
-  view: ExportViewMode = "cards"
+  view: ExportViewMode = "cards",
+  branding?: ExportBrandingOptions
 ): ExportSchedule {
   const direction: ExportDirection = language === "ar" ? "rtl" : "ltr"
 
@@ -76,6 +80,7 @@ export function normalizeScheduleToExport(
     direction,
     theme,
     view,
+    branding,
     weeks: schedule.weeks.map((week) =>
       normalizeWeekSchedule(
         week,
@@ -83,7 +88,8 @@ export function normalizeScheduleToExport(
         schedule.groupName,
         language,
         theme,
-        view
+        view,
+        branding
       )
     ),
   }

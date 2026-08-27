@@ -5,6 +5,7 @@ import QRCode from "qrcode"
 import {
   IconCheck,
   IconCopy,
+  IconEye,
   IconKey,
   IconLink,
   IconLoader2,
@@ -16,6 +17,7 @@ import { useI18n } from "@/lib/i18n/context"
 import { GeneratedSchedule, ScheduleInput } from "@/lib/scheduler/types"
 import { saveScheduleAction } from "@/lib/groups/actions"
 import { SavedGroupResult } from "@/lib/groups/service"
+import { saveRecentSchedule } from "@/lib/storage/recent-schedules"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -94,6 +96,10 @@ export function SaveShareDialog({
         group: {
           name: schedule.groupName,
           weeksCount: schedule.weeksCount,
+          rotationStyle: schedule.rotationStyle,
+          rangeType: schedule.rangeType,
+          startJuz: schedule.startJuz,
+          customRange: schedule.customRange,
         },
         members: schedule.members,
       }
@@ -101,6 +107,15 @@ export function SaveShareDialog({
       const res = await saveScheduleAction(input, schedule, language)
       if (res.success && res.data) {
         setSavedData(res.data)
+        // Store in local device history
+        saveRecentSchedule({
+          publicId: res.data.publicId,
+          editToken: res.data.editToken,
+          groupName: res.data.groupName,
+          weeksCount: schedule.weeksCount,
+          totalJuz: 30,
+          updatedAt: new Date().toISOString(),
+        })
         if (onSaveSuccess) onSaveSuccess(res.data)
       } else {
         setErrorMsg(res.error || t.saveOfflineWarning)
@@ -147,7 +162,7 @@ export function SaveShareDialog({
           url: publicUrl,
         })
       } catch {
-        // cancelled or failed
+        // cancelled
       }
     } else {
       handleCopyPublic()
@@ -233,12 +248,21 @@ export function SaveShareDialog({
               </div>
             </div>
 
-            {/* Public Link Card */}
-            <div className="space-y-2 text-start">
-              <label className="text-xs font-bold text-foreground">
-                {t.publicShareLink}
-              </label>
-              <div className="flex items-center gap-2 rounded-2xl border border-border/70 bg-muted/40 p-2 text-xs">
+            {/* SECTION 1: View Link (Public) */}
+            <div className="space-y-2 rounded-2xl border border-border/60 bg-card/60 p-4 text-start">
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <IconEye className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-xs font-bold text-foreground">
+                  {t.sectionViewLink}
+                </span>
+              </div>
+              <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+                {t.sectionViewLinkDesc}
+              </p>
+
+              <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-background/80 p-2 text-xs">
                 <IconLink className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                 <input
                   type="text"
@@ -246,12 +270,16 @@ export function SaveShareDialog({
                   value={publicUrl}
                   className="w-full bg-transparent font-mono text-xs text-foreground outline-hidden select-all"
                 />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 <Button
                   type="button"
                   size="sm"
                   variant={copiedPublic ? "default" : "secondary"}
                   onClick={handleCopyPublic}
-                  className="h-8 flex-shrink-0 gap-1.5 rounded-xl px-3 text-xs font-semibold"
+                  className="h-8.5 flex-1 gap-1.5 rounded-xl px-3 text-xs font-semibold"
                 >
                   {copiedPublic ? (
                     <>
@@ -261,63 +289,69 @@ export function SaveShareDialog({
                   ) : (
                     <>
                       <IconCopy className="h-3.5 w-3.5" />
-                      <span>{t.copyPublicLink}</span>
+                      <span>{t.btnCopyLink}</span>
                     </>
                   )}
                 </Button>
-              </div>
 
-              {/* Action Buttons: Native Share & QR Toggle */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
                 <Button
                   type="button"
+                  size="sm"
+                  variant="outline"
                   onClick={handleNativeShare}
-                  className="h-9 flex-1 gap-1.5 rounded-xl text-xs font-semibold shadow-xs"
+                  className="h-8.5 gap-1.5 rounded-xl px-3 text-xs font-semibold"
                 >
-                  <IconShare className="h-4 w-4" />
-                  <span>{t.shareGroupLink}</span>
+                  <IconShare className="h-3.5 w-3.5" />
+                  <span>{t.btnShare}</span>
                 </Button>
+
                 <Button
                   type="button"
+                  size="sm"
                   variant="outline"
                   onClick={() => setShowQr(!showQr)}
-                  className="h-9 gap-1.5 rounded-xl text-xs font-semibold"
+                  className="h-8.5 gap-1.5 rounded-xl px-3 text-xs font-semibold"
                 >
-                  <IconQrcode className="h-4 w-4" />
-                  <span>{showQr ? t.btnHideQrCode : t.btnShowQrCode}</span>
+                  <IconQrcode className="h-3.5 w-3.5" />
+                  <span>{t.btnQrCode}</span>
                 </Button>
               </div>
+
+              {/* Collapsible QR Code */}
+              {showQr && qrSvg && (
+                <div className="mt-3 flex flex-col items-center justify-center rounded-2xl border border-border/50 bg-background/90 p-4 text-center">
+                  <div
+                    className="h-40 w-40 rounded-xl bg-white p-2 shadow-xs"
+                    dangerouslySetInnerHTML={{ __html: qrSvg }}
+                  />
+                  <p className="mt-2 text-xs font-medium text-foreground">
+                    {t.scanToOpen}
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Collapsible QR Code */}
-            {showQr && qrSvg && (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-border/60 bg-muted/30 p-4 text-center">
-                <div
-                  className="h-44 w-44 rounded-xl bg-white p-2 shadow-xs"
-                  dangerouslySetInnerHTML={{ __html: qrSvg }}
-                />
-                <p className="mt-2.5 text-xs text-muted-foreground">
-                  {t.qrCodeDesc}
-                </p>
+            {/* SECTION 2: Edit Link (Secret) */}
+            <div className="space-y-2 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-start dark:bg-amber-500/10">
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <IconKey className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-xs font-bold text-foreground">
+                  {t.sectionEditLink}
+                </span>
               </div>
-            )}
-
-            {/* Secret Edit Link Callout */}
-            <div className="rounded-2xl border border-border/80 bg-muted/30 p-4 text-start">
-              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-                <IconKey className="h-4 w-4 text-amber-500" />
-                <span>{t.secretEditLinkTitle}</span>
-              </div>
-              <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
-                {t.secretEditLinkDesc}
+              <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+                {t.sectionEditLinkDesc}
               </p>
-              <div className="mt-3 flex items-center gap-2">
+
+              <div className="pt-1">
                 <Button
                   type="button"
                   size="sm"
                   variant={copiedEdit ? "default" : "outline"}
                   onClick={handleCopyEdit}
-                  className="h-8 gap-1.5 rounded-xl px-3 text-xs font-semibold"
+                  className="h-8.5 gap-1.5 rounded-xl border-amber-500/30 px-4 text-xs font-semibold text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
                 >
                   {copiedEdit ? (
                     <>
@@ -327,7 +361,7 @@ export function SaveShareDialog({
                   ) : (
                     <>
                       <IconCopy className="h-3.5 w-3.5" />
-                      <span>{t.copyEditLink}</span>
+                      <span>{t.btnCopyEditLink}</span>
                     </>
                   )}
                 </Button>

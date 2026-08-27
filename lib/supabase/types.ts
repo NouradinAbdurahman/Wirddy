@@ -75,7 +75,14 @@ export type Database = {
           name: string
           owner_user_id: string | null
           public_id: string
+          range_end_ayah: number | null
+          range_end_surah: number | null
+          range_start_ayah: number | null
+          range_start_surah: number | null
+          range_type: string
+          rotation_style: string
           scheduler_version: string
+          start_juz: number
           updated_at: string
         }
         Insert: {
@@ -88,7 +95,14 @@ export type Database = {
           name: string
           owner_user_id?: string | null
           public_id: string
+          range_end_ayah?: number | null
+          range_end_surah?: number | null
+          range_start_ayah?: number | null
+          range_start_surah?: number | null
+          range_type?: string
+          rotation_style?: string
           scheduler_version?: string
+          start_juz?: number
           updated_at?: string
         }
         Update: {
@@ -101,7 +115,14 @@ export type Database = {
           name?: string
           owner_user_id?: string | null
           public_id?: string
+          range_end_ayah?: number | null
+          range_end_surah?: number | null
+          range_start_ayah?: number | null
+          range_start_surah?: number | null
+          range_type?: string
+          rotation_style?: string
           scheduler_version?: string
+          start_juz?: number
           updated_at?: string
         }
         Relationships: []
@@ -193,7 +214,14 @@ export type Database = {
           group_id: string
           id: string
           is_active: boolean
+          range_end_ayah: number | null
+          range_end_surah: number | null
+          range_start_ayah: number | null
+          range_start_surah: number | null
+          range_type: string
+          rotation_style: string
           scheduler_version: string
+          start_juz: number
           total_juz_per_week: number
           version_number: number
           weeks_count: number
@@ -203,7 +231,14 @@ export type Database = {
           group_id: string
           id?: string
           is_active?: boolean
+          range_end_ayah?: number | null
+          range_end_surah?: number | null
+          range_start_ayah?: number | null
+          range_start_surah?: number | null
+          range_type?: string
+          rotation_style?: string
           scheduler_version?: string
+          start_juz?: number
           total_juz_per_week?: number
           version_number?: number
           weeks_count: number
@@ -213,7 +248,14 @@ export type Database = {
           group_id?: string
           id?: string
           is_active?: boolean
+          range_end_ayah?: number | null
+          range_end_surah?: number | null
+          range_start_ayah?: number | null
+          range_start_surah?: number | null
+          range_type?: string
+          rotation_style?: string
           scheduler_version?: string
+          start_juz?: number
           total_juz_per_week?: number
           version_number?: number
           weeks_count?: number

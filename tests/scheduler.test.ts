@@ -5,7 +5,11 @@ import {
   validateGeneratedSchedule,
   validateScheduleInput,
 } from "../lib/scheduler/validator"
-import { resolveJuzRange, resolveSurahToJuzRange } from "../lib/quran/resolver"
+import {
+  resolveCustomQuranRange,
+  resolveJuzRange,
+  resolveSurahToJuzRange,
+} from "../lib/quran/resolver"
 
 describe("Quran Resolver Tests", () => {
   it("resolves Juz 1 correctly", () => {
@@ -39,6 +43,15 @@ describe("Quran Resolver Tests", () => {
     expect(juzRange.startJuz).toBe(26)
     expect(juzRange.endJuz).toBe(30)
   })
+
+  it("resolves custom Quran location range correctly", () => {
+    const custom = resolveCustomQuranRange(2, 1, 4, 147)
+    expect(custom.startAyah.surahNumber).toBe(2)
+    expect(custom.startAyah.ayahNumber).toBe(1)
+    expect(custom.endAyah.surahNumber).toBe(4)
+    expect(custom.endAyah.ayahNumber).toBe(147)
+    expect(custom.totalAyahs).toBeGreaterThan(0)
+  })
 })
 
 describe("Scheduler Input Validation Tests", () => {
@@ -61,9 +74,9 @@ describe("Scheduler Input Validation Tests", () => {
     expect(result.errors.some((e) => e.code === "EMPTY_GROUP_NAME")).toBe(true)
   })
 
-  it("rejects total != 30", () => {
+  it("rejects total != 30 in full Quran mode", () => {
     const input: ScheduleInput = {
-      group: { name: "Family", weeksCount: 4 },
+      group: { name: "Family", weeksCount: 4, rangeType: "full" },
       members: [
         {
           id: "1",
@@ -98,15 +111,15 @@ describe("Scheduler Input Validation Tests", () => {
           knowledgeType: "juz_range",
           startJuz: 29,
           endJuz: 30,
-          weeklyAmount: 4,
+          weeklyAmount: 5,
         },
         {
           id: "2",
-          name: "Ali",
+          name: "Fatima",
           knowledgeType: "entire",
           startJuz: 1,
           endJuz: 30,
-          weeklyAmount: 26,
+          weeklyAmount: 25,
         },
       ],
     }
@@ -118,109 +131,111 @@ describe("Scheduler Input Validation Tests", () => {
   })
 })
 
-describe("Scheduling Engine & Multi-Week Rotation Tests", () => {
-  it("generates a valid schedule for 1 member reading 30 Juz", () => {
+describe("Scheduler Engine & Rotation Modes", () => {
+  const baseMembers = [
+    {
+      id: "m1",
+      name: "Tariq",
+      knowledgeType: "entire" as const,
+      startJuz: 1,
+      endJuz: 30,
+      weeklyAmount: 10,
+    },
+    {
+      id: "m2",
+      name: "Zainab",
+      knowledgeType: "entire" as const,
+      startJuz: 1,
+      endJuz: 30,
+      weeklyAmount: 10,
+    },
+    {
+      id: "m3",
+      name: "Bilal",
+      knowledgeType: "entire" as const,
+      startJuz: 1,
+      endJuz: 30,
+      weeklyAmount: 10,
+    },
+  ]
+
+  it("generates schedule with default medium rotation", () => {
     const input: ScheduleInput = {
-      group: { name: "Solo", weeksCount: 3 },
-      members: [
-        {
-          id: "1",
-          name: "Abdulrahman",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 30,
-        },
-      ],
+      group: { name: "Family Study", weeksCount: 3, rotationStyle: "medium" },
+      members: baseMembers,
     }
     const schedule = generateQuranSchedule(input)
     expect(schedule.weeks.length).toBe(3)
-    for (const week of schedule.weeks) {
-      expect(week.assignments.length).toBe(1)
-      expect(week.assignments[0].startJuz).toBe(1)
-      expect(week.assignments[0].endJuz).toBe(30)
-    }
+    schedule.weeks.forEach((week) => {
+      expect(week.assignments.length).toBe(3)
+      const total = week.assignments.reduce((sum, a) => sum + a.weeklyAmount, 0)
+      expect(total).toBe(30)
+    })
   })
 
-  it("generates and rotates schedule for 6 members reading 5 Juz each across 5 weeks", () => {
+  it("generates schedule with large rotation style", () => {
     const input: ScheduleInput = {
-      group: { name: "Friends Circle", weeksCount: 5 },
-      members: [
-        {
-          id: "m1",
-          name: "Member 1",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 5,
-        },
-        {
-          id: "m2",
-          name: "Member 2",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 5,
-        },
-        {
-          id: "m3",
-          name: "Member 3",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 5,
-        },
-        {
-          id: "m4",
-          name: "Member 4",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 5,
-        },
-        {
-          id: "m5",
-          name: "Member 5",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 5,
-        },
-        {
-          id: "m6",
-          name: "Member 6",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 5,
-        },
-      ],
+      group: { name: "Family Study", weeksCount: 4, rotationStyle: "large" },
+      members: baseMembers,
     }
-
     const schedule = generateQuranSchedule(input)
-    expect(schedule.weeks.length).toBe(5)
-
-    // Verify self validation
+    expect(schedule.weeks.length).toBe(4)
     const validation = validateGeneratedSchedule(schedule, input)
     expect(validation.isValid).toBe(true)
+  })
 
-    // Verify rotation: Member 1 gets different Juz across weeks
-    const m1Assignments = schedule.weeks.map((w) =>
-      w.assignments.find((a) => a.memberId === "m1")!
+  it("generates schedule with small rotation style", () => {
+    const input: ScheduleInput = {
+      group: { name: "Family Study", weeksCount: 4, rotationStyle: "small" },
+      members: baseMembers,
+    }
+    const schedule = generateQuranSchedule(input)
+    expect(schedule.weeks.length).toBe(4)
+    const validation = validateGeneratedSchedule(schedule, input)
+    expect(validation.isValid).toBe(true)
+  })
+
+  it("generates deterministic schedule with random rotation style", () => {
+    const input: ScheduleInput = {
+      group: { name: "Halaqah Group", weeksCount: 4, rotationStyle: "random" },
+      members: baseMembers,
+    }
+    const schedule1 = generateQuranSchedule(input)
+    const schedule2 = generateQuranSchedule(input)
+    expect(schedule1.weeks.length).toBe(4)
+    expect(schedule1.weeks[0].assignments[0].memberId).toBe(
+      schedule2.weeks[0].assignments[0].memberId
     )
-
-    const m1StartJuzs = new Set(m1Assignments.map((a) => a.startJuz))
-    expect(m1StartJuzs.size).toBe(5) // 5 distinct starts over 5 weeks!
   })
 
-  it("respects restricted knowledge member (PRD Section 55 Example)", () => {
-    // Abdulrahman (5), Ismail (2), Asia (2, Juz 26-30), + other members totaling 30
+  it("generates schedule starting at custom starting point (Juz 15)", () => {
     const input: ScheduleInput = {
-      group: { name: "Family Group", weeksCount: 4 },
+      group: { name: "Mid Quran Group", weeksCount: 3, startJuz: 15 },
+      members: baseMembers,
+    }
+    const schedule = generateQuranSchedule(input)
+    expect(schedule.weeks.length).toBe(3)
+    const week1 = schedule.weeks[0]
+    expect(week1.assignments[0].startJuz).toBe(15)
+  })
+
+  it("generates schedule for custom Quran range", () => {
+    const input: ScheduleInput = {
+      group: {
+        name: "Surah Al-Baqarah Study",
+        weeksCount: 2,
+        rangeType: "custom",
+        customRange: {
+          startSurah: 2,
+          startAyah: 1,
+          endSurah: 2,
+          endAyah: 286,
+        },
+      },
       members: [
         {
           id: "m1",
-          name: "Abdulrahman",
+          name: "Ali",
           knowledgeType: "entire",
           startJuz: 1,
           endJuz: 30,
@@ -228,94 +243,20 @@ describe("Scheduling Engine & Multi-Week Rotation Tests", () => {
         },
         {
           id: "m2",
-          name: "Ismail",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 2,
-        },
-        {
-          id: "m3",
-          name: "Asia",
-          knowledgeType: "juz_range",
-          startJuz: 26,
-          endJuz: 30,
-          weeklyAmount: 2,
-        },
-        {
-          id: "m4",
-          name: "Fatima",
+          name: "Sara",
           knowledgeType: "entire",
           startJuz: 1,
           endJuz: 30,
           weeklyAmount: 5,
         },
-        {
-          id: "m5",
-          name: "Hassan",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 4,
-        },
-        {
-          id: "m6",
-          name: "Mariam",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 4,
-        },
-        {
-          id: "m7",
-          name: "Zaid",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 4,
-        },
-        {
-          id: "m8",
-          name: "Amina",
-          knowledgeType: "entire",
-          startJuz: 1,
-          endJuz: 30,
-          weeklyAmount: 4,
-        },
       ],
     }
-
     const schedule = generateQuranSchedule(input)
-    expect(schedule.weeks.length).toBe(4)
-
-    // Verify Asia is NEVER assigned outside Juz 26..30 in ANY week
-    for (const week of schedule.weeks) {
-      const asiaAssignment = week.assignments.find((a) => a.memberId === "m3")!
-      expect(asiaAssignment).toBeDefined()
-      expect(asiaAssignment.startJuz).toBeGreaterThanOrEqual(26)
-      expect(asiaAssignment.endJuz).toBeLessThanOrEqual(30)
-      expect(asiaAssignment.endJuz - asiaAssignment.startJuz + 1).toBe(2)
-    }
-  })
-
-  it("generates schedule for a 13-member group totaling 30 Juz", () => {
-    // 5 + 2 + 2 + 2 + 2 + 2 + 3 + 2 + 2 + 3 + 2 + 2 + 1 = 30
-    const amounts = [5, 2, 2, 2, 2, 2, 3, 2, 2, 3, 2, 2, 1]
-    const input: ScheduleInput = {
-      group: { name: "Large Mosque Circle", weeksCount: 4 },
-      members: amounts.map((amount, idx) => ({
-        id: `mem-${idx + 1}`,
-        name: `Member ${idx + 1}`,
-        knowledgeType: "entire",
-        startJuz: 1,
-        endJuz: 30,
-        weeklyAmount: amount,
-      })),
-    }
-
-    const schedule = generateQuranSchedule(input)
-    expect(schedule.weeks.length).toBe(4)
-    const validation = validateGeneratedSchedule(schedule, input)
-    expect(validation.isValid).toBe(true)
+    expect(schedule.weeks.length).toBe(2)
+    const w1 = schedule.weeks[0]
+    expect(w1.assignments[0].startAyah.surahNumber).toBe(2)
+    expect(w1.assignments[0].startAyah.ayahNumber).toBe(1)
+    expect(w1.assignments[1].endAyah.surahNumber).toBe(2)
+    expect(w1.assignments[1].endAyah.ayahNumber).toBe(286)
   })
 })

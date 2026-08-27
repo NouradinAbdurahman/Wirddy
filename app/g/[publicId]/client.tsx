@@ -18,16 +18,23 @@ import {
   verifyEditTokenAction,
 } from "@/lib/groups/actions"
 import {
+  CustomQuranRange,
   GeneratedSchedule,
   MemberConfig,
+  RangeType,
+  RotationStyle,
   ScheduleInput,
 } from "@/lib/scheduler/types"
+import { saveRecentSchedule } from "@/lib/storage/recent-schedules"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { ScheduleView } from "@/components/schedule/schedule-view"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { MemberList } from "@/components/planner/member-list"
+import { RangeSelector } from "@/components/planner/range-selector"
+import { RotationSelector } from "@/components/planner/rotation-selector"
 import { WeeksSelector } from "@/components/planner/weeks-selector"
 import { TotalIndicator } from "@/components/planner/total-indicator"
 import { GenerateButton } from "@/components/planner/generate-button"
@@ -62,6 +69,21 @@ export function PublicScheduleClient({
   const [weeksCount, setWeeksCount] = useState<number>(
     initialData?.schedule.weeksCount || 4
   )
+  const [rotationStyle, setRotationStyle] = useState<RotationStyle>(
+    initialData?.rotationStyle || "medium"
+  )
+  const [rangeType, setRangeType] = useState<RangeType>(
+    initialData?.rangeType || "full"
+  )
+  const [startJuz, setStartJuz] = useState<number>(initialData?.startJuz || 1)
+  const [customRange, setCustomRange] = useState<CustomQuranRange>(
+    initialData?.customRange || {
+      startSurah: 2,
+      startAyah: 1,
+      endSurah: 4,
+      endAyah: 147,
+    }
+  )
   const [members, setMembers] = useState<MemberConfig[]>(
     initialData?.membersConfig || []
   )
@@ -69,6 +91,20 @@ export function PublicScheduleClient({
   const [editError, setEditError] = useState<string | null>(null)
 
   const BackArrowIcon = dir === "rtl" ? IconArrowRight : IconArrowLeft
+
+  // Save to device-local history on mount if valid
+  useEffect(() => {
+    if (groupData && !groupData.isExpired) {
+      saveRecentSchedule({
+        publicId: groupData.publicId,
+        editToken: editToken || undefined,
+        groupName: groupData.groupName,
+        weeksCount: groupData.schedule.weeksCount,
+        totalJuz: 30,
+        updatedAt: new Date().toISOString(),
+      })
+    }
+  }, [groupData, editToken])
 
   // Verify edit token if provided in query string
   useEffect(() => {
@@ -145,75 +181,86 @@ export function PublicScheduleClient({
     )
   }
 
-  // Handle Edit / Regenerate
-  const handleSaveAndRegenerate = async () => {
-    const input: ScheduleInput = {
-      group: { name: groupName, weeksCount },
-      members,
-    }
-
-    const validation = validateScheduleInput(input)
-    if (!validation.isValid) {
-      setEditError(
-        language === "ar"
-          ? validation.errors[0]?.messageAr || "بيانات الخطة غير صالحة."
-          : validation.errors[0]?.messageEn || "Invalid schedule configuration."
-      )
-      return
-    }
-
-    setIsRegenerating(true)
-    setEditError(null)
-
-    try {
-      const res = await updateAndRegenerateAction(
-        publicId,
-        editToken,
-        input,
-        language
-      )
-      if (res.success && res.data) {
-        setGroupData(res.data)
-        setIsEditing(false)
-      } else {
-        setEditError(res.error || "Failed to update schedule.")
-      }
-    } catch (err: any) {
-      setEditError(err.message || "Failed to update schedule.")
-    } finally {
-      setIsRegenerating(false)
-    }
-  }
-
-  const totalWeeklyJuz = members.reduce(
+  const currentTotal = members.reduce(
     (sum, m) => sum + (m.weeklyAmount || 0),
     0
   )
+
+  const inputPayload: ScheduleInput = {
+    group: {
+      name: groupName.trim() || groupData.groupName,
+      weeksCount,
+      rotationStyle,
+      rangeType,
+      startJuz: rangeType === "full" ? startJuz : undefined,
+      customRange: rangeType === "custom" ? customRange : undefined,
+    },
+    members,
+  }
+
+  const validationResult = validateScheduleInput(inputPayload)
   const isInputValid =
-    totalWeeklyJuz === 30 && members.length > 0 && groupName.trim().length > 0
+    validationResult.isValid &&
+    (rangeType === "custom" || currentTotal === 30) &&
+    groupName.trim().length > 0
 
   const handleAddMember = () => {
+    const newId = `m-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     const newMember: MemberConfig = {
-      id: `m-${Date.now()}-${members.length + 1}`,
+      id: newId,
       name: `${language === "ar" ? "عضو" : "Member"} ${members.length + 1}`,
       knowledgeType: "entire",
       startJuz: 1,
       endJuz: 30,
       weeklyAmount: 5,
     }
-    setMembers([...members, newMember])
+    setMembers((prev) => [...prev, newMember])
   }
 
   const handleUpdateMember = (index: number, updated: MemberConfig) => {
-    const next = [...members]
-    next[index] = updated
-    setMembers(next)
+    setMembers((prev) => {
+      const next = [...prev]
+      next[index] = updated
+      return next
+    })
+    setEditError(null)
   }
 
   const handleRemoveMember = (index: number) => {
     if (members.length <= 1) return
-    const next = members.filter((_, idx) => idx !== index)
-    setMembers(next)
+    setMembers((prev) => prev.filter((_, i) => i !== index))
+    setEditError(null)
+  }
+
+  const handleSaveAndRegenerate = async () => {
+    setEditError(null)
+    const validCheck = validateScheduleInput(inputPayload)
+    if (!validCheck.isValid) {
+      const err = validCheck.errors[0]
+      setEditError(language === "ar" ? err.messageAr : err.messageEn)
+      return
+    }
+
+    setIsRegenerating(true)
+    try {
+      const res = await updateAndRegenerateAction(
+        publicId,
+        editToken,
+        inputPayload,
+        language
+      )
+      if (res.success && res.data) {
+        setGroupData(res.data)
+        setIsEditing(false)
+        window.scrollTo({ top: 0, behavior: "smooth" })
+      } else {
+        setEditError(res.error || "Failed to update schedule.")
+      }
+    } catch {
+      setEditError("Failed to update schedule.")
+    } finally {
+      setIsRegenerating(false)
+    }
   }
 
   return (
@@ -221,25 +268,96 @@ export function PublicScheduleClient({
       <Header />
 
       <main className="container mx-auto flex-1 px-4 py-8 sm:px-6">
-        {/* Editor Edit Form Mode */}
-        {isEditing && isEditor ? (
-          <div className="mx-auto w-full max-w-3xl space-y-6">
+        {/* Editor Mode Banner */}
+        {isEditor && !isEditing && (
+          <div className="mx-auto mb-6 flex max-w-5xl items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 sm:px-5">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-900 dark:text-amber-200">
+              <span className="flex h-2 w-2 rounded-full bg-amber-500" />
+              <span>{t.editorBadge}</span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setIsEditing(true)}
+              className="h-8 rounded-xl border-amber-500/40 bg-card text-xs font-semibold hover:bg-amber-500/10"
+            >
+              {t.btnEditPlan}
+            </Button>
+          </div>
+        )}
+
+        {/* Editing Plan Form */}
+        {isEditing ? (
+          <div className="mx-auto max-w-3xl space-y-6">
             <div className="flex items-center justify-between border-b border-border/40 pb-3">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsEditing(false)}
-                className="h-8.5 gap-1.5 rounded-xl px-3 text-xs font-semibold"
+                className="gap-1.5 rounded-xl px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
               >
                 <BackArrowIcon className="h-4 w-4" />
                 <span>{t.cancel}</span>
               </Button>
-
               <div className="text-xs font-bold text-primary">
-                {t.editorBadge}
+                {t.btnEditPlan}
               </div>
             </div>
+
+            {/* Section 1: Group Name */}
+            <Card className="space-y-3 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+              <label className="text-sm font-bold text-foreground">
+                {t.groupNameLabel}
+              </label>
+              <Input
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                maxLength={60}
+                className="h-10 rounded-xl text-sm font-medium"
+              />
+            </Card>
+
+            {/* Section 2: Quran Range & Starting Point */}
+            <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+              <RangeSelector
+                rangeType={rangeType}
+                onRangeTypeChange={setRangeType}
+                startJuz={startJuz}
+                onStartJuzChange={setStartJuz}
+                customRange={customRange}
+                onCustomRangeChange={setCustomRange}
+              />
+            </Card>
+
+            {/* Section 3: Members */}
+            <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+              {rangeType === "full" && (
+                <div className="sticky top-16 z-20 -mx-2 bg-background/90 px-2 py-1 backdrop-blur-md">
+                  <TotalIndicator currentTotal={currentTotal} />
+                </div>
+              )}
+              <MemberList
+                members={members}
+                onAddMember={handleAddMember}
+                onUpdateMember={handleUpdateMember}
+                onRemoveMember={handleRemoveMember}
+              />
+            </Card>
+
+            {/* Section 4: Rotation Style */}
+            <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+              <RotationSelector
+                value={rotationStyle}
+                onChange={setRotationStyle}
+              />
+            </Card>
+
+            {/* Section 5: Duration */}
+            <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+              <WeeksSelector weeksCount={weeksCount} onChange={setWeeksCount} />
+            </Card>
 
             {editError && (
               <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-semibold text-destructive">
@@ -247,21 +365,6 @@ export function PublicScheduleClient({
               </div>
             )}
 
-            {/* Weeks Selector */}
-            <WeeksSelector weeksCount={weeksCount} onChange={setWeeksCount} />
-
-            {/* Total Juz Indicator */}
-            <TotalIndicator currentTotal={totalWeeklyJuz} />
-
-            {/* Member List */}
-            <MemberList
-              members={members}
-              onAddMember={handleAddMember}
-              onUpdateMember={handleUpdateMember}
-              onRemoveMember={handleRemoveMember}
-            />
-
-            {/* Save Changes Button */}
             <GenerateButton
               onGenerate={handleSaveAndRegenerate}
               isGenerating={isRegenerating}
@@ -269,23 +372,26 @@ export function PublicScheduleClient({
             />
           </div>
         ) : (
-          /* Normal Schedule View */
           <ScheduleView
             schedule={groupData.schedule}
             scheduleInput={{
               group: {
                 name: groupData.groupName,
                 weeksCount: groupData.schedule.weeksCount,
+                rotationStyle: groupData.rotationStyle,
+                rangeType: groupData.rangeType,
+                startJuz: groupData.startJuz,
+                customRange: groupData.customRange,
               },
               members: groupData.membersConfig,
             }}
             onEditPlan={isEditor ? () => setIsEditing(true) : undefined}
-            onRegenerate={isEditor ? () => setIsEditing(true) : undefined}
+            onRegenerate={isEditor ? handleSaveAndRegenerate : undefined}
             isRegenerating={isRegenerating}
             isViewOnly={!isEditor}
             savedData={{
               publicId: groupData.publicId,
-              editToken: editToken || "",
+              editToken,
               groupName: groupData.groupName,
               expiresAt: groupData.expiresAt,
             }}

@@ -15,7 +15,11 @@ import { Button } from "@/components/ui/button"
 
 type PreviewViewMode = "cards" | "table"
 
-export function ExampleSchedule() {
+interface ExampleScheduleProps {
+  onTryTemplate?: () => void
+}
+
+export function ExampleSchedule({ onTryTemplate }: ExampleScheduleProps) {
   const { language, t, formatNumber } = useI18n()
   const [activeWeek, setActiveWeek] = useState<number>(1)
   const [viewMode, setViewMode] = useState<PreviewViewMode>("cards")

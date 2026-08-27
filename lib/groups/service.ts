@@ -1,7 +1,10 @@
 import { getSupabaseServerClient } from "../supabase/server"
 import {
+  CustomQuranRange,
   GeneratedSchedule,
   MemberConfig,
+  RangeType,
+  RotationStyle,
   ScheduleInput,
   WeekSchedule,
 } from "../scheduler/types"
@@ -31,6 +34,10 @@ export interface LoadedPublicGroup {
   schedule: GeneratedSchedule
   membersConfig: MemberConfig[]
   versionNumber: number
+  rotationStyle?: RotationStyle
+  rangeType?: RangeType
+  startJuz?: number
+  customRange?: CustomQuranRange
 }
 
 /**
@@ -64,6 +71,10 @@ export async function saveScheduleGroup(
   const editToken = generateEditToken()
   const editTokenHash = hashEditToken(editToken)
   const dir = lang === "ar" ? "rtl" : "ltr"
+  const rotationStyle = input.group.rotationStyle || "medium"
+  const rangeType = input.group.rangeType || "full"
+  const startJuz = input.group.startJuz || 1
+  const customRange = input.group.customRange
 
   // 2. Insert Group
   const { data: groupData, error: groupError } = (await supabase
@@ -74,7 +85,14 @@ export async function saveScheduleGroup(
       name: input.group.name.trim(),
       language: lang,
       direction: dir,
-      scheduler_version: "1.0",
+      scheduler_version: "1.1",
+      rotation_style: rotationStyle,
+      range_type: rangeType,
+      start_juz: startJuz,
+      range_start_surah: customRange?.startSurah || null,
+      range_start_ayah: customRange?.startAyah || null,
+      range_end_surah: customRange?.endSurah || null,
+      range_end_ayah: customRange?.endAyah || null,
     } as any)
     .select("id, expires_at")
     .single()) as {
@@ -117,7 +135,6 @@ export async function saveScheduleGroup(
 
   if (membersError || !insertedMembers) {
     console.error("Error inserting members:", membersError)
-    // Cleanup group on failure
     await supabase.from("groups").delete().eq("id", groupId)
     throw new Error(
       lang === "ar"
@@ -126,7 +143,6 @@ export async function saveScheduleGroup(
     )
   }
 
-  // Create mapping from original input member index to database member_id
   const memberIdMap = new Map<number, string>()
   insertedMembers.forEach((im) => {
     memberIdMap.set(im.sort_order, im.id)
@@ -140,8 +156,15 @@ export async function saveScheduleGroup(
       version_number: 1,
       weeks_count: input.group.weeksCount,
       total_juz_per_week: 30,
-      scheduler_version: "1.0",
+      scheduler_version: "1.1",
       is_active: true,
+      rotation_style: rotationStyle,
+      range_type: rangeType,
+      start_juz: startJuz,
+      range_start_surah: customRange?.startSurah || null,
+      range_start_ayah: customRange?.startAyah || null,
+      range_end_surah: customRange?.endSurah || null,
+      range_end_ayah: customRange?.endAyah || null,
     } as any)
     .select("id")
     .single()) as { data: { id: string } | null; error: any }
@@ -163,7 +186,7 @@ export async function saveScheduleGroup(
       .insert({
         schedule_plan_id: planId,
         week_number: week.weekNumber,
-        total_juz: week.totalJuz,
+        total_juz: week.totalJuz || 30,
       } as any)
       .select("id")
       .single()) as { data: { id: string } | null; error: any }
@@ -180,7 +203,6 @@ export async function saveScheduleGroup(
 
     const weekId = weekData.id
     const assignmentInserts = week.assignments.map((a, aIdx) => {
-      // Find corresponding member ID from index
       const originalMemberIndex = input.members.findIndex(
         (m) => m.id === a.memberId || m.name === a.memberName
       )
@@ -251,7 +273,9 @@ export async function getGroupByPublicId(
   // 1. Fetch group
   const { data: group, error: groupError } = (await supabase
     .from("groups")
-    .select("id, public_id, name, language, direction, expires_at")
+    .select(
+      "id, public_id, name, language, direction, expires_at, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah"
+    )
     .eq("public_id", publicId.trim())
     .single()) as {
     data: {
@@ -261,6 +285,13 @@ export async function getGroupByPublicId(
       language: "ar" | "en"
       direction: "rtl" | "ltr"
       expires_at: string
+      rotation_style: RotationStyle
+      range_type: RangeType
+      start_juz: number
+      range_start_surah: number | null
+      range_start_ayah: number | null
+      range_end_surah: number | null
+      range_end_ayah: number | null
     } | null
     error: any
   }
@@ -331,7 +362,9 @@ export async function getGroupByPublicId(
   // 3. Fetch active plan
   const { data: plan, error: planError } = (await supabase
     .from("schedule_plans")
-    .select("id, version_number, weeks_count, scheduler_version")
+    .select(
+      "id, version_number, weeks_count, scheduler_version, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah"
+    )
     .eq("group_id", group.id)
     .eq("is_active", true)
     .order("version_number", { ascending: false })
@@ -342,6 +375,13 @@ export async function getGroupByPublicId(
       version_number: number
       weeks_count: number
       scheduler_version: string
+      rotation_style: RotationStyle
+      range_type: RangeType
+      start_juz: number
+      range_start_surah: number | null
+      range_start_ayah: number | null
+      range_end_surah: number | null
+      range_end_ayah: number | null
     } | null
     error: any
   }
@@ -404,6 +444,20 @@ export async function getGroupByPublicId(
     return null
   }
 
+  const customRange: CustomQuranRange | undefined =
+    plan.range_type === "custom" &&
+    plan.range_start_surah &&
+    plan.range_start_ayah &&
+    plan.range_end_surah &&
+    plan.range_end_ayah
+      ? {
+          startSurah: plan.range_start_surah,
+          startAyah: plan.range_start_ayah,
+          endSurah: plan.range_end_surah,
+          endAyah: plan.range_end_ayah,
+        }
+      : undefined
+
   // Reconstruct weeks
   const weekSchedules: WeekSchedule[] = weeks.map((w) => {
     const weekAssignments = assignments
@@ -444,6 +498,10 @@ export async function getGroupByPublicId(
     createdAt: new Date().toISOString(),
     groupName: group.name,
     weeksCount: plan.weeks_count,
+    rotationStyle: plan.rotation_style || group.rotation_style,
+    rangeType: plan.range_type || group.range_type,
+    startJuz: plan.start_juz || group.start_juz,
+    customRange,
     weeks: weekSchedules,
     members: membersConfig,
   }
@@ -458,6 +516,10 @@ export async function getGroupByPublicId(
     schedule: generatedSchedule,
     membersConfig,
     versionNumber: plan.version_number,
+    rotationStyle: plan.rotation_style || group.rotation_style,
+    rangeType: plan.range_type || group.range_type,
+    startJuz: plan.start_juz || group.start_juz,
+    customRange,
   }
 }
 
@@ -495,7 +557,6 @@ export async function updateGroupAndRegenerate(
   input: ScheduleInput,
   lang: "ar" | "en" = "ar"
 ): Promise<LoadedPublicGroup> {
-  // 1. Authorize edit
   const isAuthorized = await validateEditAccess(publicId, rawEditToken)
   if (!isAuthorized) {
     throw new Error(
@@ -505,7 +566,6 @@ export async function updateGroupAndRegenerate(
     )
   }
 
-  // 2. Validate input
   const validation = validateScheduleInput(input)
   if (!validation.isValid) {
     const errorMsg =
@@ -520,7 +580,6 @@ export async function updateGroupAndRegenerate(
     throw new Error("Supabase unavailable.")
   }
 
-  // 3. Fetch current group
   const { data: group } = (await supabase
     .from("groups")
     .select("id, name, language, direction, expires_at")
@@ -539,18 +598,28 @@ export async function updateGroupAndRegenerate(
     throw new Error("Group not found.")
   }
 
-  // 4. Generate new schedule locally
   const newSchedule = generateQuranSchedule(input)
+  const rotationStyle = input.group.rotationStyle || "medium"
+  const rangeType = input.group.rangeType || "full"
+  const startJuz = input.group.startJuz || 1
+  const customRange = input.group.customRange
 
-  // 5. Update group name and updated_at
+  // Update group
   await (supabase.from("groups") as any)
     .update({
       name: input.group.name.trim(),
+      rotation_style: rotationStyle,
+      range_type: rangeType,
+      start_juz: startJuz,
+      range_start_surah: customRange?.startSurah || null,
+      range_start_ayah: customRange?.startAyah || null,
+      range_end_surah: customRange?.endSurah || null,
+      range_end_ayah: customRange?.endAyah || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", group.id)
 
-  // 6. Delete old members and insert new members
+  // Replace members
   await supabase.from("group_members").delete().eq("group_id", group.id)
 
   const memberInserts = input.members.map((m, idx) => ({
@@ -582,7 +651,7 @@ export async function updateGroupAndRegenerate(
     memberIdMap.set(im.sort_order, im.id)
   })
 
-  // 7. Get highest version number & mark previous plans inactive
+  // Get highest version number & mark previous plans inactive
   const { data: latestPlan } = (await supabase
     .from("schedule_plans")
     .select("version_number")
@@ -597,7 +666,7 @@ export async function updateGroupAndRegenerate(
     .update({ is_active: false })
     .eq("group_id", group.id)
 
-  // 8. Insert new plan
+  // Insert new plan
   const { data: planData, error: planError } = (await supabase
     .from("schedule_plans")
     .insert({
@@ -605,8 +674,15 @@ export async function updateGroupAndRegenerate(
       version_number: nextVersion,
       weeks_count: input.group.weeksCount,
       total_juz_per_week: 30,
-      scheduler_version: "1.0",
+      scheduler_version: "1.1",
       is_active: true,
+      rotation_style: rotationStyle,
+      range_type: rangeType,
+      start_juz: startJuz,
+      range_start_surah: customRange?.startSurah || null,
+      range_start_ayah: customRange?.startAyah || null,
+      range_end_surah: customRange?.endSurah || null,
+      range_end_ayah: customRange?.endAyah || null,
     } as any)
     .select("id")
     .single()) as { data: { id: string } | null; error: any }
@@ -617,14 +693,14 @@ export async function updateGroupAndRegenerate(
 
   const planId = planData.id
 
-  // 9. Insert new weeks and assignments
+  // Insert weeks and assignments
   for (const week of newSchedule.weeks) {
     const { data: weekData, error: weekError } = (await supabase
       .from("schedule_weeks")
       .insert({
         schedule_plan_id: planId,
         week_number: week.weekNumber,
-        total_juz: week.totalJuz,
+        total_juz: week.totalJuz || 30,
       } as any)
       .select("id")
       .single()) as { data: { id: string } | null; error: any }
@@ -673,6 +749,43 @@ export async function updateGroupAndRegenerate(
   }
 
   return loaded
+}
+
+/**
+ * Duplicates an existing saved schedule into a brand-new independent group.
+ */
+export async function duplicateGroupSchedule(
+  sourcePublicId: string,
+  lang: "ar" | "en" = "ar"
+): Promise<SavedGroupResult> {
+  const existing = await getGroupByPublicId(sourcePublicId)
+  if (!existing) {
+    throw new Error(
+      lang === "ar"
+        ? "الجدول الأصلي غير موجود."
+        : "Original schedule not found."
+    )
+  }
+
+  const duplicateName =
+    lang === "ar"
+      ? `${existing.groupName} (نسخة)`
+      : `${existing.groupName} (Copy)`
+
+  const input: ScheduleInput = {
+    group: {
+      name: duplicateName,
+      weeksCount: existing.schedule.weeksCount,
+      rotationStyle: existing.rotationStyle,
+      rangeType: existing.rangeType,
+      startJuz: existing.startJuz,
+      customRange: existing.customRange,
+    },
+    members: existing.membersConfig,
+  }
+
+  const newSchedule = generateQuranSchedule(input)
+  return saveScheduleGroup(input, newSchedule, lang)
 }
 
 /**
