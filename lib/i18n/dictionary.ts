@@ -368,6 +368,108 @@ export interface Translations {
   // Footer & branding
   footerText: string
   footerRights: string
+
+  // Dashboard & Navigation
+  navDashboard: string
+  navMyGroups: string
+  navSettings: string
+  navBookmarks: string
+  dashboardWelcome: string
+  dashboardSubtitle: string
+  dashboardTodaysReading: string
+  dashboardContinueReading: string
+  dashboardActiveGroups: string
+  dashboardCompletedGroups: string
+  dashboardArchivedGroups: string
+  dashboardRecentSchedules: string
+  dashboardQuickCreate: string
+  dashboardNoActiveGroups: string
+  dashboardNoTodaysReading: string
+  dashboardReadNow: string
+  dashboardMarkComplete: string
+  dashboardCompleted: string
+  dashboardGroupProgress: string
+  dashboardSearchPlaceholder: string
+
+  // My Groups Filters & Actions
+  tabAll: string
+  tabActive: string
+  tabDrafts: string
+  tabCompleted: string
+  tabArchived: string
+  tabRamadan: string
+  actionOpen: string
+  actionShare: string
+  actionDownload: string
+  actionEdit: string
+  actionDuplicate: string
+  actionNewKhatmah: string
+  actionArchive: string
+  actionRestore: string
+  actionDelete: string
+  confirmDelete: string
+  confirmArchive: string
+
+  // Quran Reader
+  readerTitle: string
+  readerSurah: string
+  readerAyah: string
+  readerJuz: string
+  readerPrevAyah: string
+  readerNextAyah: string
+  readerPrevPortion: string
+  readerNextPortion: string
+  readerFontSize: string
+  readerBookmarkSaved: string
+  readerMarkAssignmentDone: string
+  readerOpenReader: string
+
+  // Bookmarks
+  bookmarksTitle: string
+  bookmarksEmpty: string
+  bookmarksJumpTo: string
+
+  // Member Invitations & Linking
+  inviteMemberTitle: string
+  inviteCopyLink: string
+  inviteWhatsApp: string
+  inviteQrCode: string
+  linkAccountTitle: string
+  linkAccountSuccess: string
+  linkedAccountBadge: string
+  anonymousMemberBadge: string
+
+  // Announcements
+  announcementsTitle: string
+  announcementsEmpty: string
+  announcementCreate: string
+  announcementTitlePlaceholder: string
+  announcementContentPlaceholder: string
+  announcementPostBtn: string
+
+  // History & Lifecycle
+  historyTitle: string
+  historyEmpty: string
+  khatmahSuccess: string
+
+  // Settings & Notifications
+  settingsTitle: string
+  settingsAccount: string
+  settingsAppearance: string
+  settingsLanguage: string
+  settingsReading: string
+  settingsNotifications: string
+  settingsData: string
+  notifDailyReminder: string
+  notifReminderTime: string
+  notifIncompleteReminder: string
+  notifWeeklySummary: string
+  notifGroupAlerts: string
+  notifEnableBtn: string
+  notifDisabled: string
+  exportDataBtn: string
+  deleteAccountBtn: string
+  deleteAccountConfirm: string
 }
 
 export const translations: Record<Language, Translations> = {
@@ -747,6 +849,110 @@ export const translations: Record<Language, Translations> = {
     authSignIn: "تسجيل الدخول",
     authSignOut: "تسجيل الخروج",
     authBackToHome: "العودة للرئيسية",
+
+    // Dashboard & Navigation
+    navDashboard: "الرئيسية",
+    navMyGroups: "جداولي",
+    navSettings: "الإعدادات",
+    navBookmarks: "العلامات المحفوظة",
+    dashboardWelcome: "مرحباً، {name}",
+    dashboardSubtitle: "تابع وردك اليومي وأدر مجموعاتك بكل سهولة",
+    dashboardTodaysReading: "وردك اليوم",
+    dashboardContinueReading: "تابع وردك",
+    dashboardActiveGroups: "مجموعاتي النشطة",
+    dashboardCompletedGroups: "مجموعات مكتملة",
+    dashboardArchivedGroups: "مجموعات مؤرشفة",
+    dashboardRecentSchedules: "جداول حديثة",
+    dashboardQuickCreate: "إنشاء جدول جديد",
+    dashboardNoActiveGroups: "لم تنشئ أي جدول نشط بعد.",
+    dashboardNoTodaysReading: "لا يوجد ورد محدد لك اليوم.",
+    dashboardReadNow: "اقرأ الآن",
+    dashboardMarkComplete: "تم الإنجاز",
+    dashboardCompleted: "مكتمل",
+    dashboardGroupProgress: "تقدم المجموعة",
+    dashboardSearchPlaceholder: "بحث في المجموعات والأعضاء...",
+
+    // My Groups Filters & Actions
+    tabAll: "الكل",
+    tabActive: "نشطة",
+    tabDrafts: "مسودات",
+    tabCompleted: "مكتملة",
+    tabArchived: "مؤرشفة",
+    tabRamadan: "رمضان",
+    actionOpen: "فتح",
+    actionShare: "مشاركة",
+    actionDownload: "تحميل",
+    actionEdit: "تعديل",
+    actionDuplicate: "نسخ",
+    actionNewKhatmah: "بدء ختمة جديدة",
+    actionArchive: "أرشفة",
+    actionRestore: "استعادة",
+    actionDelete: "حذف",
+    confirmDelete:
+      "هل أنت متأكد من حذف هذا الجدول؟ لا يمكن التراجع عن هذا الإجراء.",
+    confirmArchive: "هل تريد أرشفة هذا الجدول؟ يمكنك استعادته في أي وقت.",
+
+    // Quran Reader
+    readerTitle: "المصحف الشريف",
+    readerSurah: "سورة",
+    readerAyah: "آية",
+    readerJuz: "الجزء",
+    readerPrevAyah: "الآية السابقة",
+    readerNextAyah: "الآية التالية",
+    readerPrevPortion: "المقطع السابق",
+    readerNextPortion: "المقطع التالي",
+    readerFontSize: "حجم الخط",
+    readerBookmarkSaved: "تم حفظ العلامة المرجعية بنجاح",
+    readerMarkAssignmentDone: "إتمام قراءة هذا المقطع",
+    readerOpenReader: "فتح المصحف",
+
+    // Bookmarks
+    bookmarksTitle: "العلامات المحفوظة",
+    bookmarksEmpty: "لا توجد علامات محفوظة بعد.",
+    bookmarksJumpTo: "الانتقال للمصحف",
+
+    // Member Invitations & Linking
+    inviteMemberTitle: "دعوة عضو",
+    inviteCopyLink: "نسخ الرابط",
+    inviteWhatsApp: "مشاركة عبر واتساب",
+    inviteQrCode: "رمز الاستجابة السريع QR",
+    linkAccountTitle: "ربط بحسابي في Google",
+    linkAccountSuccess: "تم ربط العضو بحسابك بنجاح",
+    linkedAccountBadge: "مرتبط بحساب",
+    anonymousMemberBadge: "عضو بدون حساب",
+
+    // Announcements
+    announcementsTitle: "إعلانات المجموعة",
+    announcementsEmpty: "لا توجد إعلانات حالياً.",
+    announcementCreate: "إنشاء إعلان جديد",
+    announcementTitlePlaceholder: "عنوان الإعلان",
+    announcementContentPlaceholder: "اكتب نص الإعلان هنا...",
+    announcementPostBtn: "نشر الإعلان",
+
+    // History & Lifecycle
+    historyTitle: "سجل التعديلات",
+    historyEmpty: "لا توجد تعديلات سابقة مسجلة.",
+    khatmahSuccess: "تم إنشاء الختمة الجديدة بنجاح",
+
+    // Settings & Notifications
+    settingsTitle: "الإعدادات",
+    settingsAccount: "الحساب",
+    settingsAppearance: "المظهر",
+    settingsLanguage: "اللغة",
+    settingsReading: "تفضيلات القراءة",
+    settingsNotifications: "الإشعارات",
+    settingsData: "إدارة البيانات",
+    notifDailyReminder: "تذكير الورد اليومي",
+    notifReminderTime: "وقت التذكير",
+    notifIncompleteReminder: "تذكير إذا لم أكمل وردي",
+    notifWeeklySummary: "ملخص أسبوعي",
+    notifGroupAlerts: "تنبيهات وإعلانات المجموعة",
+    notifEnableBtn: "تفعيل الإشعارات",
+    notifDisabled: "الإشعارات معطلة أو غير مدعومة في هذا المتصفح",
+    exportDataBtn: "تصدير نسخة من بياناتي (JSON)",
+    deleteAccountBtn: "حذف حسابي نهائياً",
+    deleteAccountConfirm:
+      "هل أنت متأكد تماماً من حذف حسابك؟ سيتم حذف جميع جداولك وبياناتك نهائياً.",
   },
   en: {
     appName: "Wirddy",
@@ -1136,5 +1342,111 @@ export const translations: Record<Language, Translations> = {
     authSignIn: "Sign In",
     authSignOut: "Sign Out",
     authBackToHome: "Back to Home",
+
+    // Dashboard & Navigation
+    navDashboard: "Dashboard",
+    navMyGroups: "My Groups",
+    navSettings: "Settings",
+    navBookmarks: "Bookmarks",
+    dashboardWelcome: "Welcome back, {name}",
+    dashboardSubtitle:
+      "Track your daily reading and manage your groups with ease",
+    dashboardTodaysReading: "Today's Reading",
+    dashboardContinueReading: "Continue Reading",
+    dashboardActiveGroups: "My Active Groups",
+    dashboardCompletedGroups: "Completed Groups",
+    dashboardArchivedGroups: "Archived Groups",
+    dashboardRecentSchedules: "Recent Schedules",
+    dashboardQuickCreate: "Create New Schedule",
+    dashboardNoActiveGroups: "No active schedules found.",
+    dashboardNoTodaysReading: "No reading assignment scheduled for today.",
+    dashboardReadNow: "Read Now",
+    dashboardMarkComplete: "Mark Complete",
+    dashboardCompleted: "Completed",
+    dashboardGroupProgress: "Group Progress",
+    dashboardSearchPlaceholder: "Search groups and members...",
+
+    // My Groups Filters & Actions
+    tabAll: "All",
+    tabActive: "Active",
+    tabDrafts: "Drafts",
+    tabCompleted: "Completed",
+    tabArchived: "Archived",
+    tabRamadan: "Ramadan",
+    actionOpen: "Open",
+    actionShare: "Share",
+    actionDownload: "Download",
+    actionEdit: "Edit",
+    actionDuplicate: "Duplicate",
+    actionNewKhatmah: "Start New Khatmah",
+    actionArchive: "Archive",
+    actionRestore: "Restore",
+    actionDelete: "Delete",
+    confirmDelete:
+      "Are you sure you want to delete this schedule? This action cannot be undone.",
+    confirmArchive:
+      "Are you sure you want to archive this schedule? You can restore it anytime.",
+
+    // Quran Reader
+    readerTitle: "Holy Quran",
+    readerSurah: "Surah",
+    readerAyah: "Ayah",
+    readerJuz: "Juz",
+    readerPrevAyah: "Previous Ayah",
+    readerNextAyah: "Next Ayah",
+    readerPrevPortion: "Previous Portion",
+    readerNextPortion: "Next Portion",
+    readerFontSize: "Font Size",
+    readerBookmarkSaved: "Bookmark saved successfully",
+    readerMarkAssignmentDone: "Complete this portion",
+    readerOpenReader: "Open Quran",
+
+    // Bookmarks
+    bookmarksTitle: "Bookmarks",
+    bookmarksEmpty: "No bookmarks saved yet.",
+    bookmarksJumpTo: "Open in Quran",
+
+    // Member Invitations & Linking
+    inviteMemberTitle: "Invite Member",
+    inviteCopyLink: "Copy Link",
+    inviteWhatsApp: "Share via WhatsApp",
+    inviteQrCode: "QR Code",
+    linkAccountTitle: "Connect Google Account",
+    linkAccountSuccess: "Successfully connected member to your account",
+    linkedAccountBadge: "Account linked",
+    anonymousMemberBadge: "Guest member",
+
+    // Announcements
+    announcementsTitle: "Group Announcements",
+    announcementsEmpty: "No announcements at this time.",
+    announcementCreate: "Post Announcement",
+    announcementTitlePlaceholder: "Announcement Title",
+    announcementContentPlaceholder: "Write announcement content here...",
+    announcementPostBtn: "Post",
+
+    // History & Lifecycle
+    historyTitle: "Version History",
+    historyEmpty: "No revision history recorded yet.",
+    khatmahSuccess: "New Khatmah created successfully",
+
+    // Settings & Notifications
+    settingsTitle: "Settings",
+    settingsAccount: "Account",
+    settingsAppearance: "Appearance",
+    settingsLanguage: "Language",
+    settingsReading: "Reading Preferences",
+    settingsNotifications: "Notifications",
+    settingsData: "Data Management",
+    notifDailyReminder: "Daily Reading Reminder",
+    notifReminderTime: "Reminder Time",
+    notifIncompleteReminder: "Reminder if reading incomplete",
+    notifWeeklySummary: "Weekly Summary",
+    notifGroupAlerts: "Group Alerts & Announcements",
+    notifEnableBtn: "Enable Notifications",
+    notifDisabled: "Notifications disabled or not supported in this browser",
+    exportDataBtn: "Export My Data (JSON)",
+    deleteAccountBtn: "Delete My Account",
+    deleteAccountConfirm:
+      "Are you absolutely sure you want to delete your account? All your schedules and data will be permanently removed.",
   },
 }

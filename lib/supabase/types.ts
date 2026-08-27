@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.17"
   }
@@ -22,6 +20,7 @@ export type Database = {
           group_id: string
           id: string
           knowledge_type: string
+          linked_user_id: string | null
           name: string
           public_id: string | null
           sort_order: number
@@ -36,6 +35,7 @@ export type Database = {
           group_id: string
           id?: string
           knowledge_type?: string
+          linked_user_id?: string | null
           name: string
           public_id?: string | null
           sort_order?: number
@@ -50,6 +50,7 @@ export type Database = {
           group_id?: string
           id?: string
           knowledge_type?: string
+          linked_user_id?: string | null
           name?: string
           public_id?: string | null
           sort_order?: number
@@ -76,6 +77,7 @@ export type Database = {
           edit_token_hash: string
           expires_at: string
           id: string
+          is_archived: boolean
           islamic_year: number | null
           language: string
           name: string
@@ -87,10 +89,12 @@ export type Database = {
           range_start_ayah: number | null
           range_start_surah: number | null
           range_type: string
+          recurrence: Json | null
           rotation_style: string
           scheduler_version: string
           start_date: string | null
           start_juz: number
+          status: string
           title: string | null
           updated_at: string
           uses_dates: boolean
@@ -103,6 +107,7 @@ export type Database = {
           edit_token_hash: string
           expires_at?: string
           id?: string
+          is_archived?: boolean
           islamic_year?: number | null
           language?: string
           name: string
@@ -114,10 +119,12 @@ export type Database = {
           range_start_ayah?: number | null
           range_start_surah?: number | null
           range_type?: string
+          recurrence?: Json | null
           rotation_style?: string
           scheduler_version?: string
           start_date?: string | null
           start_juz?: number
+          status?: string
           title?: string | null
           updated_at?: string
           uses_dates?: boolean
@@ -130,6 +137,7 @@ export type Database = {
           edit_token_hash?: string
           expires_at?: string
           id?: string
+          is_archived?: boolean
           islamic_year?: number | null
           language?: string
           name?: string
@@ -141,13 +149,232 @@ export type Database = {
           range_start_ayah?: number | null
           range_start_surah?: number | null
           range_type?: string
+          recurrence?: Json | null
           rotation_style?: string
           scheduler_version?: string
           start_date?: string | null
           start_juz?: number
+          status?: string
           title?: string | null
           updated_at?: string
           uses_dates?: boolean
+        }
+        Relationships: []
+      }
+      reading_progress: {
+        Row: {
+          id: string
+          user_id: string | null
+          group_id: string
+          member_id: string
+          week_number: number
+          day_number: number
+          is_completed: boolean
+          completed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          group_id: string
+          member_id: string
+          week_number: number
+          day_number: number
+          is_completed?: boolean
+          completed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          group_id?: string
+          member_id?: string
+          week_number?: number
+          day_number?: number
+          is_completed?: boolean
+          completed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_progress_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_progress_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "group_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookmarks: {
+        Row: {
+          id: string
+          user_id: string
+          surah_number: number
+          ayah_number: number
+          juz_number: number
+          note: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          surah_number: number
+          ayah_number: number
+          juz_number: number
+          note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          surah_number?: number
+          ayah_number?: number
+          juz_number?: number
+          note?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      announcements: {
+        Row: {
+          id: string
+          group_id: string
+          title: string
+          content: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          group_id: string
+          title: string
+          content: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          group_id?: string
+          title?: string
+          content?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_history: {
+        Row: {
+          id: string
+          group_id: string
+          action_type: string
+          description: string
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          group_id: string
+          action_type: string
+          description: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          group_id?: string
+          action_type?: string
+          description?: string
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_history_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          user_id: string
+          daily_reminder_enabled: boolean
+          reminder_time: string
+          incomplete_reminder_enabled: boolean
+          weekly_summary_enabled: boolean
+          group_announcements_enabled: boolean
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          daily_reminder_enabled?: boolean
+          reminder_time?: string
+          incomplete_reminder_enabled?: boolean
+          weekly_summary_enabled?: boolean
+          group_announcements_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          daily_reminder_enabled?: boolean
+          reminder_time?: string
+          incomplete_reminder_enabled?: boolean
+          weekly_summary_enabled?: boolean
+          group_announcements_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          endpoint?: string
+          p256dh?: string
+          auth?: string
+          created_at?: string
         }
         Relationships: []
       }
@@ -245,15 +472,8 @@ export type Database = {
           is_active: boolean
           islamic_year: number | null
           occasion_type: string
-          range_end_ayah: number | null
-          range_end_surah: number | null
-          range_start_ayah: number | null
-          range_start_surah: number | null
-          range_type: string
-          rotation_style: string
           scheduler_version: string
           start_date: string | null
-          start_juz: number
           title: string | null
           total_juz_per_week: number
           uses_dates: boolean
@@ -269,15 +489,8 @@ export type Database = {
           is_active?: boolean
           islamic_year?: number | null
           occasion_type?: string
-          range_end_ayah?: number | null
-          range_end_surah?: number | null
-          range_start_ayah?: number | null
-          range_start_surah?: number | null
-          range_type?: string
-          rotation_style?: string
           scheduler_version?: string
           start_date?: string | null
-          start_juz?: number
           title?: string | null
           total_juz_per_week?: number
           uses_dates?: boolean
@@ -293,15 +506,8 @@ export type Database = {
           is_active?: boolean
           islamic_year?: number | null
           occasion_type?: string
-          range_end_ayah?: number | null
-          range_end_surah?: number | null
-          range_start_ayah?: number | null
-          range_start_surah?: number | null
-          range_type?: string
-          rotation_style?: string
           scheduler_version?: string
           start_date?: string | null
-          start_juz?: number
           title?: string | null
           total_juz_per_week?: number
           uses_dates?: boolean
@@ -365,123 +571,3 @@ export type Database = {
     }
   }
 }
-
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
-export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-    ? R
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
-
-export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
-
-export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
-
-export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const

@@ -216,6 +216,22 @@ export function Header({
 
                 <DropdownMenuSeparator />
 
+                <Link href="/dashboard">
+                  <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold">
+                    <IconBook className="h-4 w-4 shrink-0 text-primary" />
+                    <span>{t.navDashboard}</span>
+                  </DropdownMenuItem>
+                </Link>
+
+                <Link href="/settings">
+                  <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold">
+                    <IconUser className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span>{t.settingsTitle}</span>
+                  </DropdownMenuItem>
+                </Link>
+
+                <DropdownMenuSeparator />
+
                 {/* Sign-Out Action */}
                 <DropdownMenuItem
                   onClick={handleSignOut}

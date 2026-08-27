@@ -5,6 +5,7 @@ import QRCode from "qrcode"
 import {
   IconArrowLeft,
   IconArrowRight,
+  IconBook,
   IconCalendar,
   IconCheck,
   IconChevronDown,
@@ -17,11 +18,13 @@ import {
   IconQrcode,
   IconShare,
   IconSparkles,
+  IconUserCheck,
   IconUsersGroup,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import {
   CustomQuranRange,
+  DailyPortion,
   GeneratedSchedule,
   MemberAssignment,
   MemberConfig,
@@ -32,6 +35,12 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toArabicNumerals } from "@/lib/dates/calendar"
+import { QuranReader } from "@/components/reader/quran-reader"
+import {
+  linkMemberAccountAction,
+  saveReadingProgressAction,
+} from "@/lib/groups/actions"
+import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 interface PersonalMemberViewProps {
   groupPublicId?: string
@@ -67,6 +76,13 @@ export function PersonalMemberView({
   const [expandedWeeks, setExpandedWeeks] = useState<Record<number, boolean>>({
     1: true,
   })
+  const [activePortion, setActivePortion] = useState<DailyPortion | null>(null)
+  const [completedDays, setCompletedDays] = useState<Record<string, boolean>>(
+    {}
+  )
+  const [isLinked, setIsLinked] = useState(false)
+  const [isLinking, setIsLinking] = useState(false)
+  const [linkToast, setLinkToast] = useState(false)
 
   const BackArrowIcon = dir === "rtl" ? IconArrowRight : IconArrowLeft
 
@@ -78,6 +94,53 @@ export function PersonalMemberView({
   const memberPersonalUrl = groupPublicId
     ? `${origin}/g/${groupPublicId}/member/${memberPublicId}`
     : ""
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient()
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          setIsLinked(true)
+        }
+      })
+    }
+  }, [])
+
+  const handleLinkAccount = async () => {
+    if (!groupPublicId || isLinking) return
+    setIsLinking(true)
+    try {
+      const res = await linkMemberAccountAction(groupPublicId, memberPublicId)
+      if (res.success) {
+        setIsLinked(true)
+        setLinkToast(true)
+        setTimeout(() => setLinkToast(false), 3000)
+      }
+    } finally {
+      setIsLinking(false)
+    }
+  }
+
+  const handleToggleDayComplete = async (
+    weekNum: number,
+    dayIdx: number,
+    e: React.MouseEvent
+  ) => {
+    e.stopPropagation()
+    const key = `${weekNum}-${dayIdx}`
+    const nextState = !completedDays[key]
+    setCompletedDays((prev) => ({ ...prev, [key]: nextState }))
+
+    if (groupPublicId) {
+      await saveReadingProgressAction(
+        groupPublicId,
+        memberPublicId,
+        weekNum,
+        dayIdx,
+        nextState
+      )
+    }
+  }
 
   useEffect(() => {
     if (memberPersonalUrl) {
@@ -477,21 +540,44 @@ export function PersonalMemberView({
                               </p>
                             </div>
 
-                            <div className="mt-1 flex items-center justify-between border-t border-border/30 pt-1 text-[10px] text-muted-foreground">
-                              <span>
-                                {language === "ar"
-                                  ? `اليوم ${toArabicNumerals(portion.dayIndex)}`
-                                  : `Day ${portion.dayIndex}`}
-                              </span>
-                              {portion.ramadanDay && (
-                                <span className="font-bold text-amber-600 dark:text-amber-400">
-                                  {language === "ar"
-                                    ? portion.ramadanDayLabelAr ||
-                                      `رمضان ${toArabicNumerals(portion.ramadanDay)}`
-                                    : portion.ramadanDayLabelEn ||
-                                      `Ramadan ${portion.ramadanDay}`}
+                            <div className="mt-2 flex items-center justify-between border-t border-border/30 pt-2 text-[10px]">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setActivePortion(portion)}
+                                className="h-6 gap-1 rounded-md px-1.5 text-[10px] font-bold text-primary hover:bg-primary/10"
+                              >
+                                <IconBook className="h-3 w-3" />
+                                <span>{t.readerOpenReader}</span>
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) =>
+                                  handleToggleDayComplete(
+                                    weekNumber,
+                                    portion.dayIndex,
+                                    e
+                                  )
+                                }
+                                className={`h-6 gap-1 rounded-md px-1.5 text-[10px] font-bold transition-colors ${
+                                  completedDays[
+                                    `${weekNumber}-${portion.dayIndex}`
+                                  ]
+                                    ? "bg-emerald-500/20 font-extrabold text-emerald-600 dark:text-emerald-400"
+                                    : "text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                <IconCheck className="h-3 w-3" />
+                                <span>
+                                  {completedDays[
+                                    `${weekNumber}-${portion.dayIndex}`
+                                  ]
+                                    ? t.dashboardCompleted
+                                    : t.dashboardMarkComplete}
                                 </span>
-                              )}
+                              </Button>
                             </div>
                           </div>
                         )
@@ -504,6 +590,23 @@ export function PersonalMemberView({
           })}
         </div>
       </div>
+
+      {/* Embedded Quran Reader */}
+      {activePortion && (
+        <QuranReader
+          isOpen={!!activePortion}
+          onClose={() => setActivePortion(null)}
+          initialSurahNumber={activePortion.startAyah.surahNumber}
+          initialAyahNumber={activePortion.startAyah.ayahNumber}
+          endSurahNumber={activePortion.endAyah.surahNumber}
+          endAyahNumber={activePortion.endAyah.ayahNumber}
+          assignmentTitle={`${language === "ar" ? activePortion.dayNameAr : activePortion.dayNameEn} - ${groupName}`}
+          onCompleteAssignment={() => {
+            const key = `1-${activePortion.dayIndex}`
+            setCompletedDays((prev) => ({ ...prev, [key]: true }))
+          }}
+        />
+      )}
     </div>
   )
 }

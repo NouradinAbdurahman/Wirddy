@@ -167,7 +167,7 @@ export function PublicScheduleClient({
   // Verify edit token if provided in query string
   useEffect(() => {
     if (editToken && publicId) {
-      verifyEditTokenAction(publicId, editToken).then((res) => {
+      verifyEditTokenAction(publicId, editToken).then((res: any) => {
         setIsEditor(Boolean(res.success && res.data))
         setIsVerifyingEdit(false)
       })

@@ -87,7 +87,8 @@ export interface LoadedPublicMemberSchedule {
 export async function saveScheduleGroup(
   input: ScheduleInput,
   schedule: GeneratedSchedule,
-  lang: "ar" | "en" = "ar"
+  lang: "ar" | "en" = "ar",
+  ownerUserId?: string | null
 ): Promise<SavedGroupResult> {
   // 1. Strict Server-Side Validation
   const validation = validateScheduleInput(input)
@@ -134,12 +135,15 @@ export async function saveScheduleGroup(
     .insert({
       public_id: publicId,
       edit_token_hash: editTokenHash,
+      owner_user_id: ownerUserId || null,
+      status: "active",
+      is_archived: false,
       name: input.group.name.trim(),
       title,
       description,
       language: lang,
       direction: dir,
-      scheduler_version: "1.2",
+      scheduler_version: "1.3",
       rotation_style: rotationStyle,
       range_type: rangeType,
       start_juz: startJuz,
@@ -1036,7 +1040,8 @@ export async function updateGroupAndRegenerate(
  */
 export async function duplicateGroupSchedule(
   sourcePublicId: string,
-  lang: "ar" | "en" = "ar"
+  lang: "ar" | "en" = "ar",
+  ownerUserId?: string | null
 ): Promise<SavedGroupResult> {
   const existing = await getGroupByPublicId(sourcePublicId)
   if (!existing) {
@@ -1079,18 +1084,112 @@ export async function duplicateGroupSchedule(
   }
 
   const newSchedule = generateQuranSchedule(input)
-  return saveScheduleGroup(input, newSchedule, lang)
+  return saveScheduleGroup(input, newSchedule, lang, ownerUserId)
 }
 
 /**
- * Deletes a group and all cascading child records.
+ * Starts a new Khatmah cycle from an existing schedule, incrementing Islamic year if in Ramadan mode.
+ */
+export async function startNewKhatmah(
+  sourcePublicId: string,
+  lang: "ar" | "en" = "ar",
+  ownerUserId?: string | null
+): Promise<SavedGroupResult> {
+  const existing = await getGroupByPublicId(sourcePublicId)
+  if (!existing) {
+    throw new Error(
+      lang === "ar"
+        ? "الجدول الأصلي غير موجود."
+        : "Original schedule not found."
+    )
+  }
+
+  const nextIslamicYear = existing.islamicYear ? existing.islamicYear + 1 : null
+  const newTitle =
+    existing.occasionType === "ramadan" && nextIslamicYear
+      ? lang === "ar"
+        ? `رمضان ${nextIslamicYear} هـ`
+        : `Ramadan ${nextIslamicYear} AH`
+      : existing.title
+
+  // Fresh members with new unguessable public IDs, keeping capacities & knowledge
+  const freshMembers: MemberConfig[] = existing.membersConfig.map((m) => ({
+    ...m,
+    id: `mem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    publicId: generateMemberPublicId(),
+  }))
+
+  const input: ScheduleInput = {
+    group: {
+      name: existing.groupName,
+      title: newTitle,
+      description: existing.description,
+      weeksCount: existing.schedule.weeksCount,
+      rotationStyle: existing.rotationStyle,
+      rangeType: existing.rangeType,
+      startJuz: existing.startJuz,
+      customRange: existing.customRange,
+      startDate: undefined, // Reset start date for the new cycle
+      usesDates: existing.usesDates,
+      occasionType: existing.occasionType,
+      islamicYear: nextIslamicYear || undefined,
+      dailyDivisionEnabled: existing.dailyDivisionEnabled,
+    },
+    members: freshMembers,
+  }
+
+  const newSchedule = generateQuranSchedule(input)
+  return saveScheduleGroup(input, newSchedule, lang, ownerUserId)
+}
+
+/**
+ * Authorizes modification request via edit token OR authenticated group owner.
+ */
+export async function checkGroupAuthorization(
+  publicId: string,
+  rawEditToken?: string,
+  userId?: string
+): Promise<{ authorized: boolean; group?: any }> {
+  if (!publicId) return { authorized: false }
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return { authorized: false }
+
+  const { data: group, error } = await supabase
+    .from("groups")
+    .select("*")
+    .eq("public_id", publicId.trim())
+    .single()
+
+  if (error || !group) return { authorized: false }
+
+  // 1. Authenticated owner authorization
+  if (userId && group.owner_user_id === userId) {
+    return { authorized: true, group }
+  }
+
+  // 2. Secret edit token authorization
+  if (rawEditToken && verifyEditToken(rawEditToken, group.edit_token_hash)) {
+    return { authorized: true, group }
+  }
+
+  return { authorized: false, group }
+}
+
+/**
+ * Deletes a group and all cascading child records (Authorized by Owner or Edit Token).
  */
 export async function deleteGroup(
   publicId: string,
-  rawEditToken: string
+  rawEditToken?: string,
+  userId?: string
 ): Promise<boolean> {
-  const isAuthorized = await validateEditAccess(publicId, rawEditToken)
-  if (!isAuthorized) {
+  const { authorized } = await checkGroupAuthorization(
+    publicId,
+    rawEditToken,
+    userId
+  )
+  if (!authorized) {
     return false
   }
 
@@ -1103,4 +1202,564 @@ export async function deleteGroup(
     .eq("public_id", publicId.trim())
 
   return !error
+}
+
+/**
+ * Archives or unarchives a group (Authorized by Owner or Edit Token).
+ */
+export async function archiveGroup(
+  publicId: string,
+  isArchived: boolean = true,
+  rawEditToken?: string,
+  userId?: string
+): Promise<boolean> {
+  const { authorized, group } = await checkGroupAuthorization(
+    publicId,
+    rawEditToken,
+    userId
+  )
+  if (!authorized || !group) {
+    return false
+  }
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return false
+
+  const { error } = await (supabase.from("groups") as any)
+    .update({
+      is_archived: isArchived,
+      status: isArchived ? "archived" : "active",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", group.id)
+
+  return !error
+}
+
+export interface UserGroupSummary {
+  publicId: string
+  groupName: string
+  title: string | null
+  description: string | null
+  membersCount: number
+  weeksCount: number
+  startDate: string | null
+  currentWeek: number
+  progressPercentage: number
+  status: "active" | "draft" | "completed" | "archived"
+  isArchived: boolean
+  occasionType: string
+  islamicYear: number | null
+  dailyDivisionEnabled: boolean
+  updatedAt: string
+  createdAt: string
+  isOwner: boolean
+}
+
+/**
+ * Fetches all groups owned by or linked to a user.
+ */
+export async function fetchUserGroups(
+  userId: string,
+  filter:
+    "all" | "active" | "draft" | "completed" | "archived" | "ramadan" = "all"
+): Promise<UserGroupSummary[]> {
+  if (!userId) return []
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return []
+
+  let query = supabase
+    .from("groups")
+    .select(
+      `
+      id,
+      public_id,
+      name,
+      title,
+      description,
+      status,
+      is_archived,
+      occasion_type,
+      islamic_year,
+      daily_division_enabled,
+      start_date,
+      created_at,
+      updated_at,
+      owner_user_id,
+      group_members (id, name, public_id),
+      schedule_plans (id, weeks_count, is_active)
+    `
+    )
+    .eq("owner_user_id", userId)
+    .order("updated_at", { ascending: false })
+
+  if (filter === "active") {
+    query = query.eq("is_archived", false).eq("status", "active")
+  } else if (filter === "archived") {
+    query = query.eq("is_archived", true)
+  } else if (filter === "completed") {
+    query = query.eq("status", "completed")
+  } else if (filter === "ramadan") {
+    query = query.eq("occasion_type", "ramadan")
+  }
+
+  const { data: groups, error } = await query
+  if (error || !groups) {
+    console.error("fetchUserGroups error:", error)
+    return []
+  }
+
+  return groups.map((g: any) => {
+    const activePlan = Array.isArray(g.schedule_plans)
+      ? g.schedule_plans.find((p: any) => p.is_active) || g.schedule_plans[0]
+      : null
+
+    const weeksCount = activePlan?.weeks_count || 1
+    const membersCount = Array.isArray(g.group_members)
+      ? g.group_members.length
+      : 0
+
+    return {
+      publicId: g.public_id,
+      groupName: g.name,
+      title: g.title,
+      description: g.description,
+      membersCount,
+      weeksCount,
+      startDate: g.start_date,
+      currentWeek: 1, // dynamically derived in dashboard
+      progressPercentage: 0,
+      status: (g.status || "active") as any,
+      isArchived: !!g.is_archived,
+      occasionType: g.occasion_type || "normal",
+      islamicYear: g.islamic_year,
+      dailyDivisionEnabled: !!g.daily_division_enabled,
+      updatedAt: g.updated_at,
+      createdAt: g.created_at,
+      isOwner: g.owner_user_id === userId,
+    }
+  })
+}
+
+/**
+ * Saves daily reading progress for a group member.
+ */
+export async function saveReadingProgress(
+  groupPublicId: string,
+  memberPublicId: string,
+  weekNumber: number,
+  dayNumber: number,
+  isCompleted: boolean,
+  userId?: string | null
+): Promise<{ success: boolean; progressId?: string }> {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return { success: false }
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("id")
+    .eq("public_id", groupPublicId.trim())
+    .single()
+
+  if (!group) return { success: false }
+
+  const { data: member } = await supabase
+    .from("group_members")
+    .select("id")
+    .eq("group_id", group.id)
+    .eq("public_id", memberPublicId.trim())
+    .single()
+
+  if (!member) return { success: false }
+
+  const completedAt = isCompleted ? new Date().toISOString() : null
+
+  const { data, error } = await (supabase.from("reading_progress") as any)
+    .upsert(
+      {
+        group_id: group.id,
+        member_id: member.id,
+        user_id: userId || null,
+        week_number: weekNumber,
+        day_number: dayNumber,
+        is_completed: isCompleted,
+        completed_at: completedAt,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "group_id,member_id,week_number,day_number" }
+    )
+    .select("id")
+    .single()
+
+  if (error) {
+    console.error("saveReadingProgress error:", error)
+    return { success: false }
+  }
+
+  return { success: true, progressId: data?.id }
+}
+
+/**
+ * Fetches all reading progress entries for a group.
+ */
+export async function fetchGroupReadingProgress(
+  groupPublicId: string
+): Promise<
+  Array<{
+    memberPublicId: string
+    memberName: string
+    weekNumber: number
+    dayNumber: number
+    isCompleted: boolean
+    completedAt: string | null
+  }>
+> {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return []
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("id")
+    .eq("public_id", groupPublicId.trim())
+    .single()
+
+  if (!group) return []
+
+  const { data, error } = await supabase
+    .from("reading_progress")
+    .select(
+      `
+      week_number,
+      day_number,
+      is_completed,
+      completed_at,
+      group_members (public_id, name)
+    `
+    )
+    .eq("group_id", group.id)
+
+  if (error || !data) return []
+
+  return data.map((d: any) => ({
+    memberPublicId: d.group_members?.public_id || "",
+    memberName: d.group_members?.name || "",
+    weekNumber: d.week_number,
+    dayNumber: d.day_number,
+    isCompleted: d.is_completed,
+    completedAt: d.completed_at,
+  }))
+}
+
+/**
+ * Saves a bookmark for the authenticated user.
+ */
+export async function saveBookmark(
+  userId: string,
+  surahNumber: number,
+  ayahNumber: number,
+  juzNumber: number,
+  note?: string
+): Promise<{ success: boolean; id?: string }> {
+  if (!userId) return { success: false }
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return { success: false }
+
+  const { data, error } = await (supabase.from("bookmarks") as any)
+    .insert({
+      user_id: userId,
+      surah_number: surahNumber,
+      ayah_number: ayahNumber,
+      juz_number: juzNumber,
+      note: note?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single()
+
+  if (error) return { success: false }
+  return { success: true, id: data?.id }
+}
+
+/**
+ * Fetches all bookmarks for a user.
+ */
+export async function fetchUserBookmarks(
+  userId: string
+): Promise<
+  Array<{
+    id: string
+    surahNumber: number
+    ayahNumber: number
+    juzNumber: number
+    note: string | null
+    updatedAt: string
+  }>
+> {
+  if (!userId) return []
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from("bookmarks")
+    .select("id, surah_number, ayah_number, juz_number, note, updated_at")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+
+  if (error || !data) return []
+
+  return data.map((b: any) => ({
+    id: b.id,
+    surahNumber: b.surah_number,
+    ayahNumber: b.ayah_number,
+    juzNumber: b.juz_number,
+    note: b.note,
+    updatedAt: b.updated_at,
+  }))
+}
+
+/**
+ * Deletes a bookmark.
+ */
+export async function deleteBookmark(
+  bookmarkId: string,
+  userId: string
+): Promise<boolean> {
+  if (!bookmarkId || !userId) return false
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return false
+
+  const { error } = await supabase
+    .from("bookmarks")
+    .delete()
+    .eq("id", bookmarkId)
+    .eq("user_id", userId)
+
+  return !error
+}
+
+/**
+ * Creates an announcement for a group.
+ */
+export async function createAnnouncement(
+  groupPublicId: string,
+  title: string,
+  content: string,
+  userId?: string,
+  rawEditToken?: string
+): Promise<{ success: boolean; id?: string }> {
+  const { authorized, group } = await checkGroupAuthorization(
+    groupPublicId,
+    rawEditToken,
+    userId
+  )
+  if (!authorized || !group) return { success: false }
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return { success: false }
+
+  const { data, error } = await (supabase.from("announcements") as any)
+    .insert({
+      group_id: group.id,
+      title: title.trim(),
+      content: content.trim(),
+      created_by: userId || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single()
+
+  if (error) return { success: false }
+  return { success: true, id: data?.id }
+}
+
+/**
+ * Fetches all announcements for a group.
+ */
+export async function fetchAnnouncements(
+  groupPublicId: string
+): Promise<
+  Array<{ id: string; title: string; content: string; createdAt: string }>
+> {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return []
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("id")
+    .eq("public_id", groupPublicId.trim())
+    .single()
+
+  if (!group) return []
+
+  const { data, error } = await supabase
+    .from("announcements")
+    .select("id, title, content, created_at")
+    .eq("group_id", group.id)
+    .order("created_at", { ascending: false })
+
+  if (error || !data) return []
+
+  return data.map((a: any) => ({
+    id: a.id,
+    title: a.title,
+    content: a.content,
+    createdAt: a.created_at,
+  }))
+}
+
+/**
+ * Deletes an announcement (Authorized by Owner or Edit Token).
+ */
+export async function deleteAnnouncement(
+  announcementId: string,
+  groupPublicId: string,
+  userId?: string,
+  rawEditToken?: string
+): Promise<boolean> {
+  const { authorized, group } = await checkGroupAuthorization(
+    groupPublicId,
+    rawEditToken,
+    userId
+  )
+  if (!authorized || !group) return false
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return false
+
+  const { error } = await supabase
+    .from("announcements")
+    .delete()
+    .eq("id", announcementId)
+    .eq("group_id", group.id)
+
+  return !error
+}
+
+/**
+ * Links a group member to an authenticated user account.
+ */
+export async function linkMemberAccount(
+  groupPublicId: string,
+  memberPublicId: string,
+  userId: string
+): Promise<boolean> {
+  if (!groupPublicId || !memberPublicId || !userId) return false
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return false
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("id")
+    .eq("public_id", groupPublicId.trim())
+    .single()
+
+  if (!group) return false
+
+  const { error } = await (supabase.from("group_members") as any)
+    .update({
+      linked_user_id: userId,
+    })
+    .eq("group_id", group.id)
+    .eq("public_id", memberPublicId.trim())
+
+  return !error
+}
+
+/**
+ * Saves notification preferences.
+ */
+export async function saveNotificationPreferences(
+  userId: string,
+  prefs: {
+    dailyReminderEnabled?: boolean
+    reminderTime?: string
+    incompleteReminderEnabled?: boolean
+    weeklySummaryEnabled?: boolean
+    groupAnnouncementsEnabled?: boolean
+    timezone?: string
+  }
+): Promise<boolean> {
+  if (!userId) return false
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return false
+
+  const { error } = await (
+    supabase.from("notification_preferences") as any
+  ).upsert({
+    user_id: userId,
+    daily_reminder_enabled: prefs.dailyReminderEnabled ?? true,
+    reminder_time: prefs.reminderTime || "20:00",
+    incomplete_reminder_enabled: prefs.incompleteReminderEnabled ?? true,
+    weekly_summary_enabled: prefs.weeklySummaryEnabled ?? false,
+    group_announcements_enabled: prefs.groupAnnouncementsEnabled ?? true,
+    timezone: prefs.timezone || "UTC",
+    updated_at: new Date().toISOString(),
+  })
+
+  return !error
+}
+
+/**
+ * Fetches notification preferences.
+ */
+export async function fetchNotificationPreferences(
+  userId: string
+): Promise<any> {
+  if (!userId) return null
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return null
+
+  const { data } = await supabase
+    .from("notification_preferences")
+    .select("*")
+    .eq("user_id", userId)
+    .single()
+
+  return data || null
+}
+
+/**
+ * Exports all user data in clean JSON format.
+ */
+export async function exportUserData(userId: string): Promise<any> {
+  if (!userId) return null
+
+  const groups = await fetchUserGroups(userId, "all")
+  const bookmarks = await fetchUserBookmarks(userId)
+  const notifs = await fetchNotificationPreferences(userId)
+
+  return {
+    exportedAt: new Date().toISOString(),
+    userId,
+    groups,
+    bookmarks,
+    notificationPreferences: notifs,
+  }
+}
+
+/**
+ * Deletes user account and cascades ownership.
+ */
+export async function deleteUserAccount(userId: string): Promise<boolean> {
+  if (!userId) return false
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return false
+
+  // Delete owned groups
+  await supabase.from("groups").delete().eq("owner_user_id", userId)
+  // Delete bookmarks
+  await supabase.from("bookmarks").delete().eq("user_id", userId)
+  // Delete notification prefs
+  await supabase.from("notification_preferences").delete().eq("user_id", userId)
+
+  return true
 }

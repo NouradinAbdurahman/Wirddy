@@ -8,17 +8,35 @@ import {
 } from "../scheduler/types"
 import { checkRateLimit } from "./rate-limit"
 import {
+  archiveGroup,
+  createAnnouncement,
+  deleteAnnouncement,
+  deleteBookmark,
   deleteGroup,
+  deleteUserAccount,
   duplicateGroupSchedule,
+  exportUserData,
+  fetchAnnouncements,
+  fetchGroupReadingProgress,
+  fetchNotificationPreferences,
+  fetchUserBookmarks,
+  fetchUserGroups,
   getGroupByPublicId,
   getMemberScheduleByPublicId,
+  linkMemberAccount,
   LoadedPublicGroup,
   LoadedPublicMemberSchedule,
   SavedGroupResult,
+  saveBookmark,
+  saveNotificationPreferences,
+  saveReadingProgress,
   saveScheduleGroup,
+  startNewKhatmah,
   updateGroupAndRegenerate,
+  UserGroupSummary,
   validateEditAccess,
 } from "./service"
+import { createSupabaseServerClient } from "../supabase/server"
 
 export interface ActionResponse<T> {
   success: boolean
@@ -43,8 +61,21 @@ async function getClientIp(): Promise<string> {
   return "127.0.0.1"
 }
 
+async function getAuthenticatedUserId(): Promise<string | null> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    if (!supabase) return null
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    return user?.id || null
+  } catch {
+    return null
+  }
+}
+
 /**
- * Server Action: Saves a generated schedule and returns public and edit access tokens.
+ * Server Action: Saves a generated schedule and associates with authenticated user if logged in.
  */
 export async function saveScheduleAction(
   input: ScheduleInput,
@@ -53,7 +84,7 @@ export async function saveScheduleAction(
 ): Promise<ActionResponse<SavedGroupResult>> {
   try {
     const ip = await getClientIp()
-    const rate = checkRateLimit(`save_${ip}`, 15, 600000) // 15 saves per 10 minutes
+    const rate = checkRateLimit(`save_${ip}`, 20, 600000)
     if (!rate.allowed) {
       return {
         success: false,
@@ -64,7 +95,6 @@ export async function saveScheduleAction(
       }
     }
 
-    // Input sanitization and bounds check
     if (!input || !input.group || !Array.isArray(input.members)) {
       return {
         success: false,
@@ -95,7 +125,9 @@ export async function saveScheduleAction(
       }
     }
 
-    const result = await saveScheduleGroup(input, schedule, lang)
+    const ownerUserId = await getAuthenticatedUserId()
+    const result = await saveScheduleGroup(input, schedule, lang, ownerUserId)
+
     return {
       success: true,
       data: result,
@@ -116,7 +148,7 @@ export async function getPublicScheduleAction(
 ): Promise<ActionResponse<LoadedPublicGroup>> {
   try {
     const ip = await getClientIp()
-    const rate = checkRateLimit(`get_${ip}`, 120, 60000) // 120 reads per minute
+    const rate = checkRateLimit(`get_${ip}`, 120, 60000)
     if (!rate.allowed) {
       return {
         success: false,
@@ -139,57 +171,57 @@ export async function getPublicScheduleAction(
   } catch (err: any) {
     return {
       success: false,
-      error: err.message || "Failed to load schedule.",
+      error: err.message || "Failed to retrieve schedule.",
     }
   }
 }
 
 /**
- * Server Action: Validates whether an edit token is valid.
+ * Server Action: Validates an edit token for a group.
  */
-export async function verifyEditTokenAction(
+export async function validateEditTokenAction(
   publicId: string,
-  editToken: string
+  rawEditToken: string
 ): Promise<ActionResponse<boolean>> {
   try {
-    const isAuthorized = await validateEditAccess(publicId, editToken)
+    const isAuthorized = await validateEditAccess(publicId, rawEditToken)
     return {
       success: true,
       data: isAuthorized,
     }
-  } catch {
+  } catch (err: any) {
     return {
       success: false,
-      data: false,
+      error: err.message || "Validation failed.",
     }
   }
 }
 
 /**
- * Server Action: Updates group configuration and regenerates schedule.
+ * Server Action: Updates a group configuration and regenerates schedule assignments.
  */
-export async function updateAndRegenerateAction(
+export async function updateScheduleAction(
   publicId: string,
-  editToken: string,
+  rawEditToken: string,
   input: ScheduleInput,
   lang: "ar" | "en" = "ar"
 ): Promise<ActionResponse<LoadedPublicGroup>> {
   try {
     const ip = await getClientIp()
-    const rate = checkRateLimit(`regen_${ip}`, 20, 600000)
+    const rate = checkRateLimit(`update_${ip}`, 20, 600000)
     if (!rate.allowed) {
       return {
         success: false,
         error:
           lang === "ar"
-            ? "تجاوزت الحد المسموح به لإعادة إنشاء الجداول. يرجى المحاولة بعد قليل."
-            : "Too many update requests. Please wait a moment.",
+            ? "تجاوزت الحد المسموح به للتعديل. يرجى المحاولة لاحقاً."
+            : "Too many update requests. Please try again later.",
       }
     }
 
     const updated = await updateGroupAndRegenerate(
       publicId,
-      editToken,
+      rawEditToken,
       input,
       lang
     )
@@ -205,15 +237,20 @@ export async function updateAndRegenerateAction(
   }
 }
 
+// Backwards-compatible action aliases
+export const verifyEditTokenAction = validateEditTokenAction
+export const updateAndRegenerateAction = updateScheduleAction
+
 /**
- * Server Action: Deletes a saved group.
+ * Server Action: Deletes a saved group (Authorized by Owner or Edit Token).
  */
 export async function deleteGroupAction(
   publicId: string,
-  editToken: string
+  editToken?: string
 ): Promise<ActionResponse<boolean>> {
   try {
-    const success = await deleteGroup(publicId, editToken)
+    const userId = await getAuthenticatedUserId()
+    const success = await deleteGroup(publicId, editToken, userId || undefined)
     return {
       success,
       data: success,
@@ -227,6 +264,34 @@ export async function deleteGroupAction(
 }
 
 /**
+ * Server Action: Archives or restores a group.
+ */
+export async function archiveGroupAction(
+  publicId: string,
+  isArchived: boolean = true,
+  editToken?: string
+): Promise<ActionResponse<boolean>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    const success = await archiveGroup(
+      publicId,
+      isArchived,
+      editToken,
+      userId || undefined
+    )
+    return {
+      success,
+      data: success,
+    }
+  } catch {
+    return {
+      success: false,
+      error: "Failed to update archive status.",
+    }
+  }
+}
+
+/**
  * Server Action: Duplicates a saved group schedule into a new group.
  */
 export async function duplicateGroupAction(
@@ -235,7 +300,7 @@ export async function duplicateGroupAction(
 ): Promise<ActionResponse<SavedGroupResult>> {
   try {
     const ip = await getClientIp()
-    const rate = checkRateLimit(`dup_${ip}`, 10, 600000)
+    const rate = checkRateLimit(`dup_${ip}`, 15, 600000)
     if (!rate.allowed) {
       return {
         success: false,
@@ -246,7 +311,8 @@ export async function duplicateGroupAction(
       }
     }
 
-    const result = await duplicateGroupSchedule(sourcePublicId, lang)
+    const userId = await getAuthenticatedUserId()
+    const result = await duplicateGroupSchedule(sourcePublicId, lang, userId)
     return {
       success: true,
       data: result,
@@ -255,6 +321,28 @@ export async function duplicateGroupAction(
     return {
       success: false,
       error: err?.message || "Failed to duplicate schedule",
+    }
+  }
+}
+
+/**
+ * Server Action: Starts a new Khatmah cycle.
+ */
+export async function startNewKhatmahAction(
+  sourcePublicId: string,
+  lang: "ar" | "en" = "ar"
+): Promise<ActionResponse<SavedGroupResult>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    const result = await startNewKhatmah(sourcePublicId, lang, userId)
+    return {
+      success: true,
+      data: result,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to start new Khatmah cycle.",
     }
   }
 }
@@ -286,6 +374,334 @@ export async function getMemberScheduleAction(
     return {
       success: false,
       error: err?.message || "Failed to retrieve member schedule.",
+    }
+  }
+}
+
+/**
+ * Server Action: Fetches all groups for the authenticated user.
+ */
+export async function getMyGroupsAction(
+  filter:
+    "all" | "active" | "draft" | "completed" | "archived" | "ramadan" = "all"
+): Promise<ActionResponse<UserGroupSummary[]>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) {
+      return {
+        success: false,
+        error: "User not authenticated.",
+        data: [],
+      }
+    }
+
+    const groups = await fetchUserGroups(userId, filter)
+    return {
+      success: true,
+      data: groups,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to fetch user groups.",
+      data: [],
+    }
+  }
+}
+
+/**
+ * Server Action: Saves reading progress.
+ */
+export async function saveReadingProgressAction(
+  groupPublicId: string,
+  memberPublicId: string,
+  weekNumber: number,
+  dayNumber: number,
+  isCompleted: boolean
+): Promise<ActionResponse<{ success: boolean; progressId?: string }>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    const result = await saveReadingProgress(
+      groupPublicId,
+      memberPublicId,
+      weekNumber,
+      dayNumber,
+      isCompleted,
+      userId
+    )
+    return {
+      success: result.success,
+      data: result,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to save reading progress.",
+    }
+  }
+}
+
+/**
+ * Server Action: Fetches reading progress for a group.
+ */
+export async function getGroupReadingProgressAction(
+  groupPublicId: string
+): Promise<ActionResponse<any[]>> {
+  try {
+    const progress = await fetchGroupReadingProgress(groupPublicId)
+    return {
+      success: true,
+      data: progress,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to fetch progress.",
+      data: [],
+    }
+  }
+}
+
+/**
+ * Server Action: Saves bookmark for authenticated user.
+ */
+export async function saveBookmarkAction(
+  surahNumber: number,
+  ayahNumber: number,
+  juzNumber: number,
+  note?: string
+): Promise<ActionResponse<{ id?: string }>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) {
+      return { success: false, error: "Authentication required." }
+    }
+
+    const res = await saveBookmark(
+      userId,
+      surahNumber,
+      ayahNumber,
+      juzNumber,
+      note
+    )
+    return {
+      success: res.success,
+      data: { id: res.id },
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to save bookmark.",
+    }
+  }
+}
+
+/**
+ * Server Action: Fetches bookmarks for authenticated user.
+ */
+export async function getUserBookmarksAction(): Promise<ActionResponse<any[]>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: true, data: [] }
+
+    const bookmarks = await fetchUserBookmarks(userId)
+    return {
+      success: true,
+      data: bookmarks,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to fetch bookmarks.",
+      data: [],
+    }
+  }
+}
+
+/**
+ * Server Action: Deletes a bookmark.
+ */
+export async function deleteBookmarkAction(
+  bookmarkId: string
+): Promise<ActionResponse<boolean>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: false, error: "Authentication required." }
+
+    const res = await deleteBookmark(bookmarkId, userId)
+    return {
+      success: res,
+      data: res,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to delete bookmark.",
+    }
+  }
+}
+
+/**
+ * Server Action: Creates an announcement for a group.
+ */
+export async function createAnnouncementAction(
+  groupPublicId: string,
+  title: string,
+  content: string,
+  rawEditToken?: string
+): Promise<ActionResponse<{ id?: string }>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    const res = await createAnnouncement(
+      groupPublicId,
+      title,
+      content,
+      userId || undefined,
+      rawEditToken
+    )
+    return {
+      success: res.success,
+      data: { id: res.id },
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to create announcement.",
+    }
+  }
+}
+
+/**
+ * Server Action: Fetches announcements for a group.
+ */
+export async function getAnnouncementsAction(
+  groupPublicId: string
+): Promise<ActionResponse<any[]>> {
+  try {
+    const list = await fetchAnnouncements(groupPublicId)
+    return {
+      success: true,
+      data: list,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to fetch announcements.",
+      data: [],
+    }
+  }
+}
+
+/**
+ * Server Action: Links a member slot to an authenticated account.
+ */
+export async function linkMemberAccountAction(
+  groupPublicId: string,
+  memberPublicId: string
+): Promise<ActionResponse<boolean>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) {
+      return { success: false, error: "Authentication required." }
+    }
+
+    const res = await linkMemberAccount(groupPublicId, memberPublicId, userId)
+    return {
+      success: res,
+      data: res,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to link member account.",
+    }
+  }
+}
+
+/**
+ * Server Action: Saves notification preferences.
+ */
+export async function saveNotificationPreferencesAction(
+  prefs: any
+): Promise<ActionResponse<boolean>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: false, error: "Authentication required." }
+
+    const res = await saveNotificationPreferences(userId, prefs)
+    return {
+      success: res,
+      data: res,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to save notification preferences.",
+    }
+  }
+}
+
+/**
+ * Server Action: Fetches notification preferences.
+ */
+export async function getNotificationPreferencesAction(): Promise<
+  ActionResponse<any>
+> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: true, data: null }
+
+    const data = await fetchNotificationPreferences(userId)
+    return {
+      success: true,
+      data,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to fetch notification preferences.",
+    }
+  }
+}
+
+/**
+ * Server Action: Exports all user data as JSON.
+ */
+export async function exportUserDataAction(): Promise<ActionResponse<any>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: false, error: "Authentication required." }
+
+    const data = await exportUserData(userId)
+    return {
+      success: true,
+      data,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to export data.",
+    }
+  }
+}
+
+/**
+ * Server Action: Deletes user account and associated personal data.
+ */
+export async function deleteAccountAction(): Promise<ActionResponse<boolean>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: false, error: "Authentication required." }
+
+    const res = await deleteUserAccount(userId)
+    return {
+      success: res,
+      data: res,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to delete account.",
     }
   }
 }
