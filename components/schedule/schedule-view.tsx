@@ -422,9 +422,9 @@ export function ScheduleView({
             </Card>
 
             {/* Week Navigation & View Switcher (Cards / Table / Daily) */}
-            <div className="flex flex-col justify-between gap-3 pt-1 sm:flex-row sm:items-center">
-              {/* Left side: Weeks selector */}
-              <div className="flex items-center">
+            <div className="flex flex-col justify-between gap-3 pt-1 sm:flex-row sm:items-center sm:gap-4">
+              {/* Left side: Weeks selector with overflow protection */}
+              <div className="min-w-0 flex-1 overflow-hidden">
                 {schedule.weeksCount > 1 ? (
                   <WeekNav
                     weeksCount={schedule.weeksCount}
@@ -440,7 +440,7 @@ export function ScheduleView({
               </div>
 
               {/* Right side: Cards / Table / Daily view switcher */}
-              <div className="flex items-center self-end sm:self-auto">
+              <div className="flex shrink-0 items-center self-end sm:self-auto">
                 <div className="flex items-center rounded-xl border border-border/50 bg-muted/60 p-0.5 dark:bg-muted/40">
                   <button
                     type="button"

@@ -34,11 +34,11 @@ export function MemberScheduleCard({
         delay: Math.min(0.2, index * 0.03),
         ease: "easeOut",
       }}
-      className="w-full"
+      className="w-full min-w-0"
     >
       <Card
         onClick={onCardClick}
-        className={`overflow-hidden rounded-2xl border border-border/60 bg-card/90 text-start shadow-sm backdrop-blur-md transition-all hover:border-primary/40 hover:shadow-md dark:bg-card/70 ${
+        className={`w-full min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card/90 text-start shadow-sm backdrop-blur-md transition-all hover:border-primary/40 hover:shadow-md dark:bg-card/70 ${
           onCardClick ? "cursor-pointer" : ""
         }`}
       >
