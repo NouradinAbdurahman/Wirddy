@@ -3,15 +3,24 @@
 import React from "react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
-import { IconBook, IconLanguage, IconMoon, IconSun } from "@tabler/icons-react"
+import {
+  IconBook,
+  IconLanguage,
+  IconLogout,
+  IconMoon,
+  IconSun,
+  IconUser,
+} from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 interface HeaderProps {
   onNewGroup?: () => void
@@ -31,10 +40,64 @@ export function Header({
   const { language, setLanguage, t } = useI18n()
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
+  const [user, setUser] = React.useState<{
+    email?: string
+    name?: string
+    avatar?: string
+  } | null>(null)
 
   React.useEffect(() => {
     setMounted(true)
+
+    const supabase = getSupabaseBrowserClient()
+    if (!supabase) return
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUser({
+          email: user.email,
+          name:
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            user.email?.split("@")[0],
+          avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+        })
+      } else {
+        setUser(null)
+      }
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          email: session.user.email,
+          name:
+            session.user.user_metadata?.full_name ||
+            session.user.user_metadata?.name ||
+            session.user.email?.split("@")[0],
+          avatar:
+            session.user.user_metadata?.avatar_url ||
+            session.user.user_metadata?.picture,
+        })
+      } else {
+        setUser(null)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
+
+  const handleSignOut = async () => {
+    const supabase = getSupabaseBrowserClient()
+    if (supabase) {
+      await supabase.auth.signOut()
+      setUser(null)
+    }
+  }
 
   const isDark = mounted ? theme === "dark" || resolvedTheme === "dark" : false
 
@@ -108,6 +171,61 @@ export function Header({
               <div className="h-4 w-4" />
             )}
           </Button>
+
+          {/* Minimal Authentication State Indicator */}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-border/70 bg-transparent px-2.5 text-xs font-bold text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name || "User"}
+                    className="h-5 w-5 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[11px] font-extrabold text-primary">
+                    {(user.name?.[0] || "U").toUpperCase()}
+                  </div>
+                )}
+                <span className="max-w-[100px] truncate text-xs sm:max-w-[130px]">
+                  {user.name || user.email}
+                </span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-56 p-1.5 text-start"
+              >
+                <div className="px-2 py-1.5">
+                  <p className="text-xs font-bold text-foreground">
+                    {user.name}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {user.email}
+                  </p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer gap-2 text-xs font-semibold text-destructive focus:bg-destructive/10 focus:text-destructive"
+                >
+                  <IconLogout className="h-4 w-4" />
+                  <span>{t.authSignOut}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/login">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 gap-1.5 rounded-lg border-border/70 px-3 text-xs font-bold hover:bg-muted"
+              >
+                <IconUser className="h-4 w-4" />
+                <span>{t.authSignIn}</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </header>

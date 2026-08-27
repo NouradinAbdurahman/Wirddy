@@ -52,8 +52,10 @@ export function getSupabaseBrowserClient(): SupabaseClient<Database> | null {
 
   browserClient = createClient<Database>(url, key, {
     auth: {
-      persistSession: false,
-      autoRefreshToken: false,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: "pkce",
     },
   })
 

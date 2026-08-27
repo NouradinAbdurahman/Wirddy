@@ -51,13 +51,15 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignore non-GET requests, chrome-extension URLs, localhost development, and HMR
+  // Ignore non-GET requests, chrome-extension URLs, localhost development, HMR, and Auth routes
   if (
     request.method !== 'GET' ||
     !url.protocol.startsWith('http') ||
     url.hostname === 'localhost' ||
     url.hostname === '127.0.0.1' ||
-    url.pathname.includes('webpack-hmr')
+    url.pathname.includes('webpack-hmr') ||
+    url.pathname.startsWith('/auth') ||
+    url.pathname.startsWith('/login')
   ) {
     return;
   }

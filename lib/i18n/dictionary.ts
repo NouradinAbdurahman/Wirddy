@@ -351,6 +351,20 @@ export interface Translations {
   suggMosque: string
   suggStudy: string
 
+  // Google Authentication Only
+  authLoginTitle: string
+  authLoginSubtitle: string
+  authContinueWithGoogle: string
+  authSecureGoogle: string
+  authConnectingGoogle: string
+  authFailedTitle: string
+  authCancelled: string
+  authFailedGeneric: string
+  authTryAgain: string
+  authSignIn: string
+  authSignOut: string
+  authBackToHome: string
+
   // Footer & branding
   footerText: string
   footerRights: string
@@ -718,6 +732,21 @@ export const translations: Record<Language, Translations> = {
 
     footerText: "وِردي - تنظيم قراءة القرآن الكريم للمجموعات",
     footerRights: "جميع الحقوق محفوظة",
+
+    // Google Authentication Only
+    authLoginTitle: "نظّم ورد القرآن بسهولة",
+    authLoginSubtitle: "اجمع عائلتك أو مجموعتك وأنشئ جدول ورد واضحًا للجميع.",
+    authContinueWithGoogle: "المتابعة باستخدام Google",
+    authSecureGoogle: "تسجيل الدخول آمن عبر Google",
+    authConnectingGoogle: "جاري الاتصال بـ Google...",
+    authFailedTitle: "تعذر تسجيل الدخول",
+    authCancelled: "تم إلغاء عملية تسجيل الدخول.",
+    authFailedGeneric:
+      "حدث خطأ أثناء الاتصال بخدمة Google. يرجى المحاولة مرة أخرى.",
+    authTryAgain: "إعادة المحاولة",
+    authSignIn: "تسجيل الدخول",
+    authSignOut: "تسجيل الخروج",
+    authBackToHome: "العودة للرئيسية",
   },
   en: {
     appName: "Wirddy",
@@ -1091,5 +1120,21 @@ export const translations: Record<Language, Translations> = {
 
     footerText: "Wirddy - Quran Reading Planner for Groups",
     footerRights: "All rights reserved",
+
+    // Google Authentication Only
+    authLoginTitle: "Organize your Quran reading with ease",
+    authLoginSubtitle:
+      "Create a clear reading schedule for your family or group.",
+    authContinueWithGoogle: "Continue with Google",
+    authSecureGoogle: "Secure sign in with Google",
+    authConnectingGoogle: "Connecting to Google...",
+    authFailedTitle: "Authentication Failed",
+    authCancelled: "Sign in was cancelled.",
+    authFailedGeneric:
+      "An error occurred while connecting to Google. Please try again.",
+    authTryAgain: "Try Again",
+    authSignIn: "Sign In",
+    authSignOut: "Sign Out",
+    authBackToHome: "Back to Home",
   },
 }
