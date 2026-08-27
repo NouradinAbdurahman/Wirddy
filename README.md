@@ -1,6 +1,11 @@
 <div align="center">
 
-# 📖 Wirddy | وِردي
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="public/wirddy-logo-white.png">
+  <source media="(prefers-color-scheme: light)" srcset="public/wirddy-logo-black.png">
+  <img alt="Wirddy | وِردي" src="public/wirddy-logo-black.png" width="280">
+</picture>
+
 ### Intelligent Quran Reading Planner for Groups & Families
 **مُنظّم ورد القرآن الكريم الذكي للمجموعات والعائلات**
 
