@@ -67,7 +67,7 @@ describe("Export System: Filename Sanitization & Safe Download Filenames", () =>
       "Wirddy-عائلة-أحمد-الأسبوع-١.png",
       ".png"
     )
-    expect(safePng).toBe("Wirddy-عائلة-أحمد-Week-1.png")
+    expect(safePng).toBe("Wirddy-Week-1.png")
     expect(safePng.endsWith(".png")).toBe(true)
     expect(safePng).not.toContain(".png.png")
 
@@ -75,14 +75,14 @@ describe("Export System: Filename Sanitization & Safe Download Filenames", () =>
       "Wirddy-عائلة-الخير-الخطة-كاملة.pdf",
       ".pdf"
     )
-    expect(safePdf).toBe("Wirddy-عائلة-الخير-Full-Plan.pdf")
+    expect(safePdf).toBe("Wirddy-Full-Plan.pdf")
     expect(safePdf.endsWith(".pdf")).toBe(true)
 
     const safeZip = getSafeDownloadFilename(
       "Wirddy-عائلة-الخير-جميع-الأسابيع.zip",
       ".zip"
     )
-    expect(safeZip).toBe("Wirddy-عائلة-الخير-All-Weeks.zip")
+    expect(safeZip).toBe("Wirddy-All-Weeks.zip")
     expect(safeZip.endsWith(".zip")).toBe(true)
   })
 
@@ -91,7 +91,7 @@ describe("Export System: Filename Sanitization & Safe Download Filenames", () =>
     expect(fallback).toBe("Wirddy-export.png")
 
     const sanitizedSpecial = getSafeDownloadFilename("///:::***???", ".pdf")
-    expect(sanitizedSpecial).toBe("Wirddy-export.pdf")
+    expect(sanitizedSpecial).toBe("Wirddy-Schedule.pdf")
   })
 })
 
@@ -166,7 +166,6 @@ describe("Export System: Blob Magic Bytes & Download Helper", () => {
     expect(mockDocument.body.appendChild).toHaveBeenCalledWith(mockAnchor)
     expect(mockAnchor.download).toBe("Wirddy-Week-1.png")
     expect(mockAnchor.click).toHaveBeenCalled()
-    expect(mockDocument.body.removeChild).toHaveBeenCalledWith(mockAnchor)
 
     globalThis.URL.createObjectURL = originalCreateObjectURL
     globalThis.URL.revokeObjectURL = originalRevokeObjectURL

@@ -1,7 +1,7 @@
 import { getSafeDownloadFilename } from "./filenames"
 
 /**
- * Diagnostic payload printed before each export download in non-production environments.
+ * Diagnostic payload printed before each export download in development mode.
  */
 export interface DownloadDiagnostics {
   filename: string
@@ -37,10 +37,9 @@ export async function getBlobFirstBytesHex(
  * 1. Validates real non-empty Blob instance.
  * 2. Validates & enforces correct MIME type according to extension (image/png, application/pdf, application/zip).
  * 3. Inspects & verifies magic byte signatures.
- * 4. Sanitizes filename with guaranteed correct extension and cross-browser safety.
- * 5. Uses standard HTML5 Anchor download with proper off-screen layout properties.
- * 6. Safely retains Object URL for 60 seconds to prevent premature revocation in Chromium.
- * 7. Emits diagnostic logging before download.
+ * 4. Sanitizes filename with guaranteed ASCII safety and exact extension.
+ * 5. Uses standard HTML5 Anchor download with proper connected layout properties.
+ * 6. Safely cleans up object URL after download dispatch.
  */
 export async function triggerBrowserDownload(
   blob: Blob,
@@ -112,64 +111,50 @@ export async function triggerBrowserDownload(
     }
   }
 
-  // Obtain clean, safe download filename with guaranteed extension
+  // Obtain clean, ASCII-safe download filename with guaranteed extension
   const safeFilename = getSafeDownloadFilename(filename, expectedExt)
-
-  // Diagnostic logging
-  const diagnostics: DownloadDiagnostics = {
-    filename: safeFilename,
-    mimeType: finalBlob.type,
-    size: finalBlob.size,
-    firstBytes: firstBytesHex,
-  }
-
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[Wirddy Download Triggered]", diagnostics)
-  }
 
   // Create Object URL for the validated Blob
   const objectUrl = URL.createObjectURL(finalBlob)
 
-  // Create anchor element with safe layout properties (not display:none)
+  // Create anchor element with safe layout properties (connected, 1px fixed, opacity 0)
   const link = document.createElement("a")
   link.style.position = "fixed"
-  link.style.left = "-99999px"
-  link.style.top = "-99999px"
+  link.style.left = "0"
+  link.style.top = "0"
+  link.style.width = "1px"
+  link.style.height = "1px"
   link.style.opacity = "0"
-  link.style.pointerEvents = "none"
   link.href = objectUrl
   link.download = safeFilename
   link.rel = "noopener"
 
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[Wirddy Download]", {
+      href: link.href,
+      download: link.download,
+      blobType: finalBlob.type,
+      blobSize: finalBlob.size,
+      firstBytes: firstBytesHex,
+      isConnected: link.isConnected,
+    })
+  }
+
   document.body.appendChild(link)
 
   try {
-    // Dispatch native click event
-    if (typeof MouseEvent !== "undefined") {
-      link.dispatchEvent(
-        new MouseEvent("click", {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-        })
-      )
-    } else {
-      link.click()
-    }
+    link.click()
   } finally {
-    // Remove element from DOM
-    if (document.body.contains(link)) {
-      document.body.removeChild(link)
-    }
-
-    // Retain object URL for 60 seconds so Chromium's asynchronous DownloadManager
-    // can safely finish fetching the stream without UUID fallback
+    // Clean up anchor and revoke object URL after browser download dispatch
     setTimeout(() => {
       try {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link)
+        }
         URL.revokeObjectURL(objectUrl)
       } catch {
         // Ignore cleanup errors
       }
-    }, 60000)
+    }, 1000)
   }
 }

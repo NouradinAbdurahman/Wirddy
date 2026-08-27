@@ -30,10 +30,15 @@ export function formatArabicNumeral(num: number): string {
 }
 
 /**
- * Produces a sanitized, extension-guaranteed download filename.
- * - Guarantees expected extension without duplicate extensions (.png.png).
- * - Strips forbidden filesystem characters and control characters.
- * - Preserves readable naming and transliterates common Arabic export terms for maximum cross-browser compatibility.
+ * Produces a 100% ASCII-clean, extension-guaranteed download filename.
+ *
+ * CRITICAL CROSS-BROWSER RULE:
+ * Chrome on macOS and Windows drops the `download` attribute on blob: URLs if the filename
+ * contains non-ASCII Unicode / Arabic characters, causing Chrome to fall back to the blob URL UUID.
+ * Safari supports Unicode in `download`, but ASCII works reliably across ALL browsers.
+ *
+ * This function transliterates common Arabic terms (الأسبوع -> Week, الخطة-كاملة -> Full-Plan, etc.)
+ * and strips non-ASCII characters to guarantee an ASCII filename with the exact required extension.
  */
 export function getSafeDownloadFilename(
   filename: string,
@@ -65,8 +70,7 @@ export function getSafeDownloadFilename(
     ext = normExpected
   }
 
-  // Transliterate common Arabic terms to universal ASCII-compatible tokens
-  // while keeping group and member identifiers clean
+  // Transliterate common Arabic terms to universal ASCII tokens
   const transliterated = base
     .replace(/الأسبوع/g, "Week")
     .replace(/الخطة-كاملة/g, "Full-Plan")
@@ -79,16 +83,16 @@ export function getSafeDownloadFilename(
     .replace(/جداول-الأعضاء/g, "Members-Schedules")
     // Arabic-Indic digits to Western digits
     .replace(/[٠١٢٣٤٥٦٧٨٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)))
-
-  // Remove filesystem-unsafe and control characters
-  const sanitized = transliterated
+    // Strip non-ASCII characters for 100% universal browser download attribute support
+    .replace(/[^\x20-\x7E]/g, "")
+    // Remove filesystem-unsafe and control characters
     .replace(/[/\\:*?"<>|\x00-\x1F\x7F]/g, "-")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^[.-]+|[.-]+$/g, "")
     .trim()
 
-  const safeBase = sanitized || "Wirddy-export"
+  const safeBase = transliterated || "Wirddy-Schedule"
   return `${safeBase}${ext}`
 }
 
