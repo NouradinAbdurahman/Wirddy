@@ -71,7 +71,10 @@ export const metadata: Metadata = {
     images: ["/wirddy-og-image.png"],
   },
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png", sizes: "512x512" }],
+    icon: [
+      { url: "/favicon.png", type: "image/png", sizes: "512x512" },
+      { url: "/favicon.ico" },
+    ],
     shortcut: ["/favicon.png"],
     apple: [
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
