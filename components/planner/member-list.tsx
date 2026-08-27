@@ -14,6 +14,7 @@ interface MemberListProps {
   onAddMember: () => void
   onUpdateMember: (index: number, member: MemberConfig) => void
   onRemoveMember: (index: number) => void
+  totalIndicator?: React.ReactNode
 }
 
 export function MemberList({
@@ -21,6 +22,7 @@ export function MemberList({
   onAddMember,
   onUpdateMember,
   onRemoveMember,
+  totalIndicator,
 }: MemberListProps) {
   const { t, formatNumber } = useI18n()
 
@@ -55,6 +57,9 @@ export function MemberList({
           <span>{t.addMemberBtn}</span>
         </Button>
       </div>
+
+      {/* Reading Total Indicator (Cleanly positioned with generous spacing) */}
+      {totalIndicator && <div className="py-1">{totalIndicator}</div>}
 
       {/* Member Cards List or Empty State */}
       {members.length === 0 ? (

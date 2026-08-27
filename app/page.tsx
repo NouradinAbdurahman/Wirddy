@@ -402,18 +402,17 @@ export default function HomePage() {
               </Card>
 
               {/* Section 3: Members & Knowledge Restrictions */}
-              <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
-                {rangeType === "full" && (
-                  <div className="sticky top-16 z-20 -mx-2 bg-background/90 px-2 py-1 backdrop-blur-md">
-                    <TotalIndicator currentTotal={currentTotal} />
-                  </div>
-                )}
-
+              <Card className="space-y-6 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
                 <MemberList
                   members={members}
                   onAddMember={handleAddMember}
                   onUpdateMember={handleUpdateMember}
                   onRemoveMember={handleRemoveMember}
+                  totalIndicator={
+                    rangeType === "full" ? (
+                      <TotalIndicator currentTotal={currentTotal} />
+                    ) : null
+                  }
                 />
               </Card>
 

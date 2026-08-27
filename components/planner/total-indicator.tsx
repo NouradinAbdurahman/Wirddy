@@ -21,23 +21,23 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
   return (
     <div className="w-full">
       <Card
-        className={`rounded-2xl border p-3.5 shadow-sm backdrop-blur-md transition-all duration-300 sm:p-4 ${
+        className={`rounded-2xl border p-4 shadow-sm transition-all duration-300 sm:p-5 ${
           isExact
-            ? "border-emerald-500/40 bg-card/95 shadow-emerald-500/5 dark:bg-card/90"
+            ? "border-emerald-500/30 bg-emerald-500/10 shadow-emerald-500/5 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:shadow-emerald-900/10"
             : isMore
-              ? "border-destructive/40 bg-card/95 shadow-destructive/5 dark:bg-card/90"
-              : "border-border/60 bg-card/95 dark:bg-card/90"
+              ? "border-rose-500/30 bg-rose-500/10 shadow-rose-500/5 dark:border-rose-500/40 dark:bg-rose-950/40 dark:shadow-rose-900/10"
+              : "border-teal-500/25 bg-teal-500/10 shadow-teal-500/5 dark:border-teal-500/30 dark:bg-teal-950/30 dark:shadow-teal-900/10"
         }`}
       >
         <div className="flex flex-col justify-between gap-3 text-start sm:flex-row sm:items-center">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-colors ${
+              className={`flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-colors ${
                 isExact
-                  ? "bg-emerald-500/20"
+                  ? "bg-emerald-500/20 text-emerald-600 dark:bg-emerald-500/30 dark:text-emerald-400"
                   : isMore
-                    ? "bg-destructive/20"
-                    : "border border-border/40 bg-muted/40"
+                    ? "bg-rose-500/20 text-rose-600 dark:bg-rose-500/30 dark:text-rose-400"
+                    : "bg-teal-500/20 text-teal-600 dark:bg-teal-500/30 dark:text-teal-400"
               }`}
             >
               <img
@@ -55,17 +55,25 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
             </div>
 
             <div>
-              <div className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              <div
+                className={`text-[11px] font-bold tracking-wider uppercase ${
+                  isExact
+                    ? "text-emerald-800/80 dark:text-emerald-300/80"
+                    : isMore
+                      ? "text-rose-800/80 dark:text-rose-300/80"
+                      : "text-teal-800/80 dark:text-teal-300/80"
+                }`}
+              >
                 {t.totalLabel}
               </div>
               <div className="mt-0.5 flex items-baseline gap-2">
                 <span
-                  className={`text-2xl font-bold tracking-tight ${
+                  className={`text-2xl font-extrabold tracking-tight sm:text-3xl ${
                     isExact
                       ? "text-emerald-600 dark:text-emerald-400"
                       : isMore
-                        ? "text-destructive"
-                        : "text-foreground"
+                        ? "text-rose-600 dark:text-rose-400"
+                        : "text-teal-700 dark:text-teal-300"
                   }`}
                 >
                   {formatNumber(currentTotal)}
@@ -86,7 +94,7 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                  className="text-xs font-bold text-emerald-700 sm:text-sm dark:text-emerald-300"
                 >
                   {t.totalSuccess}
                 </motion.div>
@@ -98,7 +106,7 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-xs font-medium text-muted-foreground"
+                  className="text-xs font-semibold text-teal-800/90 sm:text-sm dark:text-teal-200/90"
                 >
                   {language === "ar"
                     ? `مجموع القراءة هو ${formatNumber(currentTotal)} جزءًا. يتبقى ${formatNumber(30 - currentTotal)} جزءًا ليكتمل الورد.`
@@ -112,7 +120,7 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-xs font-medium text-destructive"
+                  className="text-xs font-semibold text-rose-700 sm:text-sm dark:text-rose-300"
                 >
                   {language === "ar"
                     ? `مجموع القراءة هو ${formatNumber(currentTotal)} جزءًا. يتجاوز الـ ٣٠ بمقدار ${formatNumber(currentTotal - 30)} جزءًا.`
@@ -124,15 +132,15 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
         </div>
 
         {/* Progress Bar */}
-        <div className="mt-3.5">
+        <div className="mt-4">
           <Progress
             value={percentage}
-            className={`h-2 rounded-full ${
+            className={`h-2.5 rounded-full ${
               isExact
-                ? "[&>div]:bg-emerald-500"
+                ? "bg-emerald-500/20 dark:bg-emerald-950/60 [&>div]:bg-emerald-500 dark:[&>div]:bg-emerald-400"
                 : isMore
-                  ? "[&>div]:bg-destructive"
-                  : "[&>div]:bg-primary"
+                  ? "bg-rose-500/20 dark:bg-rose-950/60 [&>div]:bg-rose-500 dark:[&>div]:bg-rose-400"
+                  : "bg-teal-500/20 dark:bg-teal-950/60 [&>div]:bg-teal-500 dark:[&>div]:bg-teal-400"
             }`}
           />
         </div>
