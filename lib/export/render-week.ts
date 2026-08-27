@@ -343,7 +343,7 @@ export function buildStandaloneWeekExportHtml(
       <!-- Top Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1 1 auto;">
-          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; width: 140px; height: 38px; object-fit: contain; display: block;" />
+          <img src="${logoSrc}" alt="Wirddy" width="140" height="38" style="flex-shrink: 0; width: 140px; height: 38px; max-width: 140px; max-height: 38px; object-fit: contain; display: block;" />
           <div style="min-width: 0;">
             <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
@@ -421,7 +421,7 @@ export function buildPdfPageHtml(
     ? `
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 18px; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1 1 auto;">
-          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; width: 140px; height: 38px; object-fit: contain; display: block;" />
+          <img src="${logoSrc}" alt="Wirddy" width="140" height="38" style="flex-shrink: 0; width: 140px; height: 38px; max-width: 140px; max-height: 38px; object-fit: contain; display: block;" />
           <div style="min-width: 0;">
             <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
@@ -445,7 +445,7 @@ export function buildPdfPageHtml(
     : `
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 12px; margin-bottom: 18px;">
         <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto;">
-          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; width: 100px; height: 28px; object-fit: contain; display: block;" />
+          <img src="${logoSrc}" alt="Wirddy" width="100" height="28" style="flex-shrink: 0; width: 100px; height: 28px; max-width: 100px; max-height: 28px; object-fit: contain; display: block;" />
           <span style="min-width: 0; font-size: 13px; font-weight: 800; color: ${textPrimary}; white-space: nowrap;">
             ${schedule.groupName}
           </span>
@@ -497,7 +497,7 @@ export async function renderWeekToPngBlob(
   // Create isolated off-screen mount container with strict fixed dimensions
   const container = document.createElement("div")
   container.style.position = "fixed"
-  container.style.left = "-99999px"
+  container.style.left = "0"
   container.style.top = "0"
   container.style.width = "880px"
   container.style.minWidth = "880px"
@@ -507,7 +507,7 @@ export async function renderWeekToPngBlob(
   container.style.pointerEvents = "none"
   container.style.opacity = "1"
   container.style.transform = "none"
-  container.style.overflow = "visible"
+  container.style.overflow = "hidden"
 
   container.innerHTML = buildStandaloneWeekExportHtml(
     week,

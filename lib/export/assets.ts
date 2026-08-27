@@ -27,6 +27,44 @@ export function validateEmbeddedLogoDataUrl(dataUrl: string): boolean {
 }
 
 /**
+ * Fallback to convert an image path to base64 Data URL using an HTML5 Canvas element.
+ */
+function convertImageViaCanvas(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      reject(new Error("DOM environment unavailable for canvas conversion."))
+      return
+    }
+
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas")
+        canvas.width = img.naturalWidth || 600
+        canvas.height = img.naturalHeight || 160
+        const ctx = canvas.getContext("2d")
+        if (!ctx) {
+          throw new Error("Failed to get 2D canvas context.")
+        }
+        ctx.drawImage(img, 0, 0)
+        const dataUrl = canvas.toDataURL("image/png")
+        if (validateEmbeddedLogoDataUrl(dataUrl)) {
+          resolve(dataUrl)
+        } else {
+          reject(new Error("Canvas toDataURL returned invalid PNG data."))
+        }
+      } catch (err) {
+        reject(err)
+      }
+    }
+    img.onerror = () =>
+      reject(new Error(`Failed to load image element: ${src}`))
+    img.src = src
+  })
+}
+
+/**
  * Loads an image path and converts it into a base64 Data URL.
  */
 export async function preloadImageAsBase64(src: string): Promise<string> {
@@ -42,20 +80,27 @@ export async function preloadImageAsBase64(src: string): Promise<string> {
       )
     }
     const blob = await response.blob()
-    return new Promise((resolve, reject) => {
+    const base64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader()
       reader.onloadend = () => {
-        const base64 = reader.result as string
-        assetCache.set(src, base64)
-        resolve(base64)
+        const result = reader.result as string
+        resolve(result)
       }
       reader.onerror = () =>
         reject(new Error(`Failed to convert ${src} to base64.`))
       reader.readAsDataURL(blob)
     })
-  } catch (err) {
-    console.warn(`Asset preload warning for ${src}:`, err)
-    return src
+
+    assetCache.set(src, base64)
+    return base64
+  } catch {
+    try {
+      const fallbackDataUrl = await convertImageViaCanvas(src)
+      assetCache.set(src, fallbackDataUrl)
+      return fallbackDataUrl
+    } catch {
+      return src
+    }
   }
 }
 
@@ -75,32 +120,40 @@ export async function getEmbeddedWirddyLogo(
   const src =
     theme === "dark" ? "/wirddy-logo-white.png" : "/wirddy-logo-black.png"
 
+  // 1. Try Network / Cache fetch + FileReader
   try {
     const response = await fetch(src)
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch logo asset: ${src} (status: ${response.status})`
-      )
-    }
-    const blob = await response.blob()
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result as string)
-      reader.onerror = () =>
-        reject(new Error(`Failed to convert ${src} to base64.`))
-      reader.readAsDataURL(blob)
-    })
+    if (response.ok) {
+      const blob = await response.blob()
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () =>
+          reject(new Error(`Failed to convert ${src} to base64.`))
+        reader.readAsDataURL(blob)
+      })
 
-    if (!validateEmbeddedLogoDataUrl(dataUrl)) {
-      throw new Error(`Invalid embedded logo data URL generated for ${src}.`)
+      if (validateEmbeddedLogoDataUrl(dataUrl)) {
+        embeddedLogoCache[theme] = dataUrl
+        return dataUrl
+      }
     }
-
-    embeddedLogoCache[theme] = dataUrl
-    return dataUrl
-  } catch (err: any) {
-    console.error(`Error loading embedded Wirddy logo (${theme}):`, err)
-    throw new Error("Unable to load the Wirddy logo. Please try again.")
+  } catch {
+    // Fall through to Canvas fallback
   }
+
+  // 2. Try Image + Canvas conversion
+  try {
+    const dataUrl = await convertImageViaCanvas(src)
+    if (validateEmbeddedLogoDataUrl(dataUrl)) {
+      embeddedLogoCache[theme] = dataUrl
+      return dataUrl
+    }
+  } catch {
+    // Fall through
+  }
+
+  throw new Error("Unable to load the Wirddy logo. Please try again.")
 }
 
 export interface ExportAssets {
@@ -169,7 +222,6 @@ export function waitForImagesToLoad(
         }
         return
       }
-      // complete === true but naturalWidth === 0 -> broken image
       return
     }
 

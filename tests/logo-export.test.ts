@@ -160,6 +160,7 @@ describe("Wirddy Embedded Logo & Deterministic Export Architecture", () => {
       expect(html).toContain(dummyBase64White)
       expect(html).not.toContain('src="/wirddy-logo-white.png"')
       expect(html).not.toContain('src="/wirddy-logo-black.png"')
+      expect(html).toContain('width="140" height="38"')
       expect(html).toContain(
         'style="flex-shrink: 0; width: 140px; height: 38px;'
       )
@@ -179,6 +180,7 @@ describe("Wirddy Embedded Logo & Deterministic Export Architecture", () => {
       expect(html).toContain(dummyBase64Black)
       expect(html).not.toContain('src="/wirddy-logo-white.png"')
       expect(html).not.toContain('src="/wirddy-logo-black.png"')
+      expect(html).toContain('width="140" height="38"')
       expect(html).toContain(
         "width: 880px; min-width: 880px; max-width: 880px;"
       )
@@ -199,6 +201,7 @@ describe("Wirddy Embedded Logo & Deterministic Export Architecture", () => {
       expect(html).toContain(dummyBase64White)
       expect(html).not.toContain('src="/wirddy-logo-white.png"')
       expect(html).not.toContain('src="/wirddy-logo-black.png"')
+      expect(html).toContain('width="140" height="38"')
       expect(html).toContain(
         "width: 1000px; min-width: 1000px; max-width: 1000px; height: 1414px; min-height: 1414px;"
       )
@@ -219,6 +222,7 @@ describe("Wirddy Embedded Logo & Deterministic Export Architecture", () => {
       expect(html).toContain(dummyBase64Black)
       expect(html).not.toContain('src="/wirddy-logo-white.png"')
       expect(html).not.toContain('src="/wirddy-logo-black.png"')
+      expect(html).toContain('width="140" height="38"')
       expect(html).toContain(
         "width: 1000px; min-width: 1000px; max-width: 1000px; height: 1414px; min-height: 1414px;"
       )
