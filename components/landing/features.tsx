@@ -33,10 +33,16 @@ export function Features() {
     <section className="py-14 md:py-18">
       <div className="container mx-auto max-w-5xl px-4 sm:px-6">
         <div className="mx-auto mb-12 max-w-2xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h2
+            suppressHydrationWarning
+            className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+          >
             {t.featuresTitle}
           </h2>
-          <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+          <p
+            suppressHydrationWarning
+            className="mt-3 text-sm text-muted-foreground sm:text-base"
+          >
             {t.featuresSubtitle}
           </p>
         </div>
@@ -57,10 +63,16 @@ export function Features() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Icon className="h-5 w-5" stroke={1.75} />
                     </div>
-                    <h3 className="text-base font-bold text-foreground">
+                    <h3
+                      suppressHydrationWarning
+                      className="text-base font-bold text-foreground"
+                    >
                       {feature.title}
                     </h3>
-                    <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                    <p
+                      suppressHydrationWarning
+                      className="text-xs leading-relaxed text-muted-foreground sm:text-sm"
+                    >
                       {feature.desc}
                     </p>
                   </CardContent>

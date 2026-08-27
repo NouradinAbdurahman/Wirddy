@@ -102,7 +102,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("font-sans antialiased", cairo.variable, inter.variable)}
     >
-      <body className="min-h-screen bg-background text-foreground selection:bg-primary/20 selection:text-primary">
+      <body
+        suppressHydrationWarning
+        className="min-h-screen bg-background text-foreground selection:bg-primary/20 selection:text-primary"
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -35,10 +35,16 @@ export function HowItWorks() {
     <section id="how-it-works" className="py-14 md:py-18">
       <div className="container mx-auto max-w-5xl px-4 sm:px-6">
         <div className="mx-auto mb-12 max-w-2xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h2
+            suppressHydrationWarning
+            className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+          >
             {t.howItWorksTitle}
           </h2>
-          <p className="mt-3 text-sm text-muted-foreground sm:text-base">
+          <p
+            suppressHydrationWarning
+            className="mt-3 text-sm text-muted-foreground sm:text-base"
+          >
             {t.howItWorksSubtitle}
           </p>
         </div>
@@ -59,10 +65,16 @@ export function HowItWorks() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Icon className="h-6 w-6" stroke={1.75} />
                     </div>
-                    <h3 className="text-lg font-bold text-foreground">
+                    <h3
+                      suppressHydrationWarning
+                      className="text-lg font-bold text-foreground"
+                    >
                       {step.title}
                     </h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
+                    <p
+                      suppressHydrationWarning
+                      className="text-sm leading-relaxed text-muted-foreground"
+                    >
                       {step.desc}
                     </p>
                   </CardContent>
