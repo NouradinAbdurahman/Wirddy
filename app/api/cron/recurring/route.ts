@@ -48,3 +48,5 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({ success: true, cyclesProcessed })
 }
+
+export const POST = GET
