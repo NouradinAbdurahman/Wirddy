@@ -23,6 +23,7 @@ export type Database = {
           id: string
           knowledge_type: string
           name: string
+          public_id: string | null
           sort_order: number
           start_juz: number
           start_surah: number | null
@@ -36,6 +37,7 @@ export type Database = {
           id?: string
           knowledge_type?: string
           name: string
+          public_id?: string | null
           sort_order?: number
           start_juz?: number
           start_surah?: number | null
@@ -49,6 +51,7 @@ export type Database = {
           id?: string
           knowledge_type?: string
           name?: string
+          public_id?: string | null
           sort_order?: number
           start_juz?: number
           start_surah?: number | null
@@ -67,12 +70,16 @@ export type Database = {
       groups: {
         Row: {
           created_at: string
+          daily_division_enabled: boolean
+          description: string | null
           direction: string
           edit_token_hash: string
           expires_at: string
           id: string
+          islamic_year: number | null
           language: string
           name: string
+          occasion_type: string
           owner_user_id: string | null
           public_id: string
           range_end_ayah: number | null
@@ -82,17 +89,24 @@ export type Database = {
           range_type: string
           rotation_style: string
           scheduler_version: string
+          start_date: string | null
           start_juz: number
+          title: string | null
           updated_at: string
+          uses_dates: boolean
         }
         Insert: {
           created_at?: string
+          daily_division_enabled?: boolean
+          description?: string | null
           direction?: string
           edit_token_hash: string
           expires_at?: string
           id?: string
+          islamic_year?: number | null
           language?: string
           name: string
+          occasion_type?: string
           owner_user_id?: string | null
           public_id: string
           range_end_ayah?: number | null
@@ -102,17 +116,24 @@ export type Database = {
           range_type?: string
           rotation_style?: string
           scheduler_version?: string
+          start_date?: string | null
           start_juz?: number
+          title?: string | null
           updated_at?: string
+          uses_dates?: boolean
         }
         Update: {
           created_at?: string
+          daily_division_enabled?: boolean
+          description?: string | null
           direction?: string
           edit_token_hash?: string
           expires_at?: string
           id?: string
+          islamic_year?: number | null
           language?: string
           name?: string
+          occasion_type?: string
           owner_user_id?: string | null
           public_id?: string
           range_end_ayah?: number | null
@@ -122,14 +143,18 @@ export type Database = {
           range_type?: string
           rotation_style?: string
           scheduler_version?: string
+          start_date?: string | null
           start_juz?: number
+          title?: string | null
           updated_at?: string
+          uses_dates?: boolean
         }
         Relationships: []
       }
       schedule_assignments: {
         Row: {
           created_at: string
+          daily_breakdown: Json | null
           end_ayah: number
           end_global_ayah: number | null
           end_juz: number
@@ -151,6 +176,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          daily_breakdown?: Json | null
           end_ayah: number
           end_global_ayah?: number | null
           end_juz: number
@@ -172,6 +198,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          daily_breakdown?: Json | null
           end_ayah?: number
           end_global_ayah?: number | null
           end_juz?: number
@@ -211,9 +238,13 @@ export type Database = {
       schedule_plans: {
         Row: {
           created_at: string
+          daily_division_enabled: boolean
+          description: string | null
           group_id: string
           id: string
           is_active: boolean
+          islamic_year: number | null
+          occasion_type: string
           range_end_ayah: number | null
           range_end_surah: number | null
           range_start_ayah: number | null
@@ -221,16 +252,23 @@ export type Database = {
           range_type: string
           rotation_style: string
           scheduler_version: string
+          start_date: string | null
           start_juz: number
+          title: string | null
           total_juz_per_week: number
+          uses_dates: boolean
           version_number: number
           weeks_count: number
         }
         Insert: {
           created_at?: string
+          daily_division_enabled?: boolean
+          description?: string | null
           group_id: string
           id?: string
           is_active?: boolean
+          islamic_year?: number | null
+          occasion_type?: string
           range_end_ayah?: number | null
           range_end_surah?: number | null
           range_start_ayah?: number | null
@@ -238,16 +276,23 @@ export type Database = {
           range_type?: string
           rotation_style?: string
           scheduler_version?: string
+          start_date?: string | null
           start_juz?: number
+          title?: string | null
           total_juz_per_week?: number
+          uses_dates?: boolean
           version_number?: number
           weeks_count: number
         }
         Update: {
           created_at?: string
+          daily_division_enabled?: boolean
+          description?: string | null
           group_id?: string
           id?: string
           is_active?: boolean
+          islamic_year?: number | null
+          occasion_type?: string
           range_end_ayah?: number | null
           range_end_surah?: number | null
           range_start_ayah?: number | null
@@ -255,8 +300,11 @@ export type Database = {
           range_type?: string
           rotation_style?: string
           scheduler_version?: string
+          start_date?: string | null
           start_juz?: number
+          title?: string | null
           total_juz_per_week?: number
+          uses_dates?: boolean
           version_number?: number
           weeks_count?: number
         }

@@ -1,3 +1,5 @@
+import { DailyPortion, OccasionType } from "../scheduler/types"
+
 export type ExportLanguage = "ar" | "en"
 export type ExportDirection = "rtl" | "ltr"
 export type ExportTheme = "light" | "dark"
@@ -13,9 +15,11 @@ export interface ExportQuranLocation {
 
 export interface ExportMember {
   name: string
+  memberPublicId?: string
   amountInJuz: number
   start: ExportQuranLocation
   end: ExportQuranLocation
+  dailyBreakdown?: DailyPortion[]
 }
 
 export interface ExportBrandingOptions {
@@ -23,12 +27,18 @@ export interface ExportBrandingOptions {
   showQr?: boolean
   showGroupName?: boolean
   showDate?: boolean
+  qrUrl?: string
 }
 
 export interface ExportWeek {
   weekNumber: number
   totalWeeks: number
   groupName: string
+  title?: string
+  description?: string
+  dateRangeText?: string
+  occasionType?: OccasionType
+  islamicYear?: number
   language: ExportLanguage
   direction: ExportDirection
   theme: ExportTheme
@@ -39,7 +49,14 @@ export interface ExportWeek {
 
 export interface ExportSchedule {
   groupName: string
+  title?: string
+  description?: string
   totalWeeks: number
+  startDate?: string
+  usesDates?: boolean
+  occasionType?: OccasionType
+  islamicYear?: number
+  dailyDivisionEnabled?: boolean
   language: ExportLanguage
   direction: ExportDirection
   theme: ExportTheme

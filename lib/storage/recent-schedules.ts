@@ -2,9 +2,18 @@ export interface RecentScheduleItem {
   publicId?: string
   editToken?: string
   groupName: string
+  title?: string
+  description?: string
   weeksCount: number
   totalJuz: number
   updatedAt: string
+  startDate?: string
+  usesDates?: boolean
+  occasionType?: "normal" | "ramadan"
+  islamicYear?: number
+  dailyDivisionEnabled?: boolean
+  rotationStyle?: string
+  rangeType?: string
 }
 
 const RECENT_KEY = "wirddy_recent_schedules_v1"

@@ -11,7 +11,9 @@ import {
   deleteGroup,
   duplicateGroupSchedule,
   getGroupByPublicId,
+  getMemberScheduleByPublicId,
   LoadedPublicGroup,
+  LoadedPublicMemberSchedule,
   SavedGroupResult,
   saveScheduleGroup,
   updateGroupAndRegenerate,
@@ -253,6 +255,34 @@ export async function duplicateGroupAction(
     return {
       success: false,
       error: err?.message || "Failed to duplicate schedule",
+    }
+  }
+}
+
+/**
+ * Server Action: Fetches a single member's schedule by group publicId and member publicId.
+ */
+export async function getMemberScheduleAction(
+  groupPublicId: string,
+  memberPublicId: string
+): Promise<ActionResponse<LoadedPublicMemberSchedule>> {
+  try {
+    const data = await getMemberScheduleByPublicId(groupPublicId, memberPublicId)
+    if (!data) {
+      return {
+        success: false,
+        error: "Member schedule not found or expired.",
+      }
+    }
+
+    return {
+      success: true,
+      data,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to retrieve member schedule.",
     }
   }
 }

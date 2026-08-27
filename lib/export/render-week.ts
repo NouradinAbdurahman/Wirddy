@@ -13,10 +13,10 @@ import {
   ExportViewMode,
   ExportWeek,
 } from "./types"
+import { GeneratedSchedule, MemberConfig } from "../scheduler/types"
 
 /**
  * Builds clean, unclipped HTML for an individual member assignment card.
- * Uses a single outer card with paired START / END columns and zero text truncation.
  */
 export function buildMemberCardHtml(
   member: ExportMember,
@@ -59,12 +59,38 @@ export function buildMemberCardHtml(
   const secondaryText = isDark ? "#94a3b8" : "#64748b"
   const accentColor = "#0d9488" // teal-600
 
-  // Single-line, un-truncated: names stay whole and never break mid-word onto a new line.
   const noWrapLine = "white-space: nowrap;"
+
+  // Daily breakdown preview if present
+  let dailyBreakdownHtml = ""
+  if (member.dailyBreakdown && member.dailyBreakdown.length > 0) {
+    const dailyItems = member.dailyBreakdown
+      .map((d) => {
+        const dSurah = isArabic ? d.startAyah.surahNameAr : d.startAyah.surahNameEn
+        const dDay = isArabic ? d.dayNameAr : d.dayNameEn
+        const dAyahRange = `${formatArabicNumeral(d.startAyah.ayahNumber)}-${formatArabicNumeral(d.endAyah.ayahNumber)}`
+        return `
+          <div style="padding: 4px 6px; border-radius: 6px; background-color: ${isDark ? "#1e293b" : "#f8fafc"}; border: 1px solid ${dividerColor}; text-align: center; min-width: 0;">
+            <div style="font-size: 7.5px; font-weight: 800; color: ${accentColor}; ${noWrapLine}">${dDay}</div>
+            <div style="font-size: 8px; font-weight: 700; color: ${primaryText}; margin-top: 1px; ${noWrapLine}">${dSurah}</div>
+            <div style="font-size: 7.5px; color: ${secondaryText}; ${noWrapLine}">${dAyahRange}</div>
+          </div>
+        `
+      })
+      .join("")
+
+    dailyBreakdownHtml = `
+      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid ${dividerColor};">
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+          ${dailyItems}
+        </div>
+      </div>
+    `
+  }
 
   return `
     <div style="background-color: ${cardBg}; border: 1px solid ${cardBorder}; border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.05); box-sizing: border-box;">
-      <!-- Top Row: Member Name (single line, unclipped) + Compact Amount Badge -->
+      <!-- Top Row: Member Name + Amount Badge -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; min-width: 0;">
         <div style="flex: 1 1 auto; min-width: 0; font-weight: 800; font-size: 14px; line-height: 1.3; color: ${primaryText}; ${noWrapLine}">
           ${member.name}
@@ -108,6 +134,8 @@ export function buildMemberCardHtml(
           </div>
         </div>
       </div>
+
+      ${dailyBreakdownHtml}
     </div>
   `
 }
@@ -128,6 +156,7 @@ export function buildWeeklyCardsSectionHtml(
   const weekLabelStr = isArabic
     ? `الأسبوع ${formatArabicNumeral(week.weekNumber)} من ${formatArabicNumeral(week.totalWeeks)}`
     : `Week ${week.weekNumber} of ${week.totalWeeks}`
+
   const completionText = isArabic
     ? `${formatArabicNumeral(30)} / ${formatArabicNumeral(30)} جزء • اكتمال الختمة`
     : `30 / 30 Juz • Full Completion`
@@ -145,13 +174,15 @@ export function buildWeeklyCardsSectionHtml(
         <div style="min-width: 0; font-size: 13px; font-weight: 800; color: ${primaryText}; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
           <span style="flex-shrink: 0; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #0d9488;"></span>
           <span>${weekLabelStr}</span>
+          ${week.dateRangeText ? `<span style="font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px; background-color: ${isDark ? "#1e293b" : "#e2e8f0"}; color: ${isDark ? "#94a3b8" : "#475569"};">${week.dateRangeText}</span>` : ""}
+          ${week.occasionType === "ramadan" ? `<span style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background-color: rgba(245, 158, 11, 0.15); color: #d97706;">${isArabic ? "ختمة رمضان" : "Ramadan"}</span>` : ""}
         </div>
         <div style="flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: #10b981; white-space: nowrap;">
           ${completionText}
         </div>
       </div>
 
-      <!-- Member Cards Grid -->
+      <!-- Member Cards Symmetrical Grid -->
       <div style="display: grid; grid-template-columns: ${gridColumns}; gap: 12px;">
         ${memberCardsHtml}
       </div>
@@ -160,7 +191,7 @@ export function buildWeeklyCardsSectionHtml(
 }
 
 /**
- * Builds a distinct weekly schedule section containing its week heading and a premium tabular layout.
+ * Builds a dense, high-efficiency weekly table section.
  */
 export function buildWeeklyTableSectionHtml(
   week: ExportWeek,
@@ -169,27 +200,28 @@ export function buildWeeklyTableSectionHtml(
 ): string {
   const primaryText = isDark ? "#f8fafc" : "#0f172a"
   const secondaryText = isDark ? "#94a3b8" : "#64748b"
+  const cardBg = isDark ? "#0f172a" : "#ffffff"
+  const headerBg = isDark ? "#1e293b" : "#f8fafc"
   const borderPrimary = isDark
     ? "rgba(51, 65, 85, 0.6)"
     : "rgba(226, 232, 240, 0.8)"
   const rowDivider = isDark
     ? "rgba(51, 65, 85, 0.4)"
     : "rgba(241, 245, 249, 0.9)"
-  const headerBg = isDark ? "rgba(30, 41, 59, 0.7)" : "#f1f5f9"
-  const cardBg = isDark ? "#0f172a" : "#ffffff"
   const accentColor = "#0d9488"
 
   const weekLabelStr = isArabic
     ? `الأسبوع ${formatArabicNumeral(week.weekNumber)} من ${formatArabicNumeral(week.totalWeeks)}`
     : `Week ${week.weekNumber} of ${week.totalWeeks}`
+
   const completionText = isArabic
     ? `${formatArabicNumeral(30)} / ${formatArabicNumeral(30)} جزء • اكتمال الختمة`
     : `30 / 30 Juz • Full Completion`
 
-  const headerMember = isArabic ? "العضو" : "MEMBER"
-  const headerAmount = isArabic ? "الورد" : "JUZ"
-  const headerStart = isArabic ? "البداية" : "START"
-  const headerEnd = isArabic ? "النهاية" : "END"
+  const headerMember = isArabic ? "العضو" : "Member"
+  const headerAmount = isArabic ? "الورد" : "Juz"
+  const headerStart = isArabic ? "البداية" : "Start"
+  const headerEnd = isArabic ? "النهاية" : "End"
 
   const rowsHtml = week.members
     .map((member) => {
@@ -260,6 +292,8 @@ export function buildWeeklyTableSectionHtml(
         <div style="min-width: 0; font-size: 13px; font-weight: 800; color: ${primaryText}; display: flex; align-items: center; gap: 8px; white-space: nowrap;">
           <span style="flex-shrink: 0; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background-color: #0d9488;"></span>
           <span>${weekLabelStr}</span>
+          ${week.dateRangeText ? `<span style="font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px; background-color: ${isDark ? "#1e293b" : "#e2e8f0"}; color: ${isDark ? "#94a3b8" : "#475569"};">${week.dateRangeText}</span>` : ""}
+          ${week.occasionType === "ramadan" ? `<span style="font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background-color: rgba(245, 158, 11, 0.15); color: #d97706;">${isArabic ? "ختمة رمضان" : "Ramadan"}</span>` : ""}
         </div>
         <div style="flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: #10b981; white-space: nowrap;">
           ${completionText}
@@ -302,7 +336,7 @@ export function buildWeeklySectionHtml(
 }
 
 /**
- * Builds standalone single-week export document HTML (for PNG and Web view).
+ * Builds standalone single-week export document HTML.
  */
 export function buildStandaloneWeekExportHtml(
   week: ExportWeek,
@@ -353,7 +387,8 @@ export function buildStandaloneWeekExportHtml(
             <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
             </div>
-            ${showGroupName ? `<div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">${week.groupName}</div>` : ""}
+            ${showGroupName ? `<div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">${week.title ? `${week.title} • ${week.groupName}` : week.groupName}</div>` : ""}
+            ${week.description ? `<div style="font-size: 11px; color: ${textSecondary}; margin-top: 2px;">${week.description}</div>` : ""}
           </div>
         </div>
 
@@ -364,7 +399,7 @@ export function buildStandaloneWeekExportHtml(
         </div>
       </div>
 
-      <!-- Weekly Section Content (Cards or Table) -->
+      <!-- Weekly Section Content -->
       <div style="flex: 1;">
         ${weeklyContentHtml}
       </div>
@@ -382,7 +417,7 @@ export function buildStandaloneWeekExportHtml(
 }
 
 /**
- * Builds an A4 portrait multi-week PDF page container (width: 1000px, 1:1.414 A4 ratio).
+ * Builds an A4 portrait multi-week PDF page container.
  */
 export function buildPdfPageHtml(
   pageWeeks: ExportWeek[],
@@ -428,7 +463,6 @@ export function buildPdfPageHtml(
     .map((week) => buildWeeklySectionHtml(week, isArabic, isDark, viewMode))
     .join("")
 
-  // Page Header (Full header for page 1, compact continuation header for subsequent pages)
   const headerHtml = isFirstPage
     ? `
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 18px; margin-bottom: 20px;">
@@ -438,7 +472,8 @@ export function buildPdfPageHtml(
             <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
             </div>
-            ${showGroupName ? `<div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">${schedule.groupName}</div>` : ""}
+            ${showGroupName ? `<div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">${schedule.title ? `${schedule.title} • ${schedule.groupName}` : schedule.groupName}</div>` : ""}
+            ${schedule.description ? `<div style="font-size: 11px; color: ${textSecondary}; margin-top: 2px;">${schedule.description}</div>` : ""}
           </div>
         </div>
 
@@ -470,7 +505,7 @@ export function buildPdfPageHtml(
       <!-- Page Header -->
       <div>
         ${headerHtml}
-        <!-- Stacked Weekly Sections (Cards or Tables) -->
+        <!-- Stacked Weekly Sections -->
         <div style="display: flex; flex-direction: column; gap: 8px;">
           ${weeksHtml}
         </div>
@@ -492,6 +527,200 @@ export function buildPdfPageHtml(
 }
 
 /**
+ * Builds a dedicated, 4K multi-week standalone schedule card for an individual member.
+ */
+export function buildMemberPersonalScheduleHtml(
+  member: MemberConfig,
+  schedule: GeneratedSchedule,
+  assets: ExportAssets,
+  theme: "light" | "dark",
+  isArabic: boolean = true
+): string {
+  const isDark = theme === "dark"
+  const dir = isArabic ? "rtl" : "ltr"
+  const logoSrc = isDark ? assets.wirddyLogoWhite : assets.wirddyLogoBlack
+  const bg = isDark ? "#020617" : "#f8fafc"
+  const cardBg = isDark ? "#0f172a" : "#ffffff"
+  const textPrimary = isDark ? "#f8fafc" : "#0f172a"
+  const textSecondary = isDark ? "#94a3b8" : "#475569"
+  const borderPrimary = isDark
+    ? "rgba(51, 65, 85, 0.6)"
+    : "rgba(226, 232, 240, 0.8)"
+  const accentColor = "#0d9488"
+
+  const memberWeeks = schedule.weeks.map((week) => {
+    const assignment =
+      week.assignments.find(
+        (a) =>
+          a.memberPublicId === member.publicId ||
+          a.memberId === member.id ||
+          a.memberName === member.name
+      ) || week.assignments[0]
+
+    return {
+      weekNumber: week.weekNumber,
+      assignment,
+      dateRange: week.dateRange,
+    }
+  })
+
+  const weekRowsHtml = memberWeeks
+    .map(({ weekNumber, assignment, dateRange }) => {
+      const sSurah = isArabic ? assignment.startAyah.surahNameAr : assignment.startAyah.surahNameEn
+      const eSurah = isArabic ? assignment.endAyah.surahNameAr : assignment.endAyah.surahNameEn
+      const isSame = assignment.startAyah.surahNumber === assignment.endAyah.surahNumber
+      const rangeText = isSame
+        ? `${sSurah} (${formatArabicNumeral(assignment.startAyah.ayahNumber)} - ${formatArabicNumeral(assignment.endAyah.ayahNumber)})`
+        : `${sSurah} (${formatArabicNumeral(assignment.startAyah.ayahNumber)}) ← ${eSurah} (${formatArabicNumeral(assignment.endAyah.ayahNumber)})`
+
+      return `
+        <div style="background-color: ${cardBg}; border: 1px solid ${borderPrimary}; border-radius: 14px; padding: 12px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background-color: rgba(13, 148, 136, 0.15); color: ${accentColor}; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              ${formatArabicNumeral(weekNumber)}
+            </div>
+            <div style="min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: 800; font-size: 13px; color: ${textPrimary}; white-space: nowrap;">
+                  ${isArabic ? `الأسبوع ${formatArabicNumeral(weekNumber)}` : `Week ${weekNumber}`}
+                </span>
+                ${dateRange ? `<span style="font-size: 9.5px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background-color: ${isDark ? "#1e293b" : "#e2e8f0"}; color: ${textSecondary};">${isArabic ? dateRange.formattedAr : dateRange.formattedEn}</span>` : ""}
+              </div>
+              <div style="font-size: 11.5px; font-weight: 700; color: ${accentColor}; margin-top: 2px; white-space: nowrap;">
+                ${rangeText}
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: ${isArabic ? "left" : "right"}; flex-shrink: 0;">
+            <div style="font-size: 11px; font-weight: 800; color: ${textPrimary}; white-space: nowrap;">
+              ${isArabic ? `من جزء ${formatArabicNumeral(assignment.startJuz)} إلى ${formatArabicNumeral(assignment.endJuz)}` : `Juz ${assignment.startJuz} to ${assignment.endJuz}`}
+            </div>
+            <div style="font-size: 9.5px; color: ${textSecondary}; margin-top: 1px;">
+              ${formatArabicNumeral(assignment.weeklyAmount)} ${isArabic ? "أجزاء" : "Juz"}
+            </div>
+          </div>
+        </div>
+      `
+    })
+    .join("")
+
+  return `
+    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
+      <!-- Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 16px; min-width: 0;">
+          <img src="${logoSrc}" alt="Wirddy" width="130" height="36" style="flex-shrink: 0; width: 130px; height: 36px; object-fit: contain;" />
+          <div style="min-width: 0;">
+            <div style="display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; background-color: rgba(13, 148, 136, 0.15); color: ${accentColor};">
+              ${isArabic ? "جدول القراءة الفردي" : "Personal Reading Plan"}
+            </div>
+            <div style="font-size: 20px; font-weight: 900; color: ${textPrimary}; margin-top: 2px;">${member.name}</div>
+            <div style="font-size: 11px; color: ${textSecondary};">${schedule.title ? `${schedule.title} • ` : ""}${schedule.groupName}</div>
+          </div>
+        </div>
+
+        <div style="flex-shrink: 0; text-align: ${isArabic ? "left" : "right"};">
+          <div style="font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: 8px; background-color: ${cardBg}; border: 1px solid ${borderPrimary}; color: ${textPrimary};">
+            ${isArabic ? `${formatArabicNumeral(member.weeklyAmount)} أجزاء / أسبوع` : `${member.weeklyAmount} Juz / week`}
+          </div>
+        </div>
+      </div>
+
+      <!-- Weekly rows list -->
+      <div style="flex: 1; margin-bottom: 16px;">
+        ${weekRowsHtml}
+      </div>
+
+      <!-- Footer -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid ${borderPrimary}; padding-top: 14px; font-size: 10.5px; color: ${textSecondary};">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          ${assets.qrCode ? `<img src="${assets.qrCode}" alt="QR" width="44" height="44" style="width: 44px; height: 44px; border-radius: 6px; background-color: #fff; padding: 2px; border: 1px solid ${borderPrimary};" />` : ""}
+          <span>${isArabic ? "تم إنشاء هذا الجدول عبر تطبيق وِردي" : "Generated with Wirddy"}</span>
+        </div>
+        <span>${new Date().toLocaleDateString(isArabic ? "ar-SA" : "en-US")}</span>
+      </div>
+    </div>
+  `
+}
+
+/**
+ * Renders an individual member's multi-week schedule card to a 4K PNG Blob.
+ */
+export async function renderMemberPersonalSchedulePngBlob(
+  member: MemberConfig,
+  schedule: GeneratedSchedule,
+  options?: ExportRenderOptions,
+  customQrUrl?: string
+): Promise<Blob> {
+  const theme = options?.theme || "dark"
+  const isArabic = options?.language === "ar"
+  const pixelRatio = options?.pixelRatio || 4.0
+
+  const [assets] = await Promise.all([
+    preloadExportAssets(customQrUrl),
+    ensureFontsReady(),
+  ])
+
+  const container = document.createElement("div")
+  // Position off-canvas so html-to-image can paint it, but the user doesn't see it.
+  // Do NOT use z-index:-9999 — that hides from the compositor and yields blank blobs.
+  container.style.position = "absolute"
+  container.style.left = "-9999px"
+  container.style.top = "0"
+  container.style.width = "880px"
+  container.style.minWidth = "880px"
+  container.style.maxWidth = "880px"
+  container.style.boxSizing = "border-box"
+  container.style.pointerEvents = "none"
+  container.style.visibility = "hidden"
+  container.style.overflow = "visible"
+
+  container.innerHTML = buildMemberPersonalScheduleHtml(
+    member,
+    schedule,
+    assets,
+    theme,
+    isArabic
+  )
+  document.body.appendChild(container)
+  // Make visible just before capture so the browser fully paints it
+  container.style.visibility = "visible"
+
+  try {
+    const targetElement = container.firstElementChild as HTMLElement
+    if (!targetElement) {
+      throw new Error("Failed to create member schedule DOM element.")
+    }
+
+    await waitForImagesToLoad(targetElement)
+    // Wait for the browser to fully rasterize the off-canvas element
+    await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 150)))
+
+    const blob = await toBlob(targetElement, {
+      quality: 1.0,
+      pixelRatio,
+      skipFonts: true,
+      cacheBust: false,
+    })
+
+    if (!blob) {
+      throw new Error("toBlob returned null or empty result.")
+    }
+
+    return blob
+  } finally {
+    try {
+      if (document.body.contains(container)) {
+        document.body.removeChild(container)
+      }
+    } catch {
+      // ignore
+    }
+  }
+}
+
+/**
  * Renders an ExportWeek deterministically to a verified PNG Blob without touching the active UI DOM.
  */
 export async function renderWeekToPngBlob(
@@ -501,27 +730,27 @@ export async function renderWeekToPngBlob(
   const theme = options?.theme || week.theme || "dark"
   const viewMode = options?.view || week.view || "cards"
   const pixelRatio = options?.pixelRatio || 4.0 // 4K Ultra-HD Crisp Resolution (880px * 4 = 3520px)
+  const qrUrl = week.branding?.qrUrl
 
   // Preload assets & wait for font readiness
   const [assets] = await Promise.all([
-    preloadExportAssets(),
+    preloadExportAssets(qrUrl),
     ensureFontsReady(),
   ])
 
-  // Create isolated off-screen mount container with strict fixed dimensions
+  // Create isolated off-canvas mount container.
+  // Do NOT use z-index:-9999 — that hides from the compositor and yields blank blobs.
   const container = document.createElement("div")
-  container.style.position = "fixed"
-  container.style.left = "0"
+  container.style.position = "absolute"
+  container.style.left = "-9999px"
   container.style.top = "0"
   container.style.width = "880px"
   container.style.minWidth = "880px"
   container.style.maxWidth = "880px"
   container.style.boxSizing = "border-box"
-  container.style.zIndex = "-9999"
   container.style.pointerEvents = "none"
-  container.style.opacity = "1"
-  container.style.transform = "none"
-  container.style.overflow = "hidden"
+  container.style.visibility = "hidden"
+  container.style.overflow = "visible"
 
   container.innerHTML = buildStandaloneWeekExportHtml(
     week,
@@ -530,6 +759,8 @@ export async function renderWeekToPngBlob(
     viewMode
   )
   document.body.appendChild(container)
+  // Make visible just before capture so the browser fully paints it
+  container.style.visibility = "visible"
 
   try {
     const targetElement = container.firstElementChild as HTMLElement
@@ -538,7 +769,8 @@ export async function renderWeekToPngBlob(
     }
 
     await waitForImagesToLoad(targetElement)
-    await new Promise((r) => setTimeout(r, 40))
+    // Wait for the browser to fully rasterize the off-canvas element
+    await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 150)))
 
     const blob = await toBlob(targetElement, {
       quality: 1.0,

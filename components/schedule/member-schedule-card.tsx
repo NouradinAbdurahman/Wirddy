@@ -15,11 +15,13 @@ import { Card, CardContent } from "@/components/ui/card"
 interface MemberScheduleCardProps {
   assignment: MemberAssignment
   index: number
+  onCardClick?: () => void
 }
 
 export function MemberScheduleCard({
   assignment,
   index,
+  onCardClick,
 }: MemberScheduleCardProps) {
   const { language, dir, t, formatNumber } = useI18n()
 
@@ -34,7 +36,12 @@ export function MemberScheduleCard({
       }}
       className="w-full"
     >
-      <Card className="overflow-hidden rounded-2xl border border-border/60 bg-card/90 text-start shadow-sm backdrop-blur-md transition-all hover:border-primary/30 hover:shadow-md dark:bg-card/70">
+      <Card
+        onClick={onCardClick}
+        className={`overflow-hidden rounded-2xl border border-border/60 bg-card/90 text-start shadow-sm backdrop-blur-md transition-all hover:border-primary/40 hover:shadow-md dark:bg-card/70 ${
+          onCardClick ? "cursor-pointer" : ""
+        }`}
+      >
         <CardContent className="space-y-3.5 p-4 sm:p-5">
           {/* Card Top: Strong Member Name & Subdued Amount */}
           <div className="flex items-start justify-between gap-3 border-b border-border/40 pb-3">

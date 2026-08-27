@@ -24,6 +24,9 @@ import {
   normalizeScheduleToExport,
   normalizeWeekSchedule,
 } from "@/lib/export"
+import { createAllMembersZip } from "@/lib/export/create-all-members-zip"
+import { triggerBrowserDownload } from "@/lib/export/download"
+import { sanitizeFilename } from "@/lib/export/filenames"
 import {
   Dialog,
   DialogContent,
@@ -32,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Card } from "@/components/ui/card"
+import { IconUsers } from "@tabler/icons-react"
 
 interface ExportModalProps {
   open: boolean
@@ -39,6 +43,7 @@ interface ExportModalProps {
   schedule: GeneratedSchedule
   activeWeek: number
   viewMode?: ExportViewMode
+  groupPublicId?: string
 }
 
 export function ExportModal({
@@ -47,6 +52,7 @@ export function ExportModal({
   schedule,
   activeWeek,
   viewMode = "cards",
+  groupPublicId,
 }: ExportModalProps) {
   const { language, t } = useI18n()
   const { theme, resolvedTheme } = useTheme()
@@ -195,6 +201,42 @@ export function ExportModal({
     }
   }
 
+  // 4. Download All Members Cards (ZIP)
+  const handleExportAllMembersZip = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    resetStatus()
+    setExportProgress(t.packagingMembersZip)
+
+    try {
+      const zipBlob = await createAllMembersZip(
+        schedule,
+        schedule.members,
+        groupPublicId,
+        { theme: activeExportTheme, view: viewMode, branding },
+        (_curr, _total, msg) => {
+          setExportProgress(msg)
+        }
+      )
+
+      const safeGroupName = sanitizeFilename(schedule.groupName)
+      const filename = `${safeGroupName} - Members Schedules.zip`
+      triggerBrowserDownload(zipBlob, filename)
+
+      setSuccessMessage(t.exportSuccess)
+      setTimeout(() => {
+        onOpenChange(false)
+        setSuccessMessage(null)
+      }, 1400)
+    } catch (err) {
+      console.error("All members ZIP export failed:", err)
+      setErrorMessage(t.exportError)
+    } finally {
+      setIsExporting(false)
+      setExportProgress(null)
+    }
+  }
+
   return (
     <Dialog
       open={open}
@@ -302,7 +344,7 @@ export function ExportModal({
           <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
             {t.exportDownloadSection}
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {/* Download Current Week PNG */}
             <Card
               onClick={!isExporting ? handleExportCurrentPng : undefined}
@@ -365,6 +407,28 @@ export function ExportModal({
                 </div>
                 <div className="mt-1 text-[11px] text-muted-foreground">
                   {t.exportPdfAllFormat}
+                </div>
+              </div>
+            </Card>
+
+            {/* Download All Members Cards (ZIP) */}
+            <Card
+              onClick={!isExporting ? handleExportAllMembersZip : undefined}
+              className={`flex flex-col justify-between rounded-2xl border p-4 text-start transition-all ${
+                isExporting
+                  ? "cursor-not-allowed border-border/40 opacity-60"
+                  : "group cursor-pointer border-border/60 bg-muted/20 shadow-xs hover:border-indigo-500/50 hover:bg-indigo-500/5"
+              }`}
+            >
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 transition-transform group-hover:scale-105 dark:text-indigo-400">
+                <IconUsers className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-foreground sm:text-sm">
+                  {t.downloadAllMembersZip}
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground">
+                  {t.exportAllMembersZip}
                 </div>
               </div>
             </Card>

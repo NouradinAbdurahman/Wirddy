@@ -145,20 +145,19 @@ export async function renderSchedulePdfBlob(
       onProgress(pageNum, totalPages, msg)
     }
 
-    // Create offscreen container for the complete A4 page with strict fixed dimensions
+    // Create off-canvas container for the complete A4 page.
+    // Do NOT use z-index:-9999 — that hides from the compositor and yields blank PDF pages.
     const container = document.createElement("div")
-    container.style.position = "fixed"
-    container.style.left = "0"
+    container.style.position = "absolute"
+    container.style.left = "-9999px"
     container.style.top = "0"
     container.style.width = "1000px"
     container.style.minWidth = "1000px"
     container.style.maxWidth = "1000px"
     container.style.boxSizing = "border-box"
-    container.style.zIndex = "-9999"
     container.style.pointerEvents = "none"
-    container.style.opacity = "1"
-    container.style.transform = "none"
-    container.style.overflow = "hidden"
+    container.style.visibility = "hidden"
+    container.style.overflow = "visible"
 
     container.innerHTML = buildPdfPageHtml(
       pageWeeks,
@@ -172,6 +171,8 @@ export async function renderSchedulePdfBlob(
     )
 
     document.body.appendChild(container)
+    // Make visible just before capture so the browser fully paints it
+    container.style.visibility = "visible"
 
     try {
       const targetElement = container.firstElementChild as HTMLElement
@@ -180,7 +181,8 @@ export async function renderSchedulePdfBlob(
       }
 
       await waitForImagesToLoad(targetElement)
-      await new Promise((r) => setTimeout(r, 40))
+      // Wait for the browser to fully rasterize the off-canvas element
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 150)))
 
       const pageBlob = await toBlob(targetElement, {
         quality: 1.0,
@@ -262,4 +264,93 @@ export async function exportScheduleAsPdf(
   )
   triggerBrowserDownload(blob, filename)
   return blob
+}
+
+/**
+ * Exports an individual member's personal schedule as an A4 PDF.
+ */
+export async function exportMemberScheduleAsPdf(
+  member: import("../scheduler/types").MemberConfig,
+  schedule: import("../scheduler/types").GeneratedSchedule,
+  options?: ExportRenderOptions,
+  customQrUrl?: string
+): Promise<Blob> {
+  // Convert full schedule to a single-member ExportSchedule
+  const isArabic = options?.language ? options.language === "ar" : true
+  const memberWeeks: ExportWeek[] = schedule.weeks.map((week) => {
+    const assignment =
+      week.assignments.find(
+        (a) =>
+          a.memberPublicId === member.publicId ||
+          a.memberId === member.id ||
+          a.memberName === member.name
+      ) || week.assignments[0]
+
+    return {
+      weekNumber: week.weekNumber,
+      totalWeeks: schedule.weeksCount,
+      groupName: schedule.groupName,
+      title: schedule.title,
+      description: schedule.description,
+      dateRangeText: week.dateRange
+        ? isArabic
+          ? week.dateRange.formattedAr
+          : week.dateRange.formattedEn
+        : undefined,
+      occasionType: schedule.occasionType,
+      islamicYear: schedule.islamicYear,
+      language: isArabic ? "ar" : "en",
+      direction: isArabic ? "rtl" : "ltr",
+      theme: options?.theme || "dark",
+      view: options?.view || "cards",
+      branding: {
+        ...options?.branding,
+        qrUrl: customQrUrl,
+      },
+      members: [
+        {
+          name: member.name,
+          amountInJuz: assignment.weeklyAmount,
+          start: {
+            juzNumber: assignment.startJuz,
+            surahNumber: assignment.startAyah.surahNumber,
+            surahNameArabic: assignment.startAyah.surahNameAr,
+            surahNameEnglish: assignment.startAyah.surahNameEn,
+            ayahNumber: assignment.startAyah.ayahNumber,
+          },
+          end: {
+            juzNumber: assignment.endJuz,
+            surahNumber: assignment.endAyah.surahNumber,
+            surahNameArabic: assignment.endAyah.surahNameAr,
+            surahNameEnglish: assignment.endAyah.surahNameEn,
+            ayahNumber: assignment.endAyah.ayahNumber,
+          },
+          dailyBreakdown: assignment.dailyBreakdown,
+        },
+      ],
+    }
+  })
+
+  const exportScheduleData: ExportSchedule = {
+    groupName: `${member.name} - ${schedule.groupName}`,
+    title: schedule.title,
+    description: schedule.description,
+    totalWeeks: schedule.weeksCount,
+    startDate: schedule.startDate,
+    usesDates: schedule.usesDates,
+    occasionType: schedule.occasionType,
+    islamicYear: schedule.islamicYear,
+    dailyDivisionEnabled: schedule.dailyDivisionEnabled,
+    language: isArabic ? "ar" : "en",
+    direction: isArabic ? "rtl" : "ltr",
+    theme: options?.theme || "dark",
+    view: options?.view || "cards",
+    branding: {
+      ...options?.branding,
+      qrUrl: customQrUrl,
+    },
+    weeks: memberWeeks,
+  }
+
+  return exportScheduleAsPdf(exportScheduleData, options)
 }

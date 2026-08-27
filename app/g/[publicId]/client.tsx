@@ -21,6 +21,7 @@ import {
   CustomQuranRange,
   GeneratedSchedule,
   MemberConfig,
+  OccasionType,
   RangeType,
   RotationStyle,
   ScheduleInput,
@@ -38,7 +39,9 @@ import { RotationSelector } from "@/components/planner/rotation-selector"
 import { WeeksSelector } from "@/components/planner/weeks-selector"
 import { TotalIndicator } from "@/components/planner/total-indicator"
 import { GenerateButton } from "@/components/planner/generate-button"
+import { AdvancedOptions } from "@/components/planner/advanced-options"
 import { validateScheduleInput } from "@/lib/scheduler/validator"
+import { getCurrentHijriYear } from "@/lib/dates/ramadan"
 
 interface PublicScheduleClientProps {
   initialData: LoadedPublicGroup | null
@@ -66,6 +69,10 @@ export function PublicScheduleClient({
   const [groupName, setGroupName] = useState<string>(
     initialData?.groupName || ""
   )
+  const [title, setTitle] = useState<string>(initialData?.title || "")
+  const [description, setDescription] = useState<string>(
+    initialData?.description || ""
+  )
   const [weeksCount, setWeeksCount] = useState<number>(
     initialData?.schedule.weeksCount || 4
   )
@@ -83,6 +90,21 @@ export function PublicScheduleClient({
       endSurah: 4,
       endAyah: 147,
     }
+  )
+  const [usesDates, setUsesDates] = useState<boolean>(
+    initialData?.usesDates || false
+  )
+  const [startDate, setStartDate] = useState<string>(
+    initialData?.startDate || ""
+  )
+  const [occasionType, setOccasionType] = useState<OccasionType>(
+    initialData?.occasionType || "normal"
+  )
+  const [islamicYear, setIslamicYear] = useState<number>(
+    initialData?.islamicYear || getCurrentHijriYear()
+  )
+  const [dailyDivisionEnabled, setDailyDivisionEnabled] = useState<boolean>(
+    initialData?.dailyDivisionEnabled || false
   )
   const [members, setMembers] = useState<MemberConfig[]>(
     initialData?.membersConfig || []
@@ -108,8 +130,17 @@ export function PublicScheduleClient({
         publicId: groupData.publicId,
         editToken: editToken || undefined,
         groupName: groupData.groupName,
+        title: groupData.title,
+        description: groupData.description,
         weeksCount: groupData.schedule.weeksCount,
         totalJuz: 30,
+        startDate: groupData.startDate,
+        usesDates: groupData.usesDates,
+        occasionType: groupData.occasionType,
+        islamicYear: groupData.islamicYear,
+        dailyDivisionEnabled: groupData.dailyDivisionEnabled,
+        rotationStyle: groupData.rotationStyle,
+        rangeType: groupData.rangeType,
         updatedAt: new Date().toISOString(),
       })
     } else if (!groupData && publicId && typeof window !== "undefined") {
@@ -121,6 +152,8 @@ export function PublicScheduleClient({
           if (cached && cached.publicId === publicId) {
             setGroupData(cached)
             setGroupName(cached.groupName || "")
+            setTitle(cached.title || "")
+            setDescription(cached.description || "")
             setWeeksCount(cached.schedule?.weeksCount || 4)
             setMembers(cached.membersConfig || [])
           }
@@ -214,11 +247,18 @@ export function PublicScheduleClient({
   const inputPayload: ScheduleInput = {
     group: {
       name: groupName.trim() || groupData.groupName,
+      title: title.trim() || undefined,
+      description: description.trim() || undefined,
       weeksCount,
       rotationStyle,
       rangeType,
       startJuz: rangeType === "full" ? startJuz : undefined,
       customRange: rangeType === "custom" ? customRange : undefined,
+      startDate: usesDates && startDate ? startDate : undefined,
+      usesDates,
+      occasionType,
+      islamicYear: occasionType === "ramadan" ? islamicYear : undefined,
+      dailyDivisionEnabled,
     },
     members,
   }
@@ -344,6 +384,24 @@ export function PublicScheduleClient({
               />
             </Card>
 
+            {/* Advanced Options (Title, Description, Ramadan, Dates, Daily Division) */}
+            <AdvancedOptions
+              title={title}
+              onTitleChange={setTitle}
+              description={description}
+              onDescriptionChange={setDescription}
+              usesDates={usesDates}
+              onUsesDatesChange={setUsesDates}
+              startDate={startDate}
+              onStartDateChange={setStartDate}
+              occasionType={occasionType}
+              onOccasionTypeChange={setOccasionType}
+              islamicYear={islamicYear}
+              onIslamicYearChange={setIslamicYear}
+              dailyDivisionEnabled={dailyDivisionEnabled}
+              onDailyDivisionEnabledChange={setDailyDivisionEnabled}
+            />
+
             {/* Section 2: Quran Range & Starting Point */}
             <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
               <RangeSelector
@@ -402,11 +460,18 @@ export function PublicScheduleClient({
             scheduleInput={{
               group: {
                 name: groupData.groupName,
+                title: groupData.title,
+                description: groupData.description,
                 weeksCount: groupData.schedule.weeksCount,
                 rotationStyle: groupData.rotationStyle,
                 rangeType: groupData.rangeType,
                 startJuz: groupData.startJuz,
                 customRange: groupData.customRange,
+                startDate: groupData.startDate,
+                usesDates: groupData.usesDates,
+                occasionType: groupData.occasionType,
+                islamicYear: groupData.islamicYear,
+                dailyDivisionEnabled: groupData.dailyDivisionEnabled,
               },
               members: groupData.membersConfig,
             }}

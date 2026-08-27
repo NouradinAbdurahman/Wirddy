@@ -6,25 +6,33 @@ import { motion, AnimatePresence } from "motion/react"
 import {
   IconArrowLeft,
   IconArrowRight,
+  IconCalendar,
+  IconCalendarEvent,
   IconCheck,
   IconCircleCheck,
   IconCopy,
   IconDownload,
   IconLayoutGrid,
   IconLoader2,
+  IconMoon,
   IconPrinter,
   IconRotate,
   IconShare,
+  IconSparkles,
   IconTable,
+  IconUser,
   IconUsers,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
-import { GeneratedSchedule, ScheduleInput } from "@/lib/scheduler/types"
+import { GeneratedSchedule, MemberConfig, ScheduleInput } from "@/lib/scheduler/types"
 import { ExportViewMode } from "@/lib/export"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { MemberScheduleCard } from "./member-schedule-card"
 import { ScheduleTableView } from "./schedule-table-view"
+import { DailyScheduleView } from "./daily-schedule-view"
+import { PersonalMemberView } from "./personal-member-view"
 import { WeekNav } from "./week-nav"
 import { SavedGroupResult } from "@/lib/groups/service"
 import { duplicateGroupAction } from "@/lib/groups/actions"
@@ -32,6 +40,11 @@ import { RegenerateDialog } from "./regenerate-dialog"
 import { ExportModal } from "./export-modal"
 import { SaveShareDialog } from "./save-share-dialog"
 import { PrintableSchedule } from "./printable-schedule"
+import { toArabicNumerals } from "@/lib/dates/calendar"
+import { renderMemberPersonalSchedulePngBlob } from "@/lib/export/render-week"
+import { exportMemberScheduleAsPdf } from "@/lib/export/render-pdf"
+import { triggerBrowserDownload } from "@/lib/export/download"
+import { sanitizeFilename } from "@/lib/export/filenames"
 
 interface ScheduleViewProps {
   schedule: GeneratedSchedule
@@ -42,6 +55,7 @@ interface ScheduleViewProps {
   isViewOnly?: boolean
   savedData?: SavedGroupResult | null
   onSaveSuccess?: (data: SavedGroupResult) => void
+  initialSelectedMemberId?: string
 }
 
 export function ScheduleView({
@@ -53,13 +67,20 @@ export function ScheduleView({
   isViewOnly = false,
   savedData,
   onSaveSuccess,
+  initialSelectedMemberId,
 }: ScheduleViewProps) {
   const router = useRouter()
   const { language, dir, t, formatNumber } = useI18n()
   const [activeWeekNum, setActiveWeekNum] = useState<number>(1)
-  const [viewMode, setViewMode] = useState<ExportViewMode>("cards")
-  const [showRegenerateDialog, setShowRegenerateDialog] =
-    useState<boolean>(false)
+  const [viewTab, setViewTab] = useState<"cards" | "table" | "daily">("cards")
+  const [activeMode, setActiveMode] = useState<"group" | "personal">(
+    initialSelectedMemberId ? "personal" : "group"
+  )
+  const [selectedMemberId, setSelectedMemberId] = useState<string>(
+    initialSelectedMemberId || schedule.members[0]?.id || ""
+  )
+
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState<boolean>(false)
   const [showExportModal, setShowExportModal] = useState<boolean>(false)
   const [showSaveShareDialog, setShowSaveShareDialog] = useState<boolean>(false)
   const [isDuplicating, setIsDuplicating] = useState<boolean>(false)
@@ -69,6 +90,10 @@ export function ScheduleView({
   const currentWeek =
     schedule.weeks.find((w) => w.weekNumber === activeWeekNum) ||
     schedule.weeks[0]
+
+  const selectedMember =
+    schedule.members.find((m) => m.id === selectedMemberId || m.publicId === selectedMemberId) ||
+    schedule.members[0]
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
@@ -92,6 +117,51 @@ export function ScheduleView({
       console.error("Duplicate failed:", err)
     } finally {
       setIsDuplicating(false)
+    }
+  }
+
+  // Export single member PNG
+  const handleExportMemberPng = async () => {
+    if (!selectedMember) return
+    try {
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "https://wirddy.app"
+      const memberQrUrl = savedData?.publicId
+        ? `${origin}/g/${savedData.publicId}/member/${selectedMember.publicId || selectedMember.id}`
+        : undefined
+
+      const blob = await renderMemberPersonalSchedulePngBlob(
+        selectedMember,
+        schedule,
+        { theme: "dark", language },
+        memberQrUrl
+      )
+      const safeName = sanitizeFilename(selectedMember.name)
+      const safeGroup = sanitizeFilename(schedule.groupName)
+      triggerBrowserDownload(blob, `${safeName} - ${safeGroup}.png`)
+    } catch (err) {
+      console.error("Failed to export member PNG:", err)
+    }
+  }
+
+  // Export single member PDF
+  const handleExportMemberPdf = async () => {
+    if (!selectedMember) return
+    try {
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "https://wirddy.app"
+      const memberQrUrl = savedData?.publicId
+        ? `${origin}/g/${savedData.publicId}/member/${selectedMember.publicId || selectedMember.id}`
+        : undefined
+
+      await exportMemberScheduleAsPdf(
+        selectedMember,
+        schedule,
+        { theme: "dark", language },
+        memberQrUrl
+      )
+    } catch (err) {
+      console.error("Failed to export member PDF:", err)
     }
   }
 
@@ -201,200 +271,301 @@ export function ScheduleView({
           </div>
         </div>
 
-        {/* Hero Summary Header Card */}
-        <Card className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-5 text-start shadow-sm backdrop-blur-md sm:p-6 dark:bg-card/60 print:border-none print:p-2 print:shadow-none">
-          {/* Subtle decorative glow */}
-          <div className="pointer-events-none absolute end-0 top-0 h-48 w-48 rounded-full bg-primary/5 blur-3xl print:hidden" />
+        {/* Group View vs My Personal Schedule Mode Toggle */}
+        <div className="flex items-center justify-between gap-3 border-b border-border/30 pb-2">
+          <div className="flex items-center rounded-xl bg-muted/60 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveMode("group")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                activeMode === "group"
+                  ? "bg-card text-foreground shadow-xs ring-1 ring-border/50"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <IconUsers className="h-3.5 w-3.5" />
+              <span>{t.viewModeGroup}</span>
+            </button>
 
-          <div className="relative z-10 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 text-xs font-bold tracking-wider text-primary uppercase">
-                <img
-                  src="/logo-black.png"
-                  alt="Wirddy"
-                  className="block h-7 w-7 object-contain dark:hidden print:block"
-                  suppressHydrationWarning
-                />
-                <img
-                  src="/logo-white.png"
-                  alt="Wirddy"
-                  className="hidden h-7 w-7 object-contain dark:block print:hidden"
-                  suppressHydrationWarning
-                />
-                <span>{t.planTitle}</span>
-              </div>
-              <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
-                {schedule.groupName}
-              </h2>
-              <div className="text-xs text-muted-foreground sm:text-sm print:hidden">
-                {t.weekLabel} {formatNumber(activeWeekNum)} {t.weekOf}{" "}
-                {formatNumber(schedule.weeksCount)}
-              </div>
-            </div>
-
-            {/* Summary Badges */}
-            <div className="flex flex-wrap items-center gap-2.5 print:hidden">
-              {/* Completion Indicator */}
-              <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 dark:bg-emerald-500/15">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                  <IconCircleCheck className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="text-[10px] font-semibold tracking-wider text-emerald-600 uppercase dark:text-emerald-400">
-                    {language === "ar" ? "اكتمال الختمة" : "Completion"}
-                  </div>
-                  <div className="text-xs font-extrabold text-foreground">
-                    {formatNumber(30)} / {formatNumber(30)} {t.juzUnit}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 rounded-xl border border-border/50 bg-muted/50 px-3 py-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <IconUsers className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="text-[10px] font-medium text-muted-foreground">
-                    {t.memberCount}
-                  </div>
-                  <div className="text-xs font-bold text-foreground">
-                    {formatNumber(schedule.members.length)} {t.summaryMembers}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Week Navigation & View Switcher (Same Line: Weeks on Left, Cards/Table on Right) */}
-        <div className="flex flex-col justify-between gap-3 pt-1 sm:flex-row sm:items-center print:hidden">
-          {/* Left side: Weeks selector */}
-          <div className="flex items-center">
-            {schedule.weeksCount > 1 ? (
-              <WeekNav
-                weeksCount={schedule.weeksCount}
-                activeWeek={activeWeekNum}
-                onSelectWeek={setActiveWeekNum}
-                align="start"
-              />
-            ) : (
-              <div className="inline-flex items-center rounded-2xl border border-border/50 bg-muted/50 px-3.5 py-1.5 text-xs font-bold text-foreground">
-                {t.weekLabel} {formatNumber(1)}
-              </div>
-            )}
-          </div>
-
-          {/* Right side: Cards / Table view switcher */}
-          <div className="flex items-center self-end sm:self-auto">
-            <div className="flex items-center rounded-xl border border-border/50 bg-muted/60 p-0.5 dark:bg-muted/40">
-              <button
-                type="button"
-                onClick={() => setViewMode("cards")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  viewMode === "cards"
-                    ? "border border-border/60 bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <IconLayoutGrid className="h-3.5 w-3.5" />
-                <span>{t.viewCards}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  viewMode === "table"
-                    ? "border border-border/60 bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <IconTable className="h-3.5 w-3.5" />
-                <span>{t.viewTable}</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setActiveMode("personal")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                activeMode === "personal"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <IconUser className="h-3.5 w-3.5" />
+              <span>{t.viewModePersonal}</span>
+            </button>
           </div>
         </div>
 
-        {/* Member Assignments Display for Active Week (Cards vs Table) */}
-        <div className="space-y-3 text-start">
-          <div className="flex items-center justify-between px-1 print:hidden">
-            <h3 className="flex items-center gap-2 text-sm font-bold text-foreground sm:text-base">
-              <span>
-                {t.weekLabel} {formatNumber(activeWeekNum)}
-              </span>
-              <span className="text-xs font-normal text-muted-foreground">
-                ({formatNumber(currentWeek.assignments.length)}{" "}
-                {t.summaryMembers})
-              </span>
-            </h3>
-
-            <div className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-              <IconCheck className="h-3.5 w-3.5" />
-              <span>
-                {formatNumber(30)} / {formatNumber(30)} {t.juzUnit}
-              </span>
-            </div>
-          </div>
-
-          <AnimatePresence mode="wait">
-            {viewMode === "table" ? (
-              <ScheduleTableView
-                key={`table-${activeWeekNum}`}
-                week={currentWeek}
-              />
-            ) : (
-              <motion.div
-                key={`cards-${activeWeekNum}`}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-3 print:grid-cols-2"
-              >
-                {currentWeek.assignments.map((assignment, idx) => (
-                  <MemberScheduleCard
-                    key={`${assignment.memberId}-${idx}`}
-                    assignment={assignment}
-                    index={idx}
-                  />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {onRegenerate && (
-          <RegenerateDialog
-            open={showRegenerateDialog}
-            onOpenChange={setShowRegenerateDialog}
-            onConfirm={onRegenerate}
+        {/* Conditional View: Group View vs Personal Member View */}
+        {activeMode === "personal" && selectedMember ? (
+          <PersonalMemberView
+            groupPublicId={savedData?.publicId}
+            groupName={schedule.groupName}
+            title={schedule.title}
+            description={schedule.description}
+            member={selectedMember}
+            allMembers={schedule.members}
+            schedule={schedule}
+            onSelectMember={(id) => setSelectedMemberId(id)}
+            onBackToGroup={() => setActiveMode("group")}
+            onExportPng={handleExportMemberPng}
+            onExportPdf={handleExportMemberPdf}
           />
+        ) : (
+          <>
+            {/* Hero Summary Header Card */}
+            <Card className="relative overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-5 text-start shadow-sm backdrop-blur-md sm:p-6 dark:bg-card/60">
+              <div className="pointer-events-none absolute end-0 top-0 h-48 w-48 rounded-full bg-primary/5 blur-3xl" />
+
+              <div className="relative z-10 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                <div className="space-y-1">
+                  <div className="inline-flex flex-wrap items-center gap-2 text-xs font-bold tracking-wider text-primary uppercase">
+                    <img
+                      src="/logo-black.png"
+                      alt="Wirddy"
+                      className="block h-7 w-7 object-contain dark:hidden"
+                      suppressHydrationWarning
+                    />
+                    <img
+                      src="/logo-white.png"
+                      alt="Wirddy"
+                      className="hidden h-7 w-7 object-contain dark:block"
+                      suppressHydrationWarning
+                    />
+                    <span>{schedule.title || t.planTitle}</span>
+                    {schedule.occasionType === "ramadan" && (
+                      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                        {t.ramadanBadge} {schedule.islamicYear ? `${toArabicNumerals(schedule.islamicYear)} هـ` : ""}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <h2 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
+                    {schedule.groupName}
+                  </h2>
+
+                  {schedule.description && (
+                    <p className="text-xs text-muted-foreground">
+                      {schedule.description}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground sm:text-sm">
+                    <span>
+                      {t.weekLabel} {formatNumber(activeWeekNum)} {t.weekOf}{" "}
+                      {formatNumber(schedule.weeksCount)}
+                    </span>
+                    {currentWeek.dateRange && (
+                      <>
+                        <span>•</span>
+                        <span className="font-semibold text-foreground">
+                          {language === "ar"
+                            ? currentWeek.dateRange.formattedAr
+                            : currentWeek.dateRange.formattedEn}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Summary Badges */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 dark:bg-emerald-500/15">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                      <IconCircleCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-semibold tracking-wider text-emerald-600 uppercase dark:text-emerald-400">
+                        {language === "ar" ? "اكتمال الختمة" : "Completion"}
+                      </div>
+                      <div className="text-xs font-extrabold text-foreground">
+                        {formatNumber(30)} / {formatNumber(30)} {t.juzUnit}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 rounded-xl border border-border/50 bg-muted/50 px-3 py-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <IconUsers className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-medium text-muted-foreground">
+                        {t.memberCount}
+                      </div>
+                      <div className="text-xs font-bold text-foreground">
+                        {formatNumber(schedule.members.length)} {t.summaryMembers}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Week Navigation & View Switcher (Cards / Table / Daily) */}
+            <div className="flex flex-col justify-between gap-3 pt-1 sm:flex-row sm:items-center">
+              {/* Left side: Weeks selector */}
+              <div className="flex items-center">
+                {schedule.weeksCount > 1 ? (
+                  <WeekNav
+                    weeksCount={schedule.weeksCount}
+                    activeWeek={activeWeekNum}
+                    onSelectWeek={setActiveWeekNum}
+                    align="start"
+                  />
+                ) : (
+                  <div className="inline-flex items-center rounded-2xl border border-border/50 bg-muted/50 px-3.5 py-1.5 text-xs font-bold text-foreground">
+                    {t.weekLabel} {formatNumber(1)}
+                  </div>
+                )}
+              </div>
+
+              {/* Right side: Cards / Table / Daily view switcher */}
+              <div className="flex items-center self-end sm:self-auto">
+                <div className="flex items-center rounded-xl border border-border/50 bg-muted/60 p-0.5 dark:bg-muted/40">
+                  <button
+                    type="button"
+                    onClick={() => setViewTab("cards")}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                      viewTab === "cards"
+                        ? "border border-border/60 bg-card text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <IconLayoutGrid className="h-3.5 w-3.5" />
+                    <span>{t.viewCards}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setViewTab("table")}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                      viewTab === "table"
+                        ? "border border-border/60 bg-card text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <IconTable className="h-3.5 w-3.5" />
+                    <span>{t.viewTable}</span>
+                  </button>
+
+                  {schedule.dailyDivisionEnabled && (
+                    <button
+                      type="button"
+                      onClick={() => setViewTab("daily")}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                        viewTab === "daily"
+                          ? "border border-border/60 bg-card text-emerald-600 shadow-xs dark:text-emerald-400"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <IconCalendarEvent className="h-3.5 w-3.5" />
+                      <span>{t.viewDaily}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Member Assignments Display for Active Week */}
+            <div className="space-y-3 text-start">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-foreground sm:text-base">
+                  <span>
+                    {t.weekLabel} {formatNumber(activeWeekNum)}
+                  </span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    ({formatNumber(currentWeek.assignments.length)}{" "}
+                    {t.summaryMembers})
+                  </span>
+                </h3>
+
+                <div className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                  <IconCheck className="h-3.5 w-3.5" />
+                  <span>
+                    {formatNumber(30)} / {formatNumber(30)} {t.juzUnit}
+                  </span>
+                </div>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {viewTab === "table" ? (
+                  <ScheduleTableView
+                    key={`table-${activeWeekNum}`}
+                    week={currentWeek}
+                  />
+                ) : viewTab === "daily" ? (
+                  <DailyScheduleView
+                    key={`daily-${activeWeekNum}`}
+                    assignments={currentWeek.assignments}
+                    weekNumber={activeWeekNum}
+                    occasionType={schedule.occasionType}
+                  />
+                ) : (
+                  <motion.div
+                    key={`cards-${activeWeekNum}`}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.2 }}
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                  >
+                    {currentWeek.assignments.map((assignment, idx) => (
+                      <MemberScheduleCard
+                        key={assignment.memberId || idx}
+                        assignment={assignment}
+                        index={idx}
+                        onCardClick={() => {
+                          setSelectedMemberId(assignment.memberId)
+                          setActiveMode("personal")
+                        }}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </>
         )}
-
-        <ExportModal
-          open={showExportModal}
-          onOpenChange={setShowExportModal}
-          schedule={schedule}
-          activeWeek={activeWeekNum}
-          viewMode={viewMode}
-        />
-
-        <SaveShareDialog
-          isOpen={showSaveShareDialog}
-          onClose={() => setShowSaveShareDialog(false)}
-          schedule={schedule}
-          scheduleInput={scheduleInput}
-          savedData={savedData}
-          onSaveSuccess={onSaveSuccess}
-        />
       </div>
 
-      {/* Dedicated High-Fidelity Print Sheet (Visible ONLY when printing) */}
+      {/* Dedicated Clean Print View (Visible ONLY when printing) */}
       <PrintableSchedule
         schedule={schedule}
         activeWeekNum={activeWeekNum}
-        viewMode={viewMode}
-        printMode="all"
+        viewMode={viewTab === "table" ? "table" : "cards"}
+      />
+
+      {/* Modal Dialogs */}
+      {!isViewOnly && onRegenerate && (
+        <RegenerateDialog
+          open={showRegenerateDialog}
+          onOpenChange={setShowRegenerateDialog}
+          onConfirm={onRegenerate}
+        />
+      )}
+
+      <ExportModal
+        open={showExportModal}
+        onOpenChange={setShowExportModal}
+        schedule={schedule}
+        activeWeek={activeWeekNum}
+        viewMode={viewTab === "table" ? "table" : "cards"}
+        groupPublicId={savedData?.publicId}
+      />
+
+      <SaveShareDialog
+        isOpen={showSaveShareDialog}
+        onClose={() => setShowSaveShareDialog(false)}
+        schedule={schedule}
+        scheduleInput={scheduleInput}
+        savedData={savedData}
+        onSaveSuccess={onSaveSuccess}
       />
     </>
   )

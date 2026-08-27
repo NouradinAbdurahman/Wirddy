@@ -96,6 +96,24 @@ export interface Translations {
   groupNameLabel: string
   groupNamePlaceholder: string
   groupNameHelp: string
+  groupTitleLabel: string
+  groupTitlePlaceholder: string
+  groupDescLabel: string
+  groupDescPlaceholder: string
+  scheduleDatesTitle: string
+  noDateOption: string
+  setDateOption: string
+  startDatePickerLabel: string
+  datesBadge: string
+  occasionTitle: string
+  occasionNormal: string
+  occasionRamadan: string
+  islamicYearLabel: string
+  ramadanBadge: string
+  dailyDivisionTitle: string
+  noDailyDivision: string
+  withDailyDivision: string
+  dailyDivisionDesc: string
   weeksCountLabel: string
   weeksCountHelper: string
   weekUnit: string
@@ -180,6 +198,17 @@ export interface Translations {
   juzLabel: string
   viewCards: string
   viewTable: string
+  viewDaily: string
+  viewModeGroup: string
+  viewModePersonal: string
+  selectYourName: string
+  myScheduleTitle: string
+  returnToGroupView: string
+  dayUnit: string
+  globalDayUnit: string
+  todayLabel: string
+  dailyAyahRange: string
+  dailyTotalAyahs: string
   tableHeaderMember: string
   tableHeaderAmount: string
   tableHeaderStart: string
@@ -210,6 +239,14 @@ export interface Translations {
   exportPdfAll: string
   exportPdfAllFormat: string
   exportSharePdfAll: string
+  exportMemberPng: string
+  exportMemberPdf: string
+  exportAllMembersZip: string
+  downloadAllMembersZip: string
+  downloadAllMembersZipDesc: string
+  downloadMySchedule: string
+  scanToOpenMySchedule: string
+  personalQrCode: string
   exportLoadingCurrent: string
   exportLoadingAll: string
   exportLoadingPdf: string
@@ -222,6 +259,7 @@ export interface Translations {
   exportShareFallbackUnsupported: string
   exportShareFallbackError: string
   preparingExport: string
+  packagingMembersZip: string
 
   // Export Options & Branding
   exportOptionsTitle: string
@@ -415,6 +453,24 @@ export const translations: Record<Language, Translations> = {
     groupNameLabel: "اسم المجموعة",
     groupNamePlaceholder: "مثال: عائلة الفرح، أصدقاء القرآن...",
     groupNameHelp: "يمكنك تغيير اسم المجموعة في أي وقت لاحقاً.",
+    groupTitleLabel: "عنوان الجدول (اختياري)",
+    groupTitlePlaceholder: "مثال: ورد القرآن الأسبوعي",
+    groupDescLabel: "وصف الجدول (اختياري)",
+    groupDescPlaceholder: "مثال: ختمة جماعية للعائلة والأصدقاء",
+    scheduleDatesTitle: "تاريخ بداية الجدول",
+    noDateOption: "بدون تاريخ",
+    setDateOption: "تحديد تاريخ البداية",
+    startDatePickerLabel: "اختر تاريخ بداية الأسبوع الأول",
+    datesBadge: "مؤرّخ",
+    occasionTitle: "المناسبة",
+    occasionNormal: "عادي",
+    occasionRamadan: "رمضان",
+    islamicYearLabel: "السنة الهجرية",
+    ramadanBadge: "ختمة رمضان",
+    dailyDivisionTitle: "التقسيم اليومي",
+    noDailyDivision: "بدون تقسيم يومي",
+    withDailyDivision: "تقسيم يومي (٧ أيام)",
+    dailyDivisionDesc: "تقسيم ورد كل أسبوع بالتساوي على ٧ أيام بآيات دقيقة",
     weeksCountLabel: "عدد الأسابيع",
     weeksCountHelper: "اختر مدة الخطة (من أسبوع واحد حتى ٥٢ أسبوعًا)",
     weekUnit: "أسابيع",
@@ -496,6 +552,17 @@ export const translations: Record<Language, Translations> = {
     juzLabel: "الجزء",
     viewCards: "بطاقات",
     viewTable: "جدول",
+    viewDaily: "اليومي",
+    viewModeGroup: "عرض المجموعة",
+    viewModePersonal: "عرضي (جدولي)",
+    selectYourName: "أنا: اختر اسمك",
+    myScheduleTitle: "جدولي الخاص",
+    returnToGroupView: "العودة لعرض المجموعة",
+    dayUnit: "اليوم",
+    globalDayUnit: "اليوم الإجمالي",
+    todayLabel: "اليوم",
+    dailyAyahRange: "ورد اليوم",
+    dailyTotalAyahs: "عدد الآيات",
     tableHeaderMember: "العضو",
     tableHeaderAmount: "المقدار",
     tableHeaderStart: "البداية",
@@ -527,6 +594,14 @@ export const translations: Record<Language, Translations> = {
     exportPdfAll: "الخطة كاملة (مستند PDF)",
     exportPdfAllFormat: "PDF",
     exportSharePdfAll: "مشاركة الخطة كاملة (PDF)",
+    exportMemberPng: "صورة جدولي (PNG)",
+    exportMemberPdf: "ملف جدولي (PDF)",
+    exportAllMembersZip: "جداول جميع الأعضاء (ZIP)",
+    downloadAllMembersZip: "تحميل جداول الأعضاء (ZIP)",
+    downloadAllMembersZipDesc: "تنزيل ملف مضغوط يحتوي على بطاقة جدول 4K مستقلة لكل عضو",
+    downloadMySchedule: "تحميل جدولي",
+    scanToOpenMySchedule: "امسح لفتح جدولي",
+    personalQrCode: "رمز QR الخاص بجداول القراءة",
     exportLoadingCurrent: "جارٍ تجهيز صورة الأسبوع الحالي...",
     exportLoadingAll: "جارٍ تجهيز جميع الأسابيع وضغطها...",
     exportLoadingPdf: "جارٍ إنشاء وتنسيق ملف PDF...",
@@ -541,6 +616,7 @@ export const translations: Record<Language, Translations> = {
     exportShareFallbackError:
       "تعذرت المشاركة المباشرة. تم تنزيل الملف إلى جهازك بدلاً من ذلك.",
     preparingExport: "جارٍ تجهيز التصدير...",
+    packagingMembersZip: "جارٍ تجهيز وحزم بطاقات الأعضاء بدقة 4K...",
 
     exportOptionsTitle: "خيارات التصدير",
     optShowLogo: "إظهار شعار Wirddy",
@@ -744,6 +820,24 @@ export const translations: Record<Language, Translations> = {
     groupNameLabel: "Group Name",
     groupNamePlaceholder: "e.g., Family Circle, Quran Study Group...",
     groupNameHelp: "You can change the group name anytime later.",
+    groupTitleLabel: "Schedule Title (Optional)",
+    groupTitlePlaceholder: "e.g., Weekly Quran Reading",
+    groupDescLabel: "Description (Optional)",
+    groupDescPlaceholder: "e.g., Group completion for family and friends",
+    scheduleDatesTitle: "Schedule Start Date",
+    noDateOption: "No Date",
+    setDateOption: "Set Start Date",
+    startDatePickerLabel: "Select start date for Week 1",
+    datesBadge: "Dated",
+    occasionTitle: "Occasion",
+    occasionNormal: "Regular",
+    occasionRamadan: "Ramadan",
+    islamicYearLabel: "Islamic Year",
+    ramadanBadge: "Ramadan Plan",
+    dailyDivisionTitle: "Daily Division",
+    noDailyDivision: "Weekly Only",
+    withDailyDivision: "Daily Breakdown (7 Days)",
+    dailyDivisionDesc: "Divide each week's portion equally across 7 days with exact Ayahs",
     weeksCountLabel: "Number of Weeks",
     weeksCountHelper: "Choose plan duration (from 1 to 52 weeks)",
     weekUnit: "weeks",
@@ -827,6 +921,17 @@ export const translations: Record<Language, Translations> = {
     juzLabel: "Juz",
     viewCards: "Cards",
     viewTable: "Table",
+    viewDaily: "Daily",
+    viewModeGroup: "Group View",
+    viewModePersonal: "My Schedule",
+    selectYourName: "I am: Select your name",
+    myScheduleTitle: "My Personal Schedule",
+    returnToGroupView: "Back to Group View",
+    dayUnit: "Day",
+    globalDayUnit: "Total Day",
+    todayLabel: "Today",
+    dailyAyahRange: "Daily Portion",
+    dailyTotalAyahs: "Ayahs",
     tableHeaderMember: "Member",
     tableHeaderAmount: "Juz",
     tableHeaderStart: "Start",
@@ -858,6 +963,14 @@ export const translations: Record<Language, Translations> = {
     exportPdfAll: "Full plan (PDF document)",
     exportPdfAllFormat: "PDF",
     exportSharePdfAll: "Share full plan (PDF)",
+    exportMemberPng: "My schedule image (PNG)",
+    exportMemberPdf: "My schedule (PDF)",
+    exportAllMembersZip: "All members cards (ZIP)",
+    downloadAllMembersZip: "Download All Members (ZIP)",
+    downloadAllMembersZipDesc: "Download a ZIP containing an independent 4K schedule card for each member",
+    downloadMySchedule: "Download My Schedule",
+    scanToOpenMySchedule: "Scan to open my schedule",
+    personalQrCode: "Personal Reading Schedule QR Code",
     exportLoadingCurrent: "Preparing current week image...",
     exportLoadingAll: "Rendering and compressing all weeks...",
     exportLoadingPdf: "Creating and formatting PDF document...",
@@ -873,6 +986,7 @@ export const translations: Record<Language, Translations> = {
     exportShareFallbackError:
       "Direct sharing failed. The file has been downloaded to your device instead.",
     preparingExport: "Preparing export...",
+    packagingMembersZip: "Packaging all 4K member schedule cards...",
 
     exportOptionsTitle: "Export options",
     optShowLogo: "Show Wirddy logo",

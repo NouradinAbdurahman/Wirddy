@@ -27,6 +27,7 @@ import { MemberList } from "@/components/planner/member-list"
 import { TotalIndicator } from "@/components/planner/total-indicator"
 import { WeeksSelector } from "@/components/planner/weeks-selector"
 import { GenerateButton } from "@/components/planner/generate-button"
+import { AdvancedOptions } from "@/components/planner/advanced-options"
 import { ScheduleView } from "@/components/schedule/schedule-view"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -39,15 +40,19 @@ import {
   IconUsersGroup,
 } from "@tabler/icons-react"
 import { saveRecentSchedule } from "@/lib/storage/recent-schedules"
+import { getCurrentHijriYear } from "@/lib/dates/ramadan"
+import { OccasionType } from "@/lib/scheduler/types"
 
 type AppStep = "landing" | "planner" | "schedule"
 
-const STORAGE_STATE_KEY = "wirddy_planner_state_v2"
+const STORAGE_STATE_KEY = "wirddy_planner_state_v3"
 
 export default function HomePage() {
   const { language, dir, t, formatNumber } = useI18n()
   const [step, setStep] = useState<AppStep>("landing")
   const [groupName, setGroupName] = useState<string>("")
+  const [title, setTitle] = useState<string>("")
+  const [description, setDescription] = useState<string>("")
   const [weeksCount, setWeeksCount] = useState<number>(4)
   const [rotationStyle, setRotationStyle] = useState<RotationStyle>("medium")
   const [rangeType, setRangeType] = useState<RangeType>("full")
@@ -58,6 +63,11 @@ export default function HomePage() {
     endSurah: 4,
     endAyah: 147,
   })
+  const [usesDates, setUsesDates] = useState<boolean>(false)
+  const [startDate, setStartDate] = useState<string>("")
+  const [occasionType, setOccasionType] = useState<OccasionType>("normal")
+  const [islamicYear, setIslamicYear] = useState<number>(getCurrentHijriYear())
+  const [dailyDivisionEnabled, setDailyDivisionEnabled] = useState<boolean>(false)
   const [members, setMembers] = useState<MemberConfig[]>([])
   const [schedule, setSchedule] = useState<GeneratedSchedule | null>(null)
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
@@ -81,11 +91,19 @@ export default function HomePage() {
       if (stored) {
         const parsed = JSON.parse(stored)
         if (parsed.groupName) setGroupName(parsed.groupName)
+        if (parsed.title) setTitle(parsed.title)
+        if (parsed.description) setDescription(parsed.description)
         if (parsed.weeksCount) setWeeksCount(parsed.weeksCount)
         if (parsed.rotationStyle) setRotationStyle(parsed.rotationStyle)
         if (parsed.rangeType) setRangeType(parsed.rangeType)
         if (parsed.startJuz) setStartJuz(parsed.startJuz)
         if (parsed.customRange) setCustomRange(parsed.customRange)
+        if (typeof parsed.usesDates === "boolean") setUsesDates(parsed.usesDates)
+        if (parsed.startDate) setStartDate(parsed.startDate)
+        if (parsed.occasionType) setOccasionType(parsed.occasionType)
+        if (parsed.islamicYear) setIslamicYear(parsed.islamicYear)
+        if (typeof parsed.dailyDivisionEnabled === "boolean")
+          setDailyDivisionEnabled(parsed.dailyDivisionEnabled)
         if (Array.isArray(parsed.members) && parsed.members.length > 0)
           setMembers(parsed.members)
         if (parsed.schedule) {
@@ -105,11 +123,18 @@ export default function HomePage() {
         STORAGE_STATE_KEY,
         JSON.stringify({
           groupName,
+          title,
+          description,
           weeksCount,
           rotationStyle,
           rangeType,
           startJuz,
           customRange,
+          usesDates,
+          startDate,
+          occasionType,
+          islamicYear,
+          dailyDivisionEnabled,
           members,
           schedule,
         })
@@ -119,11 +144,18 @@ export default function HomePage() {
     }
   }, [
     groupName,
+    title,
+    description,
     weeksCount,
     rotationStyle,
     rangeType,
     startJuz,
     customRange,
+    usesDates,
+    startDate,
+    occasionType,
+    islamicYear,
+    dailyDivisionEnabled,
     members,
     schedule,
   ])
@@ -199,11 +231,18 @@ export default function HomePage() {
   const inputPayload: ScheduleInput = {
     group: {
       name: groupName.trim() || (language === "ar" ? "مجموعتي" : "My Group"),
+      title: title.trim() || undefined,
+      description: description.trim() || undefined,
       weeksCount,
       rotationStyle,
       rangeType,
       startJuz: rangeType === "full" ? startJuz : undefined,
       customRange: rangeType === "custom" ? customRange : undefined,
+      startDate: usesDates && startDate ? startDate : undefined,
+      usesDates,
+      occasionType,
+      islamicYear: occasionType === "ramadan" ? islamicYear : undefined,
+      dailyDivisionEnabled,
     },
     members,
   }
@@ -233,8 +272,17 @@ export default function HomePage() {
         // Track in device-local recent schedules
         saveRecentSchedule({
           groupName: inputPayload.group.name,
+          title: inputPayload.group.title,
+          description: inputPayload.group.description,
           weeksCount: inputPayload.group.weeksCount,
           totalJuz: 30,
+          startDate: inputPayload.group.startDate,
+          usesDates: inputPayload.group.usesDates,
+          occasionType: inputPayload.group.occasionType,
+          islamicYear: inputPayload.group.islamicYear,
+          dailyDivisionEnabled: inputPayload.group.dailyDivisionEnabled,
+          rotationStyle: inputPayload.group.rotationStyle,
+          rangeType: inputPayload.group.rangeType,
           updatedAt: new Date().toISOString(),
         })
 
@@ -388,6 +436,24 @@ export default function HomePage() {
                   </div>
                 </div>
               </Card>
+
+              {/* Advanced Options (Title, Description, Ramadan, Dates, Daily Division) */}
+              <AdvancedOptions
+                title={title}
+                onTitleChange={setTitle}
+                description={description}
+                onDescriptionChange={setDescription}
+                usesDates={usesDates}
+                onUsesDatesChange={setUsesDates}
+                startDate={startDate}
+                onStartDateChange={setStartDate}
+                occasionType={occasionType}
+                onOccasionTypeChange={setOccasionType}
+                islamicYear={islamicYear}
+                onIslamicYearChange={setIslamicYear}
+                dailyDivisionEnabled={dailyDivisionEnabled}
+                onDailyDivisionEnabledChange={setDailyDivisionEnabled}
+              />
 
               {/* Section 2: Quran Range & Starting Point */}
               <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">

@@ -55,3 +55,21 @@ export function verifyEditToken(rawToken: string, storedHash: string): boolean {
     return false
   }
 }
+
+/**
+ * Generates an unguessable, non-sensitive public identifier for a group member.
+ * e.g. "m_a8f3b9c1d2e4"
+ */
+export function generateMemberPublicId(seedOrInput?: string): string {
+  if (seedOrInput) {
+    const hash = crypto
+      .createHash("sha256")
+      .update(seedOrInput)
+      .digest("hex")
+      .slice(0, 12)
+    return `m_${hash}`
+  }
+  const bytes = crypto.randomBytes(6).toString("hex")
+  return `m_${bytes}`
+}
+

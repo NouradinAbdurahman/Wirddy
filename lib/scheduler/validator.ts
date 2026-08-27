@@ -19,13 +19,54 @@ export function validateScheduleInput(
       messageAr: "يرجى إدخال اسم المجموعة.",
       messageEn: "Please enter a group name.",
     })
-  } else if (groupName.length > 60) {
+  } else if (groupName.length > 100) {
     errors.push({
       code: "GROUP_NAME_TOO_LONG",
       field: "groupName",
-      messageAr: "اسم المجموعة يجب ألا يتجاوز ٦٠ حرفًا.",
-      messageEn: "Group name must not exceed 60 characters.",
+      messageAr: "اسم المجموعة يجب ألا يتجاوز ١٠٠ حرف.",
+      messageEn: "Group name must not exceed 100 characters.",
     })
+  }
+
+  if (input.group?.title && input.group.title.trim().length > 200) {
+    errors.push({
+      code: "TITLE_TOO_LONG",
+      field: "title",
+      messageAr: "عنوان الجدول يجب ألا يتجاوز ٢٠٠ حرف.",
+      messageEn: "Schedule title must not exceed 200 characters.",
+    })
+  }
+
+  if (input.group?.description && input.group.description.trim().length > 500) {
+    errors.push({
+      code: "DESCRIPTION_TOO_LONG",
+      field: "description",
+      messageAr: "وصف الجدول يجب ألا يتجاوز ٥٠٠ حرف.",
+      messageEn: "Schedule description must not exceed 500 characters.",
+    })
+  }
+
+  if (input.group?.usesDates && input.group.startDate) {
+    const isIso = /^\d{4}-\d{2}-\d{2}$/.test(input.group.startDate)
+    if (!isIso) {
+      errors.push({
+        code: "INVALID_START_DATE",
+        field: "startDate",
+        messageAr: "تاريخ البداية المحدد غير صالح.",
+        messageEn: "Selected start date is invalid.",
+      })
+    }
+  }
+
+  if (input.group?.occasionType === "ramadan" && input.group.islamicYear) {
+    if (input.group.islamicYear < 1400 || input.group.islamicYear > 1600) {
+      errors.push({
+        code: "INVALID_ISLAMIC_YEAR",
+        field: "islamicYear",
+        messageAr: "السنة الهجرية المحددة غير صالحة.",
+        messageEn: "Selected Islamic year is invalid.",
+      })
+    }
   }
 
   const weeksCount = input.group?.weeksCount

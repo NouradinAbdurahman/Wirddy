@@ -1,8 +1,11 @@
 import { getSupabaseServerClient } from "../supabase/server"
 import {
   CustomQuranRange,
+  DailyPortion,
   GeneratedSchedule,
+  MemberAssignment,
   MemberConfig,
+  OccasionType,
   RangeType,
   RotationStyle,
   ScheduleInput,
@@ -12,10 +15,12 @@ import { generateQuranSchedule } from "../scheduler/engine"
 import { validateScheduleInput } from "../scheduler/validator"
 import {
   generateEditToken,
+  generateMemberPublicId,
   generatePublicId,
   hashEditToken,
   verifyEditToken,
 } from "./crypto"
+import { WeekDateRange } from "../dates/calendar"
 
 export interface SavedGroupResult {
   publicId: string
@@ -27,6 +32,8 @@ export interface SavedGroupResult {
 export interface LoadedPublicGroup {
   publicId: string
   groupName: string
+  title?: string
+  description?: string
   language: "ar" | "en"
   direction: "rtl" | "ltr"
   expiresAt: string
@@ -38,6 +45,40 @@ export interface LoadedPublicGroup {
   rangeType?: RangeType
   startJuz?: number
   customRange?: CustomQuranRange
+  startDate?: string
+  usesDates?: boolean
+  occasionType?: OccasionType
+  islamicYear?: number
+  dailyDivisionEnabled?: boolean
+}
+
+export interface LoadedPublicMemberSchedule {
+  groupPublicId: string
+  groupName: string
+  title?: string
+  description?: string
+  language: "ar" | "en"
+  direction: "rtl" | "ltr"
+  expiresAt: string
+  isExpired: boolean
+  member: MemberConfig
+  memberPublicId: string
+  totalWeeks: number
+  weeks: Array<{
+    weekNumber: number
+    assignment: MemberAssignment
+    dateRange?: WeekDateRange
+  }>
+  scheduleSettings: {
+    usesDates?: boolean
+    startDate?: string
+    occasionType?: OccasionType
+    islamicYear?: number
+    dailyDivisionEnabled?: boolean
+    rotationStyle?: RotationStyle
+    rangeType?: RangeType
+    customRange?: CustomQuranRange
+  }
 }
 
 /**
@@ -75,6 +116,13 @@ export async function saveScheduleGroup(
   const rangeType = input.group.rangeType || "full"
   const startJuz = input.group.startJuz || 1
   const customRange = input.group.customRange
+  const title = input.group.title?.trim() || null
+  const description = input.group.description?.trim() || null
+  const startDate = input.group.startDate || schedule.startDate || null
+  const usesDates = !!input.group.usesDates || !!schedule.usesDates
+  const occasionType = input.group.occasionType || schedule.occasionType || "normal"
+  const islamicYear = input.group.islamicYear || schedule.islamicYear || null
+  const dailyDivisionEnabled = !!input.group.dailyDivisionEnabled || !!schedule.dailyDivisionEnabled
 
   // 2. Insert Group
   const { data: groupData, error: groupError } = (await supabase
@@ -83,9 +131,11 @@ export async function saveScheduleGroup(
       public_id: publicId,
       edit_token_hash: editTokenHash,
       name: input.group.name.trim(),
+      title,
+      description,
       language: lang,
       direction: dir,
-      scheduler_version: "1.1",
+      scheduler_version: "1.2",
       rotation_style: rotationStyle,
       range_type: rangeType,
       start_juz: startJuz,
@@ -93,6 +143,11 @@ export async function saveScheduleGroup(
       range_start_ayah: customRange?.startAyah || null,
       range_end_surah: customRange?.endSurah || null,
       range_end_ayah: customRange?.endAyah || null,
+      start_date: startDate,
+      uses_dates: usesDates,
+      occasion_type: occasionType,
+      islamic_year: islamicYear,
+      daily_division_enabled: dailyDivisionEnabled,
     } as any)
     .select("id, expires_at")
     .single()) as {
@@ -112,24 +167,30 @@ export async function saveScheduleGroup(
   const groupId = groupData.id
   const expiresAt = groupData.expires_at
 
-  // 3. Insert Members
-  const memberInserts = input.members.map((m, idx) => ({
-    group_id: groupId,
-    name: m.name.trim(),
-    knowledge_type: m.knowledgeType,
-    start_juz: m.startJuz,
-    end_juz: m.endJuz,
-    start_surah: m.startSurah || null,
-    end_surah: m.endSurah || null,
-    weekly_amount: m.weeklyAmount,
-    sort_order: idx,
-  }))
+  // 3. Insert Members with unguessable publicId
+  const memberPublicIdMap = new Map<number, string>()
+  const memberInserts = input.members.map((m, idx) => {
+    const memberPublicId = m.publicId || generateMemberPublicId()
+    memberPublicIdMap.set(idx, memberPublicId)
+    return {
+      group_id: groupId,
+      name: m.name.trim(),
+      public_id: memberPublicId,
+      knowledge_type: m.knowledgeType,
+      start_juz: m.startJuz,
+      end_juz: m.endJuz,
+      start_surah: m.startSurah || null,
+      end_surah: m.endSurah || null,
+      weekly_amount: m.weeklyAmount,
+      sort_order: idx,
+    }
+  })
 
   const { data: insertedMembers, error: membersError } = (await supabase
     .from("group_members")
     .insert(memberInserts as any)
-    .select("id, sort_order")) as {
-    data: Array<{ id: string; sort_order: number }> | null
+    .select("id, sort_order, public_id")) as {
+    data: Array<{ id: string; sort_order: number; public_id: string }> | null
     error: any
   }
 
@@ -144,8 +205,10 @@ export async function saveScheduleGroup(
   }
 
   const memberIdMap = new Map<number, string>()
+  const memberDbPublicIdMap = new Map<number, string>()
   insertedMembers.forEach((im) => {
     memberIdMap.set(im.sort_order, im.id)
+    memberDbPublicIdMap.set(im.sort_order, im.public_id)
   })
 
   // 4. Insert Schedule Plan
@@ -156,7 +219,7 @@ export async function saveScheduleGroup(
       version_number: 1,
       weeks_count: input.group.weeksCount,
       total_juz_per_week: 30,
-      scheduler_version: "1.1",
+      scheduler_version: "1.2",
       is_active: true,
       rotation_style: rotationStyle,
       range_type: rangeType,
@@ -165,6 +228,13 @@ export async function saveScheduleGroup(
       range_start_ayah: customRange?.startAyah || null,
       range_end_surah: customRange?.endSurah || null,
       range_end_ayah: customRange?.endAyah || null,
+      title,
+      description,
+      start_date: startDate,
+      uses_dates: usesDates,
+      occasion_type: occasionType,
+      islamic_year: islamicYear,
+      daily_division_enabled: dailyDivisionEnabled,
     } as any)
     .select("id")
     .single()) as { data: { id: string } | null; error: any }
@@ -228,6 +298,7 @@ export async function saveScheduleGroup(
         end_ayah: a.endAyah.ayahNumber,
         start_global_ayah: a.startAyah.globalAyahNumber || null,
         end_global_ayah: a.endAyah.globalAyahNumber || null,
+        daily_breakdown: a.dailyBreakdown ? (a.dailyBreakdown as any) : null,
         sort_order: aIdx,
       }
     })
@@ -274,7 +345,7 @@ export async function getGroupByPublicId(
   const { data: group, error: groupError } = (await supabase
     .from("groups")
     .select(
-      "id, public_id, name, language, direction, expires_at, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah"
+      "id, public_id, name, title, description, language, direction, expires_at, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah, start_date, uses_dates, occasion_type, islamic_year, daily_division_enabled"
     )
     .eq("public_id", publicId.trim())
     .single()) as {
@@ -282,6 +353,8 @@ export async function getGroupByPublicId(
       id: string
       public_id: string
       name: string
+      title: string | null
+      description: string | null
       language: "ar" | "en"
       direction: "rtl" | "ltr"
       expires_at: string
@@ -292,6 +365,11 @@ export async function getGroupByPublicId(
       range_start_ayah: number | null
       range_end_surah: number | null
       range_end_ayah: number | null
+      start_date: string | null
+      uses_dates: boolean
+      occasion_type: OccasionType
+      islamic_year: number | null
+      daily_division_enabled: boolean
     } | null
     error: any
   }
@@ -305,6 +383,8 @@ export async function getGroupByPublicId(
     return {
       publicId: group.public_id,
       groupName: group.name,
+      title: group.title || undefined,
+      description: group.description || undefined,
       language: group.language,
       direction: group.direction,
       expiresAt: group.expires_at,
@@ -326,12 +406,13 @@ export async function getGroupByPublicId(
   const { data: members, error: membersError } = (await supabase
     .from("group_members")
     .select(
-      "id, name, knowledge_type, start_juz, end_juz, start_surah, end_surah, weekly_amount, sort_order"
+      "id, public_id, name, knowledge_type, start_juz, end_juz, start_surah, end_surah, weekly_amount, sort_order"
     )
     .eq("group_id", group.id)
     .order("sort_order", { ascending: true })) as {
     data: Array<{
       id: string
+      public_id: string | null
       name: string
       knowledge_type: "entire" | "juz_range" | "surah_range"
       start_juz: number
@@ -350,6 +431,7 @@ export async function getGroupByPublicId(
 
   const membersConfig: MemberConfig[] = members.map((m) => ({
     id: m.id,
+    publicId: m.public_id || undefined,
     name: m.name,
     knowledgeType: m.knowledge_type,
     startJuz: m.start_juz,
@@ -359,11 +441,18 @@ export async function getGroupByPublicId(
     weeklyAmount: m.weekly_amount,
   }))
 
+  const memberPublicIdMap = new Map<string, string>()
+  members.forEach((m) => {
+    if (m.public_id) {
+      memberPublicIdMap.set(m.id, m.public_id)
+    }
+  })
+
   // 3. Fetch active plan
   const { data: plan, error: planError } = (await supabase
     .from("schedule_plans")
     .select(
-      "id, version_number, weeks_count, scheduler_version, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah"
+      "id, version_number, weeks_count, scheduler_version, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah, title, description, start_date, uses_dates, occasion_type, islamic_year, daily_division_enabled"
     )
     .eq("group_id", group.id)
     .eq("is_active", true)
@@ -382,6 +471,13 @@ export async function getGroupByPublicId(
       range_start_ayah: number | null
       range_end_surah: number | null
       range_end_ayah: number | null
+      title: string | null
+      description: string | null
+      start_date: string | null
+      uses_dates: boolean
+      occasion_type: OccasionType
+      islamic_year: number | null
+      daily_division_enabled: boolean
     } | null
     error: any
   }
@@ -413,7 +509,7 @@ export async function getGroupByPublicId(
   const { data: assignments, error: assignError } = (await supabase
     .from("schedule_assignments")
     .select(
-      "id, schedule_week_id, member_id, member_name, weekly_amount, start_juz, end_juz, start_surah, start_surah_name_ar, start_surah_name_en, start_ayah, end_surah, end_surah_name_ar, end_surah_name_en, end_ayah, start_global_ayah, end_global_ayah, sort_order"
+      "id, schedule_week_id, member_id, member_name, weekly_amount, start_juz, end_juz, start_surah, start_surah_name_ar, start_surah_name_en, start_ayah, end_surah, end_surah_name_ar, end_surah_name_en, end_ayah, start_global_ayah, end_global_ayah, daily_breakdown, sort_order"
     )
     .in("schedule_week_id", weekIds)
     .order("sort_order", { ascending: true })) as {
@@ -435,6 +531,7 @@ export async function getGroupByPublicId(
       end_ayah: number
       start_global_ayah: number | null
       end_global_ayah: number | null
+      daily_breakdown: DailyPortion[] | null
       sort_order: number
     }> | null
     error: any
@@ -458,73 +555,161 @@ export async function getGroupByPublicId(
         }
       : undefined
 
-  // Reconstruct weeks
-  const weekSchedules: WeekSchedule[] = weeks.map((w) => {
-    const weekAssignments = assignments
-      .filter((a) => a.schedule_week_id === w.id)
-      .map((a) => ({
-        memberId: a.member_id,
-        memberName: a.member_name,
-        weeklyAmount: a.weekly_amount,
-        startJuz: a.start_juz,
-        endJuz: a.end_juz,
-        startAyah: {
-          surahNumber: a.start_surah,
-          surahNameAr: a.start_surah_name_ar,
-          surahNameEn: a.start_surah_name_en,
-          ayahNumber: a.start_ayah,
-          juzNumber: a.start_juz,
-          globalAyahNumber: a.start_global_ayah || undefined,
-        },
-        endAyah: {
-          surahNumber: a.end_surah,
-          surahNameAr: a.end_surah_name_ar,
-          surahNameEn: a.end_surah_name_en,
-          ayahNumber: a.end_ayah,
-          juzNumber: a.end_juz,
-          globalAyahNumber: a.end_global_ayah || undefined,
-        },
-      }))
-
-    return {
-      weekNumber: w.week_number,
-      totalJuz: w.total_juz,
-      assignments: weekAssignments,
-    }
+  // Reassemble WeekSchedule objects
+  const assignmentMap = new Map<string, MemberAssignment[]>()
+  assignments.forEach((a) => {
+    const list = assignmentMap.get(a.schedule_week_id) || []
+    list.push({
+      memberId: a.member_id,
+      memberName: a.member_name,
+      memberPublicId: memberPublicIdMap.get(a.member_id),
+      weeklyAmount: a.weekly_amount,
+      startJuz: a.start_juz,
+      endJuz: a.end_juz,
+      startAyah: {
+        surahNumber: a.start_surah,
+        surahNameAr: a.start_surah_name_ar,
+        surahNameEn: a.start_surah_name_en,
+        ayahNumber: a.start_ayah,
+        juzNumber: a.start_juz,
+        globalAyahNumber: a.start_global_ayah || undefined,
+      },
+      endAyah: {
+        surahNumber: a.end_surah,
+        surahNameAr: a.end_surah_name_ar,
+        surahNameEn: a.end_surah_name_en,
+        ayahNumber: a.end_ayah,
+        juzNumber: a.end_juz,
+        globalAyahNumber: a.end_global_ayah || undefined,
+      },
+      dailyBreakdown: a.daily_breakdown || undefined,
+    })
+    assignmentMap.set(a.schedule_week_id, list)
   })
 
-  const generatedSchedule: GeneratedSchedule = {
+  const builtWeeks: WeekSchedule[] = weeks.map((w) => ({
+    weekNumber: w.week_number,
+    totalJuz: w.total_juz,
+    assignments: assignmentMap.get(w.id) || [],
+  }))
+
+  const effectiveTitle = plan.title || group.title || undefined
+  const effectiveDescription = plan.description || group.description || undefined
+  const effectiveStartDate = plan.start_date || group.start_date || undefined
+  const effectiveUsesDates = plan.uses_dates ?? group.uses_dates ?? false
+  const effectiveOccasion = plan.occasion_type || group.occasion_type || "normal"
+  const effectiveIslamicYear = plan.islamic_year || group.islamic_year || undefined
+  const effectiveDaily = plan.daily_division_enabled ?? group.daily_division_enabled ?? false
+
+  const schedule: GeneratedSchedule = {
     id: group.id,
-    createdAt: new Date().toISOString(),
+    createdAt: group.expires_at,
     groupName: group.name,
+    title: effectiveTitle,
+    description: effectiveDescription,
     weeksCount: plan.weeks_count,
-    rotationStyle: plan.rotation_style || group.rotation_style,
-    rangeType: plan.range_type || group.range_type,
-    startJuz: plan.start_juz || group.start_juz,
+    rotationStyle: plan.rotation_style,
+    rangeType: plan.range_type,
+    startJuz: plan.start_juz,
     customRange,
-    weeks: weekSchedules,
+    startDate: effectiveStartDate,
+    usesDates: effectiveUsesDates,
+    occasionType: effectiveOccasion,
+    islamicYear: effectiveIslamicYear,
+    dailyDivisionEnabled: effectiveDaily,
+    weeks: builtWeeks,
     members: membersConfig,
   }
 
   return {
     publicId: group.public_id,
     groupName: group.name,
+    title: effectiveTitle,
+    description: effectiveDescription,
     language: group.language,
     direction: group.direction,
     expiresAt: group.expires_at,
     isExpired: false,
-    schedule: generatedSchedule,
+    schedule,
     membersConfig,
     versionNumber: plan.version_number,
-    rotationStyle: plan.rotation_style || group.rotation_style,
-    rangeType: plan.range_type || group.range_type,
-    startJuz: plan.start_juz || group.start_juz,
+    rotationStyle: plan.rotation_style,
+    rangeType: plan.range_type,
+    startJuz: plan.start_juz,
     customRange,
+    startDate: effectiveStartDate,
+    usesDates: effectiveUsesDates,
+    occasionType: effectiveOccasion,
+    islamicYear: effectiveIslamicYear,
+    dailyDivisionEnabled: effectiveDaily,
   }
 }
 
 /**
- * Validates whether an edit token is authorized to manage a group.
+ * Retrieves a single member's public schedule without exposing edit credentials.
+ */
+export async function getMemberScheduleByPublicId(
+  groupPublicId: string,
+  memberPublicId: string
+): Promise<LoadedPublicMemberSchedule | null> {
+  const group = await getGroupByPublicId(groupPublicId)
+  if (!group || group.isExpired) {
+    return null
+  }
+
+  const member = group.membersConfig.find(
+    (m) => m.publicId === memberPublicId || m.id === memberPublicId
+  )
+
+  if (!member) {
+    return null
+  }
+
+  // Filter assignments across all weeks for this specific member
+  const memberWeeks = group.schedule.weeks.map((week) => {
+    const assignment =
+      week.assignments.find(
+        (a) =>
+          a.memberPublicId === member.publicId ||
+          a.memberId === member.id ||
+          a.memberName === member.name
+      ) || week.assignments[0]
+
+    return {
+      weekNumber: week.weekNumber,
+      assignment,
+      dateRange: week.dateRange,
+    }
+  })
+
+  return {
+    groupPublicId: group.publicId,
+    groupName: group.groupName,
+    title: group.title,
+    description: group.description,
+    language: group.language,
+    direction: group.direction,
+    expiresAt: group.expiresAt,
+    isExpired: false,
+    member,
+    memberPublicId: member.publicId || memberPublicId,
+    totalWeeks: group.schedule.weeksCount,
+    weeks: memberWeeks,
+    scheduleSettings: {
+      usesDates: group.usesDates,
+      startDate: group.startDate,
+      occasionType: group.occasionType,
+      islamicYear: group.islamicYear,
+      dailyDivisionEnabled: group.dailyDivisionEnabled,
+      rotationStyle: group.rotationStyle,
+      rangeType: group.rangeType,
+      customRange: group.customRange,
+    },
+  }
+}
+
+/**
+ * Validates edit access for a group using the raw secret edit token.
  */
 export async function validateEditAccess(
   publicId: string,
@@ -535,21 +720,32 @@ export async function validateEditAccess(
   }
 
   const supabase = getSupabaseServerClient()
-  if (!supabase) return false
+  if (!supabase) {
+    return false
+  }
 
   const { data: group, error } = (await supabase
     .from("groups")
-    .select("edit_token_hash")
+    .select("edit_token_hash, expires_at")
     .eq("public_id", publicId.trim())
-    .single()) as { data: { edit_token_hash: string } | null; error: any }
+    .single()) as {
+    data: { edit_token_hash: string; expires_at: string } | null
+    error: any
+  }
 
-  if (error || !group) return false
+  if (error || !group) {
+    return false
+  }
+
+  if (new Date(group.expires_at).getTime() < Date.now()) {
+    return false
+  }
 
   return verifyEditToken(rawEditToken, group.edit_token_hash)
 }
 
 /**
- * Updates group configuration and regenerates a new versioned schedule snapshot.
+ * Updates a saved group with a new schedule plan. Requires a verified secret edit token.
  */
 export async function updateGroupAndRegenerate(
   publicId: string,
@@ -561,8 +757,8 @@ export async function updateGroupAndRegenerate(
   if (!isAuthorized) {
     throw new Error(
       lang === "ar"
-        ? "غير مصرح لك بتعديل هذا الجدول."
-        : "You are not authorized to edit this schedule."
+        ? "رمز التعديل غير صحيح أو غير مصرح لك بالتعديل."
+        : "Invalid edit token or unauthorized access."
     )
   }
 
@@ -577,37 +773,42 @@ export async function updateGroupAndRegenerate(
 
   const supabase = getSupabaseServerClient()
   if (!supabase) {
-    throw new Error("Supabase unavailable.")
-  }
-
-  const { data: group } = (await supabase
-    .from("groups")
-    .select("id, name, language, direction, expires_at")
-    .eq("public_id", publicId.trim())
-    .single()) as {
-    data: {
-      id: string
-      name: string
-      language: "ar" | "en"
-      direction: "rtl" | "ltr"
-      expires_at: string
-    } | null
-  }
-
-  if (!group) {
-    throw new Error("Group not found.")
+    throw new Error("Online service is currently unavailable.")
   }
 
   const newSchedule = generateQuranSchedule(input)
+
+  // 1. Fetch group
+  const { data: group, error: fetchError } = (await supabase
+    .from("groups")
+    .select("id")
+    .eq("public_id", publicId.trim())
+    .single()) as { data: { id: string } | null; error: any }
+
+  if (fetchError || !group) {
+    throw new Error("Group not found.")
+  }
+
   const rotationStyle = input.group.rotationStyle || "medium"
   const rangeType = input.group.rangeType || "full"
   const startJuz = input.group.startJuz || 1
   const customRange = input.group.customRange
+  const title = input.group.title?.trim() || null
+  const description = input.group.description?.trim() || null
+  const startDate = input.group.startDate || newSchedule.startDate || null
+  const usesDates = !!input.group.usesDates || !!newSchedule.usesDates
+  const occasionType = input.group.occasionType || newSchedule.occasionType || "normal"
+  const islamicYear = input.group.islamicYear || newSchedule.islamicYear || null
+  const dailyDivisionEnabled = !!input.group.dailyDivisionEnabled || !!newSchedule.dailyDivisionEnabled
 
-  // Update group
+  // Update group record
   await (supabase.from("groups") as any)
     .update({
       name: input.group.name.trim(),
+      title,
+      description,
+      language: lang,
+      direction: lang === "ar" ? "rtl" : "ltr",
       rotation_style: rotationStyle,
       range_type: rangeType,
       start_juz: startJuz,
@@ -615,16 +816,22 @@ export async function updateGroupAndRegenerate(
       range_start_ayah: customRange?.startAyah || null,
       range_end_surah: customRange?.endSurah || null,
       range_end_ayah: customRange?.endAyah || null,
+      start_date: startDate,
+      uses_dates: usesDates,
+      occasion_type: occasionType,
+      islamic_year: islamicYear,
+      daily_division_enabled: dailyDivisionEnabled,
       updated_at: new Date().toISOString(),
     })
     .eq("id", group.id)
 
-  // Replace members
+  // Re-sync members (preserve existing public_ids where possible)
   await supabase.from("group_members").delete().eq("group_id", group.id)
 
   const memberInserts = input.members.map((m, idx) => ({
     group_id: group.id,
     name: m.name.trim(),
+    public_id: m.publicId || generateMemberPublicId(),
     knowledge_type: m.knowledgeType,
     start_juz: m.startJuz,
     end_juz: m.endJuz,
@@ -637,13 +844,13 @@ export async function updateGroupAndRegenerate(
   const { data: insertedMembers, error: membersError } = (await supabase
     .from("group_members")
     .insert(memberInserts as any)
-    .select("id, sort_order")) as {
-    data: Array<{ id: string; sort_order: number }> | null
+    .select("id, sort_order, public_id")) as {
+    data: Array<{ id: string; sort_order: number; public_id: string }> | null
     error: any
   }
 
   if (membersError || !insertedMembers) {
-    throw new Error("Failed to update members.")
+    throw new Error("Failed to update group members.")
   }
 
   const memberIdMap = new Map<number, string>()
@@ -674,7 +881,7 @@ export async function updateGroupAndRegenerate(
       version_number: nextVersion,
       weeks_count: input.group.weeksCount,
       total_juz_per_week: 30,
-      scheduler_version: "1.1",
+      scheduler_version: "1.2",
       is_active: true,
       rotation_style: rotationStyle,
       range_type: rangeType,
@@ -683,6 +890,13 @@ export async function updateGroupAndRegenerate(
       range_start_ayah: customRange?.startAyah || null,
       range_end_surah: customRange?.endSurah || null,
       range_end_ayah: customRange?.endAyah || null,
+      title,
+      description,
+      start_date: startDate,
+      uses_dates: usesDates,
+      occasion_type: occasionType,
+      islamic_year: islamicYear,
+      daily_division_enabled: dailyDivisionEnabled,
     } as any)
     .select("id")
     .single()) as { data: { id: string } | null; error: any }
@@ -736,6 +950,7 @@ export async function updateGroupAndRegenerate(
         end_ayah: a.endAyah.ayahNumber,
         start_global_ayah: a.startAyah.globalAyahNumber || null,
         end_global_ayah: a.endAyah.globalAyahNumber || null,
+        daily_breakdown: a.dailyBreakdown ? (a.dailyBreakdown as any) : null,
         sort_order: aIdx,
       }
     })
@@ -772,16 +987,30 @@ export async function duplicateGroupSchedule(
       ? `${existing.groupName} (نسخة)`
       : `${existing.groupName} (Copy)`
 
+  // Fresh members with new unguessable public IDs
+  const freshMembers: MemberConfig[] = existing.membersConfig.map((m) => ({
+    ...m,
+    id: `mem-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    publicId: generateMemberPublicId(),
+  }))
+
   const input: ScheduleInput = {
     group: {
       name: duplicateName,
+      title: existing.title,
+      description: existing.description,
       weeksCount: existing.schedule.weeksCount,
       rotationStyle: existing.rotationStyle,
       rangeType: existing.rangeType,
       startJuz: existing.startJuz,
       customRange: existing.customRange,
+      startDate: existing.startDate,
+      usesDates: existing.usesDates,
+      occasionType: existing.occasionType,
+      islamicYear: existing.islamicYear,
+      dailyDivisionEnabled: existing.dailyDivisionEnabled,
     },
-    members: existing.membersConfig,
+    members: freshMembers,
   }
 
   const newSchedule = generateQuranSchedule(input)
