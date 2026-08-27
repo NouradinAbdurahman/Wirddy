@@ -343,7 +343,7 @@ export function buildStandaloneWeekExportHtml(
   )
 
   return `
-    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
+    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
       
       <!-- Top Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 24px;">
@@ -465,7 +465,7 @@ export function buildPdfPageHtml(
     `
 
   return `
-    <div dir="${dir}" style="width: 1000px; min-width: 1000px; max-width: 1000px; height: 1414px; min-height: 1414px; max-height: 1414px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; position: relative;">
+    <div dir="${dir}" style="width: 1000px; min-width: 1000px; max-width: 1000px; height: 1414px; min-height: 1414px; max-height: 1414px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; position: relative;">
       
       <!-- Page Header -->
       <div>
@@ -500,7 +500,7 @@ export async function renderWeekToPngBlob(
 ): Promise<Blob> {
   const theme = options?.theme || week.theme || "dark"
   const viewMode = options?.view || week.view || "cards"
-  const pixelRatio = options?.pixelRatio || 2.2
+  const pixelRatio = options?.pixelRatio || 4.0 // 4K Ultra-HD Crisp Resolution (880px * 4 = 3520px)
 
   // Preload assets & wait for font readiness
   const [assets] = await Promise.all([
@@ -541,7 +541,7 @@ export async function renderWeekToPngBlob(
     await new Promise((r) => setTimeout(r, 40))
 
     const blob = await toBlob(targetElement, {
-      quality: 0.98,
+      quality: 1.0,
       pixelRatio,
       skipFonts: true,
       cacheBust: false,

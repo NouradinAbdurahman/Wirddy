@@ -183,8 +183,8 @@ export async function renderSchedulePdfBlob(
       await new Promise((r) => setTimeout(r, 40))
 
       const pageBlob = await toBlob(targetElement, {
-        quality: 0.98,
-        pixelRatio: 2.2, // High resolution for crisp PDF output
+        quality: 1.0,
+        pixelRatio: 3.6, // Ultra-sharp 4K resolution (1000px * 3.6 = 3600px width) for crystal-clear PDF output
         skipFonts: true,
         cacheBust: false,
       })
@@ -199,7 +199,7 @@ export async function renderSchedulePdfBlob(
         pdf.addPage()
       }
 
-      // Fill A4 page seamlessly
+      // Fill A4 page seamlessly with maximum fidelity
       pdf.addImage(
         dataUrl,
         "PNG",
@@ -208,7 +208,7 @@ export async function renderSchedulePdfBlob(
         pageWidth,
         pageHeight,
         undefined,
-        "FAST"
+        "SLOW"
       )
     } finally {
       try {
