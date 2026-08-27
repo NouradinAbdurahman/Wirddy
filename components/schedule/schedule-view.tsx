@@ -11,7 +11,7 @@ import {
   IconLayoutGrid,
   IconLoader2,
   IconRotate,
-  IconSparkles,
+  IconShare,
   IconTable,
   IconUsers,
 } from "@tabler/icons-react"
@@ -116,7 +116,7 @@ export function ScheduleView({
             onClick={() => setShowSaveShareDialog(true)}
             className="h-8.5 gap-1.5 rounded-xl border-primary/40 bg-primary/5 px-3.5 text-xs font-bold text-primary hover:bg-primary/10 hover:text-primary dark:bg-primary/10"
           >
-            <IconSparkles className="h-3.5 w-3.5" />
+            <IconShare className="h-3.5 w-3.5" />
             <span>{t.btnSaveAndShare}</span>
           </Button>
 

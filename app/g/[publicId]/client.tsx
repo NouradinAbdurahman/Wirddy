@@ -9,7 +9,6 @@ import {
   IconClockOff,
   IconFileOff,
   IconPlus,
-  IconSparkles,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { LoadedPublicGroup } from "@/lib/groups/service"

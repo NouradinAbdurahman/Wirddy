@@ -10,7 +10,6 @@ import {
   IconLoader2,
   IconQrcode,
   IconShare,
-  IconSparkles,
   IconX,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
@@ -164,7 +163,7 @@ export function SaveShareDialog({
         <DialogHeader className="text-start">
           <div className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <IconSparkles className="h-5 w-5" />
+              <IconShare className="h-5 w-5" />
             </div>
             <div>
               <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
