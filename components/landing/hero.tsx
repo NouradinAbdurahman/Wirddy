@@ -98,35 +98,61 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
               {/* Sample Card 1 */}
               <div className="flex flex-col justify-between rounded-2xl border border-border/60 bg-card/90 p-4 shadow-sm transition-all hover:border-primary/30 dark:bg-card/70">
                 <div className="mb-2.5 flex items-start justify-between gap-2 border-b border-border/40 pb-2.5">
-                  <span className="text-sm font-extrabold break-words text-foreground">
+                  <span
+                    suppressHydrationWarning
+                    className="text-sm font-extrabold break-words text-foreground"
+                  >
                     {language === "ar" ? "طارق" : "Tariq"}
                   </span>
-                  <span className="shrink-0 rounded-md border border-border/50 bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground dark:bg-muted/40">
-                    {formatNumber(5)} {t.juzUnit}
+                  <span
+                    suppressHydrationWarning
+                    className="shrink-0 rounded-md border border-border/50 bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground dark:bg-muted/40"
+                  >
+                    {language === "ar"
+                      ? "٥ أجزاء"
+                      : `${formatNumber(5)} ${t.juzUnit}`}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex flex-col space-y-0.5">
-                    <span className="text-[9px] font-extrabold tracking-wider text-primary uppercase">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[9px] font-extrabold tracking-wider text-primary uppercase"
+                    >
                       {t.startLabel}
                     </span>
-                    <span className="text-[11px] font-bold text-muted-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[11px] font-bold text-muted-foreground"
+                    >
                       {t.juzLabel} {formatNumber(1)}
                     </span>
-                    <span className="pt-0.5 text-xs font-extrabold break-words text-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="pt-0.5 text-xs font-extrabold break-words text-foreground"
+                    >
                       {language === "ar" ? "الفاتحة ١" : "Al-Fatihah 1"}
                     </span>
                   </div>
 
                   <div className="flex flex-col space-y-0.5">
-                    <span className="text-[9px] font-extrabold tracking-wider text-primary uppercase">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[9px] font-extrabold tracking-wider text-primary uppercase"
+                    >
                       {t.endLabel}
                     </span>
-                    <span className="text-[11px] font-bold text-muted-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[11px] font-bold text-muted-foreground"
+                    >
                       {t.juzLabel} {formatNumber(5)}
                     </span>
-                    <span className="pt-0.5 text-xs font-extrabold break-words text-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="pt-0.5 text-xs font-extrabold break-words text-foreground"
+                    >
                       {language === "ar" ? "النساء ١٤٧" : "An-Nisa 147"}
                     </span>
                   </div>
@@ -136,35 +162,61 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
               {/* Sample Card 2 */}
               <div className="flex flex-col justify-between rounded-2xl border border-border/60 bg-card/90 p-4 shadow-sm transition-all hover:border-primary/30 dark:bg-card/70">
                 <div className="mb-2.5 flex items-start justify-between gap-2 border-b border-border/40 pb-2.5">
-                  <span className="text-sm font-extrabold break-words text-foreground">
+                  <span
+                    suppressHydrationWarning
+                    className="text-sm font-extrabold break-words text-foreground"
+                  >
                     {language === "ar" ? "زينب" : "Zainab"}
                   </span>
-                  <span className="shrink-0 rounded-md border border-border/50 bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground dark:bg-muted/40">
-                    {formatNumber(2)} {t.juzUnit}
+                  <span
+                    suppressHydrationWarning
+                    className="shrink-0 rounded-md border border-border/50 bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground dark:bg-muted/40"
+                  >
+                    {language === "ar"
+                      ? "جزآن"
+                      : `${formatNumber(2)} ${t.juzUnit}`}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex flex-col space-y-0.5">
-                    <span className="text-[9px] font-extrabold tracking-wider text-primary uppercase">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[9px] font-extrabold tracking-wider text-primary uppercase"
+                    >
                       {t.startLabel}
                     </span>
-                    <span className="text-[11px] font-bold text-muted-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[11px] font-bold text-muted-foreground"
+                    >
                       {t.juzLabel} {formatNumber(6)}
                     </span>
-                    <span className="pt-0.5 text-xs font-extrabold break-words text-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="pt-0.5 text-xs font-extrabold break-words text-foreground"
+                    >
                       {language === "ar" ? "النساء ١٤٨" : "An-Nisa 148"}
                     </span>
                   </div>
 
                   <div className="flex flex-col space-y-0.5">
-                    <span className="text-[9px] font-extrabold tracking-wider text-primary uppercase">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[9px] font-extrabold tracking-wider text-primary uppercase"
+                    >
                       {t.endLabel}
                     </span>
-                    <span className="text-[11px] font-bold text-muted-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[11px] font-bold text-muted-foreground"
+                    >
                       {t.juzLabel} {formatNumber(7)}
                     </span>
-                    <span className="pt-0.5 text-xs font-extrabold break-words text-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="pt-0.5 text-xs font-extrabold break-words text-foreground"
+                    >
                       {language === "ar" ? "الأنعام ١١٠" : "Al-An'am 110"}
                     </span>
                   </div>
@@ -174,35 +226,61 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
               {/* Sample Card 3 */}
               <div className="flex flex-col justify-between rounded-2xl border border-border/60 bg-card/90 p-4 shadow-sm transition-all hover:border-primary/30 dark:bg-card/70">
                 <div className="mb-2.5 flex items-start justify-between gap-2 border-b border-border/40 pb-2.5">
-                  <span className="text-sm font-extrabold break-words text-foreground">
+                  <span
+                    suppressHydrationWarning
+                    className="text-sm font-extrabold break-words text-foreground"
+                  >
                     {language === "ar" ? "يوسف" : "Yousef"}
                   </span>
-                  <span className="shrink-0 rounded-md border border-border/50 bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground dark:bg-muted/40">
-                    {formatNumber(2)} {t.juzUnit}
+                  <span
+                    suppressHydrationWarning
+                    className="shrink-0 rounded-md border border-border/50 bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground dark:bg-muted/40"
+                  >
+                    {language === "ar"
+                      ? "جزآن"
+                      : `${formatNumber(2)} ${t.juzUnit}`}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex flex-col space-y-0.5">
-                    <span className="text-[9px] font-extrabold tracking-wider text-primary uppercase">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[9px] font-extrabold tracking-wider text-primary uppercase"
+                    >
                       {t.startLabel}
                     </span>
-                    <span className="text-[11px] font-bold text-muted-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[11px] font-bold text-muted-foreground"
+                    >
                       {t.juzLabel} {formatNumber(26)}
                     </span>
-                    <span className="pt-0.5 text-xs font-extrabold break-words text-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="pt-0.5 text-xs font-extrabold break-words text-foreground"
+                    >
                       {language === "ar" ? "الأحقاف ١" : "Al-Ahqaf 1"}
                     </span>
                   </div>
 
                   <div className="flex flex-col space-y-0.5">
-                    <span className="text-[9px] font-extrabold tracking-wider text-primary uppercase">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[9px] font-extrabold tracking-wider text-primary uppercase"
+                    >
                       {t.endLabel}
                     </span>
-                    <span className="text-[11px] font-bold text-muted-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="text-[11px] font-bold text-muted-foreground"
+                    >
                       {t.juzLabel} {formatNumber(27)}
                     </span>
-                    <span className="pt-0.5 text-xs font-extrabold break-words text-foreground">
+                    <span
+                      suppressHydrationWarning
+                      className="pt-0.5 text-xs font-extrabold break-words text-foreground"
+                    >
                       {language === "ar" ? "الحديد ٢٩" : "Al-Hadid 29"}
                     </span>
                   </div>

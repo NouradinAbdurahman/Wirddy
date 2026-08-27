@@ -433,7 +433,7 @@ export const translations: Record<Language, Translations> = {
     totalExactMsg: "المجموع مكتمل (٣٠/٣٠ جزءًا). جاهز لإنشاء الجدول!",
     totalLessMsg: "المجموع الحالي أقل من ٣٠ جزءًا. تبقّى",
     totalMoreMsg: "المجموع الحالي تجاوز ٣٠ جزءًا. الزيادة",
-    juzUnit: "أجزاء",
+    juzUnit: "جزء",
 
     membersTitle: "إضافة أعضاء المجموعة",
     membersSubtitle:
