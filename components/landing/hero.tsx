@@ -30,7 +30,9 @@ interface HeroProps {
 export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
   const { language, dir, t, formatNumber } = useI18n()
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const [activeTab, setActiveTab] = useState<"schedule" | "today" | "reader">("schedule")
+  const [activeTab, setActiveTab] = useState<"schedule" | "today" | "reader">(
+    "schedule"
+  )
   const ArrowIcon = dir === "rtl" ? IconArrowLeft : IconArrowRight
 
   useEffect(() => {
@@ -61,10 +63,17 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
         {/* Main Headline */}
         <h1
           className={`text-3xl font-extrabold tracking-tight text-foreground sm:text-5xl md:text-6xl ${
-            language === "ar" ? "leading-[1.35]" : "leading-[1.15]"
+            language === "ar" ? "leading-[1.4]" : "leading-[1.15]"
           }`}
         >
-          <span className="block text-foreground">{t.heroHeadline}</span>
+          <span className="block text-primary">{t.appName}</span>
+          <span
+            className={`block text-xl font-semibold text-muted-foreground sm:text-2xl md:text-3xl ${
+              language === "ar" ? "mt-3 leading-relaxed sm:mt-4" : "mt-2"
+            }`}
+          >
+            {t.tagline}
+          </span>
         </h1>
 
         {/* Supporting Subtitle */}
@@ -107,11 +116,6 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
           </Button>
         </div>
 
-        {/* Trust/Product Highlights Line */}
-        <div className="mt-5 text-xs font-semibold tracking-wide text-muted-foreground/90">
-          {t.heroTrustLine}
-        </div>
-
         {/* Hero Interactive Multi-Feature Showcase Preview */}
         <div className="mx-auto mt-12 max-w-3xl">
           {/* Preview Navigation Tabs */}
@@ -125,7 +129,9 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
               }`}
             >
               <IconCalendarEvent className="h-3.5 w-3.5" />
-              <span>{language === "ar" ? "جدول التدوير" : "Rotating Schedule"}</span>
+              <span>
+                {language === "ar" ? "جدول التدوير" : "Rotating Schedule"}
+              </span>
             </button>
             <button
               onClick={() => setActiveTab("today")}
@@ -147,7 +153,9 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
               }`}
             >
               <IconBook className="h-3.5 w-3.5" />
-              <span>{language === "ar" ? "المصحف الإلكتروني" : "Quran Reader"}</span>
+              <span>
+                {language === "ar" ? "المصحف الإلكتروني" : "Quran Reader"}
+              </span>
             </button>
           </div>
 
@@ -188,11 +196,15 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
                     <div className="space-y-1.5 text-xs text-muted-foreground">
                       <div className="flex justify-between">
                         <span>{language === "ar" ? "البداية:" : "Start:"}</span>
-                        <span className="font-semibold text-foreground">الفاتحة ١</span>
+                        <span className="font-semibold text-foreground">
+                          الفاتحة ١
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>{language === "ar" ? "النهاية:" : "End:"}</span>
-                        <span className="font-semibold text-foreground">النساء ١٤٧</span>
+                        <span className="font-semibold text-foreground">
+                          النساء ١٤٧
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -210,11 +222,15 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
                     <div className="space-y-1.5 text-xs text-muted-foreground">
                       <div className="flex justify-between">
                         <span>{language === "ar" ? "البداية:" : "Start:"}</span>
-                        <span className="font-semibold text-foreground">النساء ١٤٨</span>
+                        <span className="font-semibold text-foreground">
+                          النساء ١٤٨
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>{language === "ar" ? "النهاية:" : "End:"}</span>
-                        <span className="font-semibold text-foreground">الحجر ٩٩</span>
+                        <span className="font-semibold text-foreground">
+                          الحجر ٩٩
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -232,11 +248,15 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
                     <div className="space-y-1.5 text-xs text-muted-foreground">
                       <div className="flex justify-between">
                         <span>{language === "ar" ? "البداية:" : "Start:"}</span>
-                        <span className="font-semibold text-foreground">الإسراء ١</span>
+                        <span className="font-semibold text-foreground">
+                          الإسراء ١
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span>{language === "ar" ? "النهاية:" : "End:"}</span>
-                        <span className="font-semibold text-foreground">الناس ٦</span>
+                        <span className="font-semibold text-foreground">
+                          الناس ٦
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -254,25 +274,42 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
                         {language === "ar" ? "ورد اليوم" : "Today's Reading"}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {language === "ar" ? "الأسبوع الأول • اليوم ٣" : "Week 1 • Day 3"}
+                        {language === "ar"
+                          ? "الأسبوع الأول • اليوم ٣"
+                          : "Week 1 • Day 3"}
                       </span>
                     </div>
                     <h3 className="text-lg font-extrabold text-foreground">
-                      {language === "ar" ? "سورة آل عمران (الآيات ٩٣ — ٢٠٠)" : "Surah Ali 'Imran (Ayahs 93 — 200)"}
+                      {language === "ar"
+                        ? "سورة آل عمران (الآيات ٩٣ — ٢٠٠)"
+                        : "Surah Ali 'Imran (Ayahs 93 — 200)"}
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      {language === "ar" ? "الجزء الرابع • صفحة ٦٩ إلى ٧٦" : "Juz 4 • Pages 69 to 76"}
+                      {language === "ar"
+                        ? "الجزء الرابع • صفحة ٦٩ إلى ٧٦"
+                        : "Juz 4 • Pages 69 to 76"}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Button size="sm" className="gap-1.5 rounded-xl text-xs font-bold">
+                    <Button
+                      size="sm"
+                      className="gap-1.5 rounded-xl text-xs font-bold"
+                    >
                       <IconBook className="h-4 w-4" />
-                      <span>{language === "ar" ? "اقرأ في المصحف" : "Read in Quran"}</span>
+                      <span>
+                        {language === "ar" ? "اقرأ في المصحف" : "Read in Quran"}
+                      </span>
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5 rounded-xl border-emerald-500/40 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 rounded-xl border-emerald-500/40 text-xs font-bold text-emerald-600 dark:text-emerald-400"
+                    >
                       <IconCheck className="h-4 w-4" />
-                      <span>{language === "ar" ? "تمت القراءة" : "Mark Done"}</span>
+                      <span>
+                        {language === "ar" ? "تمت القراءة" : "Mark Done"}
+                      </span>
                     </Button>
                   </div>
                 </div>
@@ -283,15 +320,31 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
             {activeTab === "reader" && (
               <div className="p-6 text-center">
                 <div className="mb-3 flex items-center justify-between border-b border-border/40 pb-3 text-xs text-muted-foreground">
-                  <span className="font-bold text-primary">سورة الفاتحة — آية ١ إلى ٧</span>
-                  <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-bold">مصحف المدينة</span>
+                  <span className="font-bold text-primary">
+                    سورة الفاتحة — آية ١ إلى ٧
+                  </span>
+                  <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-bold">
+                    مصحف المدينة
+                  </span>
                 </div>
-                <div className="my-4 font-serif text-xl leading-loose tracking-wide text-foreground sm:text-2xl" dir="rtl">
-                  بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ ﴿١﴾ ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَـٰلَمِينَ ﴿٢﴾ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ ﴿٣﴾ مَـٰلِكِ يَوْمِ ٱلدِّينِ ﴿٤﴾ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ ﴿٥﴾ ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ ﴿٦﴾ صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ ﴿٧﴾
+                <div
+                  className="my-4 font-serif text-xl leading-loose tracking-wide text-foreground sm:text-2xl"
+                  dir="rtl"
+                >
+                  بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ ﴿١﴾ ٱلْحَمْدُ لِلَّهِ
+                  رَبِّ ٱلْعَـٰلَمِينَ ﴿٢﴾ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ ﴿٣﴾ مَـٰلِكِ
+                  يَوْمِ ٱلدِّينِ ﴿٤﴾ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ
+                  ﴿٥﴾ ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ ﴿٦﴾ صِرَٰطَ ٱلَّذِينَ
+                  أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا
+                  ٱلضَّآلِّينَ ﴿٧﴾
                 </div>
                 <div className="flex items-center justify-center gap-2 pt-2 text-xs font-semibold text-muted-foreground">
                   <IconBookmark className="h-4 w-4 text-amber-500" />
-                  <span>{language === "ar" ? "محفوظ في إشاراتك المرجعية" : "Saved in your Bookmarks"}</span>
+                  <span>
+                    {language === "ar"
+                      ? "محفوظ في إشاراتك المرجعية"
+                      : "Saved in your Bookmarks"}
+                  </span>
                 </div>
               </div>
             )}

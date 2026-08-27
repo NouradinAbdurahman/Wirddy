@@ -96,7 +96,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md print:hidden">
-      <div className="container relative mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <div className="relative container mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Brand Logo */}
         <div className="flex items-center">
           <Link

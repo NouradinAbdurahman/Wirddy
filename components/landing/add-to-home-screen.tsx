@@ -91,7 +91,8 @@ export function AddToHomeScreen() {
   ]
 
   const currentSteps = platform === "iphone" ? iphoneSteps : androidSteps
-  const currentTitle = platform === "iphone" ? t.pwaIphoneTitle : t.pwaAndroidTitle
+  const currentTitle =
+    platform === "iphone" ? t.pwaIphoneTitle : t.pwaAndroidTitle
   const currentNote = platform === "iphone" ? t.pwaIphoneNote : t.pwaAndroidNote
 
   return (
@@ -120,8 +121,12 @@ export function AddToHomeScreen() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-sm font-bold text-foreground">{b.title}</h3>
-                  <p className="text-xs leading-relaxed text-muted-foreground">{b.desc}</p>
+                  <h3 className="text-sm font-bold text-foreground">
+                    {b.title}
+                  </h3>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {b.desc}
+                  </p>
                 </div>
               </Card>
             )
@@ -182,7 +187,9 @@ export function AddToHomeScreen() {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">{currentTitle}</h3>
+                    <h3 className="text-lg font-bold text-foreground">
+                      {currentTitle}
+                    </h3>
                     <p className="text-xs text-muted-foreground">
                       {platform === "iphone" ? "Safari" : "Chrome"}
                     </p>

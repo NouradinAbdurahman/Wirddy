@@ -121,6 +121,15 @@ export default function HomePage() {
           setMembers(parsed.members)
         if (parsed.schedule) {
           setSchedule(parsed.schedule)
+        }
+        if (
+          parsed.step === "landing" ||
+          parsed.step === "planner" ||
+          parsed.step === "schedule"
+        ) {
+          setStep(parsed.step)
+        } else if (parsed.schedule) {
+          // Legacy saved state from before `step` was persisted.
           setStep("schedule")
         }
       }
@@ -135,6 +144,7 @@ export default function HomePage() {
       localStorage.setItem(
         STORAGE_STATE_KEY,
         JSON.stringify({
+          step,
           groupName,
           title,
           description,
@@ -156,6 +166,7 @@ export default function HomePage() {
       // ignore
     }
   }, [
+    step,
     groupName,
     title,
     description,
@@ -318,7 +329,12 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans antialiased">
-      <Header onLogoClick={() => setStep("landing")} />
+      <Header
+        onLogoClick={() => {
+          setStep("landing")
+          window.scrollTo({ top: 0, behavior: "smooth" })
+        }}
+      />
 
       <main className="container mx-auto flex-1 px-4 py-8 sm:px-6 print:m-0 print:w-full print:max-w-none print:p-0">
         <AnimatePresence mode="wait">

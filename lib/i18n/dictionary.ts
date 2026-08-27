@@ -6,12 +6,10 @@ export interface Translations {
   appName: string
   tagline: string
   heroEyebrow: string
-  heroHeadline: string
   heroSubtitle: string
   heroCtaAccount: string
   heroCtaGuest: string
   heroCtaDashboard: string
-  heroTrustLine: string
   ctaCreateGroup: string
   ctaHowItWorks: string
   ctaGetStarted: string
@@ -629,13 +627,11 @@ export const translations: Record<Language, Translations> = {
     appName: "وِردي",
     tagline: "نظّموا وردكم واقرؤوا القرآن معًا",
     heroEyebrow: "تنظيم قراءة القرآن للمجموعات",
-    heroHeadline: "نظّموا وردكم • اقرؤوا معًا • واختموا معًا",
     heroSubtitle:
       "أنشئ جدولًا متوازنًا لقراءة القرآن مع مجموعتك، واعرف وردك اليومي، واقرأ مباشرة داخل وِردي، وتابع تقدمك، وابقَ على تواصل مع مجموعتك طوال الختمة.",
     heroCtaAccount: "أنشئ حسابك مجانًا",
     heroCtaGuest: "أنشئ جدولًا بدون حساب",
     heroCtaDashboard: "لوحة التحكم",
-    heroTrustLine: "خطط لمجموعتك • اقرأ القرآن • تابع التقدم • ابقَ على تواصل",
     ctaCreateGroup: "إنشاء مجموعة",
     ctaHowItWorks: "كيف يعمل؟",
     ctaGetStarted: "ابدأ تنظيم ورد مجموعتك",
@@ -650,105 +646,141 @@ export const translations: Record<Language, Translations> = {
     howItWorksSubtitle:
       "من إنشاء مجموعتك وحتى ختم القرآن، يضمن وِردي تنظيم الختمة بأكملها بكل سلاسة.",
     step1Title: "أنشئ مجموعتك",
-    step1Desc: "أضف أفراد عائلتك أو مجموعتك، وحدد مقدار قراءة كل شخص وما يحفظه من القرآن.",
+    step1Desc:
+      "أضف أفراد عائلتك أو مجموعتك، وحدد مقدار قراءة كل شخص وما يحفظه من القرآن.",
     step2Title: "ابنِ جدولًا متوازنًا",
-    step2Desc: "يقوم وِردي بتقسيم القرآن بالترتيب وتدوير التعيينات أسبوعيًا بعدالة مع مراعاة طاقة كل عضو.",
+    step2Desc:
+      "يقوم وِردي بتقسيم القرآن بالترتيب وتدوير التعيينات أسبوعيًا بعدالة مع مراعاة طاقة كل عضو.",
     step3Title: "اقرأ وردك المحدد",
-    step3Desc: "افتح ورد اليوم من لوحة تحكمك واقرأ المقطع المحدد لك بدقة وبخط عثماني أصيل داخل وِردي مباشرة.",
+    step3Desc:
+      "افتح ورد اليوم من لوحة تحكمك واقرأ المقطع المحدد لك بدقة وبخط عثماني أصيل داخل وِردي مباشرة.",
     step4Title: "تابع الإنجاز واختم معًا",
-    step4Desc: "علّم أورادك المكتملة، واحفظ إشاراتك المرجعية، واستلم التذكيرات، وتابع تقدم المجموعة للوصول إلى الختمة معًا.",
+    step4Desc:
+      "علّم أورادك المكتملة، واحفظ إشاراتك المرجعية، واستلم التذكيرات، وتابع تقدم المجموعة للوصول إلى الختمة معًا.",
 
     dashboardShowcaseTitle: "قرآنك ووردك ومجموعاتك في مكان واحد",
     dashboardShowcaseSubtitle:
       "لوحة تحكمك الشخصية تعرض لك ما يجب قراءته اليوم، والمكان الذي توقفت عنده، وإشاراتك المرجعية، ومجموعاتك، وإعلانات المنظم، ونسبة إنجازك.",
     dashFeatTodayTitle: "ورد اليوم",
-    dashFeatTodayDesc: "شاهد بدقة المقطع والسور المطلوب قراءتها لورد اليوم بضغطة زر.",
+    dashFeatTodayDesc:
+      "شاهد بدقة المقطع والسور المطلوب قراءتها لورد اليوم بضغطة زر.",
     dashFeatContinueTitle: "متابعة القراءة",
     dashFeatContinueDesc: "عُد مباشرة إلى آخر آية وموضع توقفت عنده في القارئ.",
     dashFeatBookmarksTitle: "الإشارات المرجعية",
-    dashFeatBookmarksDesc: "احفظ الآيات والمواضع المهمة للرجوع إليها في أي وقت.",
+    dashFeatBookmarksDesc:
+      "احفظ الآيات والمواضع المهمة للرجوع إليها في أي وقت.",
     dashFeatProgressTitle: "تقدم المجموعة",
-    dashFeatProgressDesc: "شاهد كيف تتقدم مجموعتك نحو إتمام الختمة أسبوعًا بأسبوع.",
+    dashFeatProgressDesc:
+      "شاهد كيف تتقدم مجموعتك نحو إتمام الختمة أسبوعًا بأسبوع.",
     dashFeatAnnounceTitle: "إعلانات المجموعة",
-    dashFeatAnnounceDesc: "ابقَ على اطلاع بأحدث التنبيهات والرسائل من منظم الختمة.",
+    dashFeatAnnounceDesc:
+      "ابقَ على اطلاع بأحدث التنبيهات والرسائل من منظم الختمة.",
 
     readerShowcaseTitle: "اقرأ القرآن مباشرة دون مغادرة وِردي",
     readerShowcaseSubtitle:
       "افتح وردك المحدد مباشرة في قارئ القرآن. تنقل بين السور والآيات، وابحث في نص المصحف، واضبط حجم الخط، وضع إشاراتك المرجعية، وتابع من حيث توقفت.",
     readerFeatTextTitle: "قارئ القرآن العثماني",
-    readerFeatTextDesc: "اقرأ بنص عثماني معتمد ورسم مصحف المدينة الأصيل المريح للعين.",
+    readerFeatTextDesc:
+      "اقرأ بنص عثماني معتمد ورسم مصحف المدينة الأصيل المريح للعين.",
     readerFeatSearchTitle: "بحث شامل في القرآن",
-    readerFeatSearchDesc: "ابحث في كلمات القرآن وسوره وانتقل فورًا وبدقة إلى الآية المطلوبة.",
+    readerFeatSearchDesc:
+      "ابحث في كلمات القرآن وسوره وانتقل فورًا وبدقة إلى الآية المطلوبة.",
     readerFeatBoundsTitle: "حدود قراءة دقيقة",
-    readerFeatBoundsDesc: "شاهد بداية ونهاية وردك بالآية والسورة ورقم الجزء بوضوح.",
+    readerFeatBoundsDesc:
+      "شاهد بداية ونهاية وردك بالآية والسورة ورقم الجزء بوضوح.",
     readerFeatBookmarksTitle: "إشارات مرجعية سريعة",
-    readerFeatBookmarksDesc: "احفظ الآيات بضغطة زر مع ملاحظاتك الخاصة للوصول إليها لاحقًا.",
+    readerFeatBookmarksDesc:
+      "احفظ الآيات بضغطة زر مع ملاحظاتك الخاصة للوصول إليها لاحقًا.",
     readerFeatResumeTitle: "متابعة فورية",
-    readerFeatResumeDesc: "تابع القراءة فورًا من آخر موضع توقفت عنده دون عناء البحث.",
+    readerFeatResumeDesc:
+      "تابع القراءة فورًا من آخر موضع توقفت عنده دون عناء البحث.",
 
     smartScheduleTitle: "جدول ذكي مصمم خصيصًا لمجموعتك",
     smartScheduleSubtitle:
       "وِردي لا يكتفي بتقسيم ٣٠ جزءًا فقط، بل يبني خطة قراءة متوازنة تدويرية تناسب عدد أعضائك، ومقدار قراءة كل شخص، وما يحفظه من القرآن.",
     smartFeatRotationTitle: "تدوير عادل ومتوازن",
-    smartFeatRotationDesc: "يتنقل الأعضاء بين أجزاء وسور القرآن أسبوعًا بعد أسبوع لختم القرآن كاملًا.",
+    smartFeatRotationDesc:
+      "يتنقل الأعضاء بين أجزاء وسور القرآن أسبوعًا بعد أسبوع لختم القرآن كاملًا.",
     smartFeatKnowledgeTitle: "مراعاة ما يحفظه كل عضو",
-    smartFeatKnowledgeDesc: "حدد لكل عضو الأجزاء أو السور التي يتقنها فقط ليتم التوزيع بما يناسبه.",
+    smartFeatKnowledgeDesc:
+      "حدد لكل عضو الأجزاء أو السور التي يتقنها فقط ليتم التوزيع بما يناسبه.",
     smartFeatAmountsTitle: "مرونة في كمية القراءة",
-    smartFeatAmountsDesc: "خصص لكل عضو عدد الأجزاء المناسب لطاقته أسبوعيًا من جزء واحد إلى عدة أجزاء.",
+    smartFeatAmountsDesc:
+      "خصص لكل عضو عدد الأجزاء المناسب لطاقته أسبوعيًا من جزء واحد إلى عدة أجزاء.",
     smartFeatCustomTitle: "نطاقات قرآنية مخصصة",
-    smartFeatCustomDesc: "ابدأ واختم الجدول بسور وآيات مخصصة عند الرغبة في قراءة سور محددة.",
+    smartFeatCustomDesc:
+      "ابدأ واختم الجدول بسور وآيات مخصصة عند الرغبة في قراءة سور محددة.",
     smartFeatRamadanTitle: "دعم ختمات رمضان والمناسبات",
-    smartFeatRamadanDesc: "أنشئ جداول مخصصة لشهر رمضان بالتقويم الهجري والتواريخ الدقيقة.",
+    smartFeatRamadanDesc:
+      "أنشئ جداول مخصصة لشهر رمضان بالتقويم الهجري والتواريخ الدقيقة.",
     smartFeatDailyTitle: "تقسيم يومي للأوراد",
-    smartFeatDailyDesc: "قسّم الورد الأسبوعي إلى حصص يومية من السبت للجمعة لسهولة الالتزام.",
+    smartFeatDailyDesc:
+      "قسّم الورد الأسبوعي إلى حصص يومية من السبت للجمعة لسهولة الالتزام.",
     smartFeatRecurringTitle: "تجديد دوري تلقائي",
-    smartFeatRecurringDesc: "استمرارية تلقائية للدورات والختمات المتكررة أسبوعيًا أو شهريًا دون انقطاع.",
+    smartFeatRecurringDesc:
+      "استمرارية تلقائية للدورات والختمات المتكررة أسبوعيًا أو شهريًا دون انقطاع.",
     smartFeatHistoryTitle: "سجل النسخ والاستعادة",
-    smartFeatHistoryDesc: "راجع التعديلات السابقة واستعد أي نسخة سابقة من جدولك بضغطة زر.",
+    smartFeatHistoryDesc:
+      "راجع التعديلات السابقة واستعد أي نسخة سابقة من جدولك بضغطة زر.",
 
     stayOnTrackTitle: "تابع وردك والتزم بختمتك يوميًا",
     stayOnTrackSubtitle:
       "يحافظ وِردي على تزامن تقدمك في القراءة عبر جميع أجهزتك لتعرف دائمًا ما قرأته وما تبقى لك.",
     trackFeatProgressTitle: "تسجيل الإنجاز",
-    trackFeatProgressDesc: "علّم كل ورد أو يوم مكتمل لترى نسبة إنجازك وإنجاز مجموعتك بوضوح.",
+    trackFeatProgressDesc:
+      "علّم كل ورد أو يوم مكتمل لترى نسبة إنجازك وإنجاز مجموعتك بوضوح.",
     trackFeatDailyTitle: "تذكير يومي ذكي",
-    trackFeatDailyDesc: "حدد الوقت المناسب لك يوميًا لنذكرك بقراءة وردك في موعدك المفضل.",
+    trackFeatDailyDesc:
+      "حدد الوقت المناسب لك يوميًا لنذكرك بقراءة وردك في موعدك المفضل.",
     trackFeatIncompleteTitle: "تنبيه الأوراد غير المكتملة",
-    trackFeatIncompleteDesc: "تنبيه خاص في حال عدم إكمال ورد اليوم لمساعدتك على عدم فوات الورد.",
+    trackFeatIncompleteDesc:
+      "تنبيه خاص في حال عدم إكمال ورد اليوم لمساعدتك على عدم فوات الورد.",
     trackFeatPushTitle: "إشعارات الويب المباشرة",
-    trackFeatPushDesc: "استقبل تذكيراتك وإعلانات مجموعتك مباشرة على هاتفك أو حاسوبك.",
+    trackFeatPushDesc:
+      "استقبل تذكيراتك وإعلانات مجموعتك مباشرة على هاتفك أو حاسوبك.",
     trackFeatRealtimeTitle: "تزامن لحظي فوري",
-    trackFeatRealtimeDesc: "تحديث مباشر لتقدم الأعضاء والإعلانات دون الحاجة لتحديث الصفحة.",
+    trackFeatRealtimeDesc:
+      "تحديث مباشر لتقدم الأعضاء والإعلانات دون الحاجة لتحديث الصفحة.",
     trackFeatOfflineTitle: "دعم القراءة بدون إنترنت",
-    trackFeatOfflineDesc: "اقرأ وسجل إنجازك حتى عند انقطاع الاتصال وستتزامن بياناتك فور عودة الإنترنت.",
+    trackFeatOfflineDesc:
+      "اقرأ وسجل إنجازك حتى عند انقطاع الاتصال وستتزامن بياناتك فور عودة الإنترنت.",
 
     collabTitle: "تواصل مستمر مع أعضاء مجموعتك",
     collabSubtitle:
       "يستطيع كل عضو الوصول لورده الخاص بسهولة، بينما يمتلك المنظم أدوات كاملة لإدارة وتوجيه الختمة.",
     collabFeatLinksTitle: "روابط خاصة لكل عضو",
-    collabFeatLinksDesc: "رابط مخصص لكل عضو يعرض ورده فقط وأزرار القراءة والتسجيل دون تعقيد.",
+    collabFeatLinksDesc:
+      "رابط مخصص لكل عضو يعرض ورده فقط وأزرار القراءة والتسجيل دون تعقيد.",
     collabFeatLinkAccountTitle: "ربط العضو بحسابه",
-    collabFeatLinkAccountDesc: "يمكن للأعضاء ربط وردهم بحساب جوجل لحفظه ومتابعته في لوحة تحكمهم الشخصية.",
+    collabFeatLinkAccountDesc:
+      "يمكن للأعضاء ربط وردهم بحساب جوجل لحفظه ومتابعته في لوحة تحكمهم الشخصية.",
     collabFeatAnnounceTitle: "إعلانات الختمة",
-    collabFeatAnnounceDesc: "شارك التوجيهات ورسائل التحفيز مع أعضاء المجموعة بكل سهولة.",
+    collabFeatAnnounceDesc:
+      "شارك التوجيهات ورسائل التحفيز مع أعضاء المجموعة بكل سهولة.",
     collabFeatProgressTitle: "متابعة إنجاز الفريق",
-    collabFeatProgressDesc: "شاهد لوحة متابعة توضح التزام كل عضو ونسبة إنجاز الختمة أسبوعيًا.",
+    collabFeatProgressDesc:
+      "شاهد لوحة متابعة توضح التزام كل عضو ونسبة إنجاز الختمة أسبوعيًا.",
     collabFeatQrTitle: "مشاركة فورية برمز QR",
-    collabFeatQrDesc: "امسح رمز الاستجابة السريعة للانضمام إلى الجدول فورًا من أي هاتف.",
+    collabFeatQrDesc:
+      "امسح رمز الاستجابة السريعة للانضمام إلى الجدول فورًا من أي هاتف.",
     collabFeatWhatsappTitle: "مشاركة سهلة عبر الواتساب",
-    collabFeatWhatsappDesc: "أرسل روابط الأعضاء ونصوص الأوراد بضغطة زر واحدة عبر واتساب.",
+    collabFeatWhatsappDesc:
+      "أرسل روابط الأعضاء ونصوص الأوراد بضغطة زر واحدة عبر واتساب.",
 
     shareExportTitle: "شارك جدولك بكل سهولة وفي أي مكان",
     shareExportSubtitle:
       "امنح كل عضو جدولًا واضحًا يمكن فتحه أو حفظه أو طباعته أو مشاركته بأي صيغة تناسبه.",
     exportPngTitle: "صور عالية الدقة (PNG)",
-    exportPngDesc: "صور أنيقة ومصممة خصيصًا للمشاركة عبر واتساب وشبكات التواصل.",
+    exportPngDesc:
+      "صور أنيقة ومصممة خصيصًا للمشاركة عبر واتساب وشبكات التواصل.",
     exportPdfTitle: "ملفات PDF جاهزة للطباعة",
-    exportPdfDesc: "جداول منسقة بعناية بمقاس A4 جاهزة للطباعة الورقية وتوزيعها.",
+    exportPdfDesc:
+      "جداول منسقة بعناية بمقاس A4 جاهزة للطباعة الورقية وتوزيعها.",
     exportZipTitle: "حزمة كاملة (ZIP)",
     exportZipDesc: "حمّل صور جميع الأسابيع والأعضاء دفعة واحدة في ملف مضغوط.",
     exportLinksTitle: "روابط دائمة",
-    exportLinksDesc: "افتح الجدول من أي متصفح أو جهاز في أي وقت دون الحاجة لتحميل ملفات.",
+    exportLinksDesc:
+      "افتح الجدول من أي متصفح أو جهاز في أي وقت دون الحاجة لتحميل ملفات.",
     exportQrTitle: "رموز QR",
     exportQrDesc: "مشاركة سريعة عبر المسح بالكاميرا من الهاتف مباشرة.",
     exportWhatsappTitle: "واتساب",
@@ -758,11 +790,14 @@ export const translations: Record<Language, Translations> = {
     pwaSubtitle:
       "ثبّت وِردي على شاشتك الرئيسية للوصول السريع لجدولك، وقارئ القرآن، وتسجيل الإنجاز، والتذكيرات اليومية.",
     pwaFeatHomeTitle: "تثبيت على الشاشة الرئيسية",
-    pwaFeatHomeDesc: "افتح وِردي بضغطة زر واحدة كتطبيق مستقل وبدون شريط المتصفح.",
+    pwaFeatHomeDesc:
+      "افتح وِردي بضغطة زر واحدة كتطبيق مستقل وبدون شريط المتصفح.",
     pwaFeatOfflineTitle: "قراءة بدون إنترنت",
-    pwaFeatOfflineDesc: "يبقى جدولك والمصحف متاحين للقراءة حتى في حال عدم توفر اتصال بالشبكة.",
+    pwaFeatOfflineDesc:
+      "يبقى جدولك والمصحف متاحين للقراءة حتى في حال عدم توفر اتصال بالشبكة.",
     pwaFeatPushTitle: "إشعارات وتذكيرات مباشرة",
-    pwaFeatPushDesc: "تصلك تنبيهات وردك اليومي وإعلانات المجموعة مباشرة كإشعار على شاشتك.",
+    pwaFeatPushDesc:
+      "تصلك تنبيهات وردك اليومي وإعلانات المجموعة مباشرة كإشعار على شاشتك.",
 
     whyChooseTitle: "لماذا تختار المجموعات وِردي؟",
     whyChooseSubtitle:
@@ -774,11 +809,14 @@ export const translations: Record<Language, Translations> = {
     why3Title: "مصحف مدمج وبحث فوري",
     why3Desc: "قراءة مباشرة بالرسم العثماني المعتمد وبحث سريع في كامل المصحف.",
     why4Title: "متابعة مستمرة وتذكير يومي",
-    why4Desc: "تسجيل إنجاز فوري وتذكيرات يومية وإشعارات ويب تساعد على الالتزام.",
+    why4Desc:
+      "تسجيل إنجاز فوري وتذكيرات يومية وإشعارات ويب تساعد على الالتزام.",
     why5Title: "مشاركة وتصدير متعدد الصيغ",
-    why5Desc: "تصدير صور PNG عالية الدقة، وملفات PDF للطباعة، وحزم ZIP، وروابط دائمة.",
+    why5Desc:
+      "تصدير صور PNG عالية الدقة، وملفات PDF للطباعة، وحزم ZIP، وروابط دائمة.",
     why6Title: "واجهة عربية وإنجليزية كاملة",
-    why6Desc: "دعم كامل للغتين العربية والإنجليزية مع اتجاهات RTL وLTR والوضع الليلي.",
+    why6Desc:
+      "دعم كامل للغتين العربية والإنجليزية مع اتجاهات RTL وLTR والوضع الليلي.",
 
     accountBannerTitle: "مجموعاتك، وردك، وقراءتك في حساب واحد",
     accountBannerDesc:
@@ -1261,13 +1299,11 @@ export const translations: Record<Language, Translations> = {
     appName: "Wirddy",
     tagline: "Organize your Quran reading together",
     heroEyebrow: "QURAN READING FOR GROUPS",
-    heroHeadline: "Organize your Quran reading. Read together. Complete together.",
     heroSubtitle:
       "Create a balanced Quran schedule for your group, get your personal daily reading, read directly inside Wirddy, track your progress, and stay connected throughout the Khatmah.",
     heroCtaAccount: "Create your free account",
     heroCtaGuest: "Create a schedule without an account",
     heroCtaDashboard: "Dashboard",
-    heroTrustLine: "Plan your group • Read the Quran • Track progress • Stay connected",
     ctaCreateGroup: "Create a Group",
     ctaHowItWorks: "How It Works",
     ctaGetStarted: "Start organizing your group",
@@ -1282,135 +1318,182 @@ export const translations: Record<Language, Translations> = {
     howItWorksSubtitle:
       "From creating your group to completing your reading, Wirddy keeps the entire Khatmah organized.",
     step1Title: "Create your group",
-    step1Desc: "Add your family or group members, choose how much each person reads, and set their Quran knowledge range.",
+    step1Desc:
+      "Add your family or group members, choose how much each person reads, and set their Quran knowledge range.",
     step2Title: "Build a balanced schedule",
-    step2Desc: "Wirddy divides the Quran in order and rotates assignments across weeks while respecting each member's capacity.",
+    step2Desc:
+      "Wirddy divides the Quran in order and rotates assignments across weeks while respecting each member's capacity.",
     step3Title: "Read your assigned portion",
-    step3Desc: "Open Today's Reading from your dashboard and read the exact assigned Quran section directly inside Wirddy.",
+    step3Desc:
+      "Open Today's Reading from your dashboard and read the exact assigned Quran section directly inside Wirddy.",
     step4Title: "Track and complete together",
-    step4Desc: "Mark portions complete, use bookmarks, receive reminders, follow group progress, and reach the Khatmah together.",
+    step4Desc:
+      "Mark portions complete, use bookmarks, receive reminders, follow group progress, and reach the Khatmah together.",
 
     dashboardShowcaseTitle: "Your Quran, organized in one place.",
     dashboardShowcaseSubtitle:
       "Your personal dashboard shows what you need to read today, where you stopped, your bookmarks, your groups, announcements, and your reading progress.",
     dashFeatTodayTitle: "Today's Reading",
-    dashFeatTodayDesc: "See exactly what you need to read today with starting and ending Ayahs.",
+    dashFeatTodayDesc:
+      "See exactly what you need to read today with starting and ending Ayahs.",
     dashFeatContinueTitle: "Continue Reading",
-    dashFeatContinueDesc: "Return directly to the exact Ayah and Surah where you left off.",
+    dashFeatContinueDesc:
+      "Return directly to the exact Ayah and Surah where you left off.",
     dashFeatBookmarksTitle: "Bookmarks",
-    dashFeatBookmarksDesc: "Save important Quran locations and return to them anytime.",
+    dashFeatBookmarksDesc:
+      "Save important Quran locations and return to them anytime.",
     dashFeatProgressTitle: "Group Progress",
-    dashFeatProgressDesc: "See how your group is progressing through the Khatmah week by week.",
+    dashFeatProgressDesc:
+      "See how your group is progressing through the Khatmah week by week.",
     dashFeatAnnounceTitle: "Announcements",
-    dashFeatAnnounceDesc: "Stay updated with messages and guidance from your group organizer.",
+    dashFeatAnnounceDesc:
+      "Stay updated with messages and guidance from your group organizer.",
 
     readerShowcaseTitle: "Read the Quran without leaving Wirddy.",
     readerShowcaseSubtitle:
       "Open your assigned portion directly in the Quran Reader. Navigate by Surah and Ayah, search the Quran, adjust text size, bookmark Ayahs, and continue exactly where you stopped.",
     readerFeatTextTitle: "Quran Reader",
-    readerFeatTextDesc: "Read authentic Uthmani Quran script in an eye-friendly format.",
+    readerFeatTextDesc:
+      "Read authentic Uthmani Quran script in an eye-friendly format.",
     readerFeatSearchTitle: "Full Quran Search",
-    readerFeatSearchDesc: "Search Quranic words and jump directly to matching Ayahs instantaneously.",
+    readerFeatSearchDesc:
+      "Search Quranic words and jump directly to matching Ayahs instantaneously.",
     readerFeatBoundsTitle: "Exact Reading Boundaries",
-    readerFeatBoundsDesc: "See precisely where your assigned portion starts and ends by Ayah and Surah.",
+    readerFeatBoundsDesc:
+      "See precisely where your assigned portion starts and ends by Ayah and Surah.",
     readerFeatBookmarksTitle: "Quick Bookmarks",
-    readerFeatBookmarksDesc: "Save Ayahs with personal notes for effortless retrieval.",
+    readerFeatBookmarksDesc:
+      "Save Ayahs with personal notes for effortless retrieval.",
     readerFeatResumeTitle: "Instant Resume",
-    readerFeatResumeDesc: "Resume reading from your exact last position without manual searching.",
+    readerFeatResumeDesc:
+      "Resume reading from your exact last position without manual searching.",
 
     smartScheduleTitle: "A schedule built around your group.",
     smartScheduleSubtitle:
       "Wirddy does more than divide 30 Juz between people. It builds a balanced reading plan around your members, their reading amounts, and the parts of the Quran they know.",
     smartFeatRotationTitle: "Balanced Rotation",
-    smartFeatRotationDesc: "Members rotate through different Quran sections across weeks without repetition.",
+    smartFeatRotationDesc:
+      "Members rotate through different Quran sections across weeks without repetition.",
     smartFeatKnowledgeTitle: "Knowledge Ranges",
-    smartFeatKnowledgeDesc: "Assign members only the Quran sections they know or are comfortable reading.",
+    smartFeatKnowledgeDesc:
+      "Assign members only the Quran sections they know or are comfortable reading.",
     smartFeatAmountsTitle: "Flexible Reading Amounts",
-    smartFeatAmountsDesc: "Give each member a personalized weekly reading allocation based on their capacity.",
+    smartFeatAmountsDesc:
+      "Give each member a personalized weekly reading allocation based on their capacity.",
     smartFeatCustomTitle: "Custom Quran Ranges",
-    smartFeatCustomDesc: "Start and end schedules at specific Surahs and Ayahs when needed.",
+    smartFeatCustomDesc:
+      "Start and end schedules at specific Surahs and Ayahs when needed.",
     smartFeatRamadanTitle: "Ramadan Support",
-    smartFeatRamadanDesc: "Create schedules specifically tailored for Ramadan with accurate Hijri calendars.",
+    smartFeatRamadanDesc:
+      "Create schedules specifically tailored for Ramadan with accurate Hijri calendars.",
     smartFeatDailyTitle: "Daily Division",
-    smartFeatDailyDesc: "Break weekly portions into daily reading assignments from Saturday to Friday.",
+    smartFeatDailyDesc:
+      "Break weekly portions into daily reading assignments from Saturday to Friday.",
     smartFeatRecurringTitle: "Recurring Schedules",
-    smartFeatRecurringDesc: "Automatically continue repeating reading cycles seamlessly across weeks or months.",
+    smartFeatRecurringDesc:
+      "Automatically continue repeating reading cycles seamlessly across weeks or months.",
     smartFeatHistoryTitle: "Version History",
-    smartFeatHistoryDesc: "Review previous schedule versions and restore an earlier plan with one click.",
+    smartFeatHistoryDesc:
+      "Review previous schedule versions and restore an earlier plan with one click.",
 
     stayOnTrackTitle: "Stay on track throughout the Khatmah.",
     stayOnTrackSubtitle:
       "Wirddy keeps your reading progress connected across your devices so you always know what is done and what remains.",
     trackFeatProgressTitle: "Reading Progress",
-    trackFeatProgressDesc: "Mark each assigned daily or weekly portion as complete and watch your Khatmah grow.",
+    trackFeatProgressDesc:
+      "Mark each assigned daily or weekly portion as complete and watch your Khatmah grow.",
     trackFeatDailyTitle: "Daily Reminders",
-    trackFeatDailyDesc: "Choose your preferred hour to be reminded of your daily reading.",
+    trackFeatDailyDesc:
+      "Choose your preferred hour to be reminded of your daily reading.",
     trackFeatIncompleteTitle: "Incomplete Reading Reminders",
-    trackFeatIncompleteDesc: "Receive timely reminders when today's reading is still unfinished.",
+    trackFeatIncompleteDesc:
+      "Receive timely reminders when today's reading is still unfinished.",
     trackFeatPushTitle: "Web Push Notifications",
-    trackFeatPushDesc: "Receive reading reminders and group alerts directly on your device.",
+    trackFeatPushDesc:
+      "Receive reading reminders and group alerts directly on your device.",
     trackFeatRealtimeTitle: "Realtime Updates",
-    trackFeatRealtimeDesc: "Group progress and announcements update across devices without refreshing.",
+    trackFeatRealtimeDesc:
+      "Group progress and announcements update across devices without refreshing.",
     trackFeatOfflineTitle: "Offline Support",
-    trackFeatOfflineDesc: "Continue reading and record progress even when offline; syncs automatically once reconnected.",
+    trackFeatOfflineDesc:
+      "Continue reading and record progress even when offline; syncs automatically once reconnected.",
 
     collabTitle: "Keep the whole group connected.",
     collabSubtitle:
       "Everyone can access their own reading portion while organizers keep the entire group organized.",
     collabFeatLinksTitle: "Personal Member Links",
-    collabFeatLinksDesc: "Give every member a private schedule link displaying only their assigned portion.",
+    collabFeatLinksDesc:
+      "Give every member a private schedule link displaying only their assigned portion.",
     collabFeatLinkAccountTitle: "Account Linking",
-    collabFeatLinkAccountDesc: "Members can connect their personal schedule to their Google account for sync.",
+    collabFeatLinkAccountDesc:
+      "Members can connect their personal schedule to their Google account for sync.",
     collabFeatAnnounceTitle: "Announcements",
-    collabFeatAnnounceDesc: "Share important updates and reminders with the whole group easily.",
+    collabFeatAnnounceDesc:
+      "Share important updates and reminders with the whole group easily.",
     collabFeatProgressTitle: "Group Progress",
-    collabFeatProgressDesc: "Track overall Khatmah progress and member completion rates.",
+    collabFeatProgressDesc:
+      "Track overall Khatmah progress and member completion rates.",
     collabFeatQrTitle: "QR Sharing",
-    collabFeatQrDesc: "Scan QR codes to open schedules instantly on any mobile device.",
+    collabFeatQrDesc:
+      "Scan QR codes to open schedules instantly on any mobile device.",
     collabFeatWhatsappTitle: "WhatsApp Sharing",
-    collabFeatWhatsappDesc: "Send member and group links directly through pre-formatted WhatsApp messages.",
+    collabFeatWhatsappDesc:
+      "Send member and group links directly through pre-formatted WhatsApp messages.",
 
     shareExportTitle: "Share your schedule anywhere.",
     shareExportSubtitle:
       "Give every member a clear schedule they can open, save, print, or share.",
     exportPngTitle: "PNG Images",
-    exportPngDesc: "High-resolution schedule images tailored for messaging and social sharing.",
+    exportPngDesc:
+      "High-resolution schedule images tailored for messaging and social sharing.",
     exportPdfTitle: "PDF Documents",
     exportPdfDesc: "Clean printable A4 schedules ready for paper distribution.",
     exportZipTitle: "ZIP Packages",
-    exportZipDesc: "Download complete bundles containing all weeks and member cards in one click.",
+    exportZipDesc:
+      "Download complete bundles containing all weeks and member cards in one click.",
     exportLinksTitle: "Permanent Links",
-    exportLinksDesc: "Open schedules from any device or browser without downloading files.",
+    exportLinksDesc:
+      "Open schedules from any device or browser without downloading files.",
     exportQrTitle: "QR Codes",
     exportQrDesc: "Share schedules instantly with quick camera scan codes.",
     exportWhatsappTitle: "WhatsApp",
-    exportWhatsappDesc: "Share pre-formatted member assignment text directly via WhatsApp.",
+    exportWhatsappDesc:
+      "Share pre-formatted member assignment text directly via WhatsApp.",
 
     pwaTitle: "Use Wirddy like an app.",
     pwaSubtitle:
       "Install Wirddy on your phone for quick access to your reading schedule, Quran Reader, progress, bookmarks, and reminders.",
     pwaFeatHomeTitle: "Install on Home Screen",
-    pwaFeatHomeDesc: "Open Wirddy like a native app without navigating through browser bars.",
+    pwaFeatHomeDesc:
+      "Open Wirddy like a native app without navigating through browser bars.",
     pwaFeatOfflineTitle: "Offline Reading",
-    pwaFeatOfflineDesc: "Your schedule and Quran text remain accessible even without an internet connection.",
+    pwaFeatOfflineDesc:
+      "Your schedule and Quran text remain accessible even without an internet connection.",
     pwaFeatPushTitle: "Push Notifications",
-    pwaFeatPushDesc: "Receive daily reading reminders and group announcements directly on your screen.",
+    pwaFeatPushDesc:
+      "Receive daily reading reminders and group announcements directly on your screen.",
 
     whyChooseTitle: "Why groups choose Wirddy",
     whyChooseSubtitle:
       "Engineered to blend precise Quran scheduling with effortless daily reading and group motivation.",
     why1Title: "Balanced Quran Scheduling",
-    why1Desc: "Fair rotation algorithm ensuring equal distribution and zero repetition across weeks.",
+    why1Desc:
+      "Fair rotation algorithm ensuring equal distribution and zero repetition across weeks.",
     why2Title: "Personalized Reading",
-    why2Desc: "Each member sees their exact starting and ending Ayah tailored to their knowledge range.",
+    why2Desc:
+      "Each member sees their exact starting and ending Ayah tailored to their knowledge range.",
     why3Title: "Built-in Quran Reader",
-    why3Desc: "Read authentic Uthmani Quran script directly within the app with instant full-text search.",
+    why3Desc:
+      "Read authentic Uthmani Quran script directly within the app with instant full-text search.",
     why4Title: "Progress & Reminders",
-    why4Desc: "Real-time progress logging, daily reminders, and web push notifications keep the Khatmah active.",
+    why4Desc:
+      "Real-time progress logging, daily reminders, and web push notifications keep the Khatmah active.",
     why5Title: "Easy Multi-Format Sharing",
-    why5Desc: "Export high-resolution PNGs, printable A4 PDFs, complete ZIPs, and permanent share links.",
+    why5Desc:
+      "Export high-resolution PNGs, printable A4 PDFs, complete ZIPs, and permanent share links.",
     why6Title: "Arabic & English Bilinguality",
-    why6Desc: "Complete bilingual support with natural RTL/LTR layouts and elegant dark/light themes.",
+    why6Desc:
+      "Complete bilingual support with natural RTL/LTR layouts and elegant dark/light themes.",
 
     accountBannerTitle: "Your groups. Your reading. One account.",
     accountBannerDesc:
@@ -1424,7 +1507,8 @@ export const translations: Record<Language, Translations> = {
     finalCtaPrimary: "Create your free account",
     finalCtaGuest: "Create a schedule without an account",
     finalCtaDashboard: "Open Dashboard",
-    finalCtaTrust: "No complicated setup. Just your group, your Quran, and a clear plan.",
+    finalCtaTrust:
+      "No complicated setup. Just your group, your Quran, and a clear plan.",
 
     badgeFree: "Free",
     badgeNoLogin: "No login",

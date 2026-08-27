@@ -34,16 +34,28 @@ export function Footer() {
 
         {/* Quick Nav Links */}
         <nav className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-muted-foreground/80 sm:gap-6">
-          <a href="#how-it-works" className="transition-colors hover:text-foreground">
+          <a
+            href="#how-it-works"
+            className="transition-colors hover:text-foreground"
+          >
             {t.navHowItWorks}
           </a>
-          <a href="#features" className="transition-colors hover:text-foreground">
+          <a
+            href="#features"
+            className="transition-colors hover:text-foreground"
+          >
             {t.navFeatures}
           </a>
-          <a href="#preview" className="transition-colors hover:text-foreground">
+          <a
+            href="#preview"
+            className="transition-colors hover:text-foreground"
+          >
             {t.navPreview}
           </a>
-          <a href="#install" className="transition-colors hover:text-foreground">
+          <a
+            href="#install"
+            className="transition-colors hover:text-foreground"
+          >
             {t.navInstall}
           </a>
         </nav>

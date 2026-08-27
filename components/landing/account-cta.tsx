@@ -48,7 +48,11 @@ export function AccountCta() {
             <div className="space-y-3 lg:col-span-8">
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3.5 py-1 text-xs font-bold text-primary">
                 <IconUserCheck className="h-4 w-4" />
-                <span>{language === "ar" ? "حسابك الشخصي الموحد" : "Single Account Experience"}</span>
+                <span>
+                  {language === "ar"
+                    ? "حسابك الشخصي الموحد"
+                    : "Single Account Experience"}
+                </span>
               </div>
               <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
                 {t.accountBannerTitle}
@@ -61,7 +65,10 @@ export function AccountCta() {
             <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row lg:col-span-4 lg:flex-col">
               {isAuthenticated ? (
                 <Link href="/dashboard" className="w-full">
-                  <Button size="lg" className="h-12 w-full gap-2 rounded-xl text-sm font-bold shadow-md">
+                  <Button
+                    size="lg"
+                    className="h-12 w-full gap-2 rounded-xl text-sm font-bold shadow-md"
+                  >
                     <IconLayoutDashboard className="h-4 w-4" />
                     <span>{t.heroCtaDashboard}</span>
                     <ArrowIcon className="h-4 w-4" />
@@ -70,12 +77,18 @@ export function AccountCta() {
               ) : (
                 <>
                   <Link href="/login" className="w-full">
-                    <Button size="lg" className="h-12 w-full gap-2 rounded-xl text-sm font-bold shadow-md">
+                    <Button
+                      size="lg"
+                      className="h-12 w-full gap-2 rounded-xl text-sm font-bold shadow-md"
+                    >
                       <span>{t.accountBannerCta}</span>
                       <ArrowIcon className="h-4 w-4" />
                     </Button>
                   </Link>
-                  <Link href="/login" className="text-center text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground">
+                  <Link
+                    href="/login"
+                    className="text-center text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+                  >
                     {t.accountBannerSignIn}
                   </Link>
                 </>

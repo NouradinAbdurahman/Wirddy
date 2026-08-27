@@ -90,8 +90,12 @@ export function QuranReaderPreview() {
               {/* Header Navigation in Reader */}
               <div className="mb-4 flex items-center justify-between border-b border-border/40 pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-foreground">سورة الكهف</span>
-                  <Badge variant="outline" className="text-[10px]">الجزء ١٥</Badge>
+                  <span className="font-extrabold text-foreground">
+                    سورة الكهف
+                  </span>
+                  <Badge variant="outline" className="text-[10px]">
+                    الجزء ١٥
+                  </Badge>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-[11px] font-semibold">
@@ -113,9 +117,15 @@ export function QuranReaderPreview() {
                 dir="rtl"
                 className="my-6 space-y-4 rounded-2xl bg-amber-500/5 p-5 text-center font-serif text-lg leading-[2.3] text-foreground sm:text-xl dark:bg-muted/20"
               >
-                <p className="text-primary">بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ</p>
+                <p className="text-primary">
+                  بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
+                </p>
                 <p>
-                  ٱلْحَمْدُ لِلَّهِ ٱلَّذِىٓ أَنزَلَ عَلَىٰ عَبْدِهِ ٱلْكِتَـٰبَ وَلَمْ يَجْعَل لَّهُۥ عِوَجَا ۜ ﴿١﴾ قَيِّمًا لِّيُنذِرَ بَأْسًا شَدِيدًا مِّن لَّدُنْهُ وَيُبَشِّرَ ٱلْمُؤْمِنِينَ ٱلَّذِينَ يَعْمَلُونَ ٱلصَّـٰلِحَـٰتِ أَنَّ لَهُمْ أَجْرًا حَسَنًا ﴿٢﴾ مَّـٰكِثِينَ فِيهِ أَبَدًا ﴿٣﴾
+                  ٱلْحَمْدُ لِلَّهِ ٱلَّذِىٓ أَنزَلَ عَلَىٰ عَبْدِهِ ٱلْكِتَـٰبَ
+                  وَلَمْ يَجْعَل لَّهُۥ عِوَجَا ۜ ﴿١﴾ قَيِّمًا لِّيُنذِرَ
+                  بَأْسًا شَدِيدًا مِّن لَّدُنْهُ وَيُبَشِّرَ ٱلْمُؤْمِنِينَ
+                  ٱلَّذِينَ يَعْمَلُونَ ٱلصَّـٰلِحَـٰتِ أَنَّ لَهُمْ أَجْرًا
+                  حَسَنًا ﴿٢﴾ مَّـٰكِثِينَ فِيهِ أَبَدًا ﴿٣﴾
                 </p>
               </div>
 
@@ -124,7 +134,9 @@ export function QuranReaderPreview() {
                 <span className="font-semibold">صفحة ٢٩٣</span>
                 <div className="flex items-center gap-1.5 text-amber-500">
                   <IconBookmark className="h-3.5 w-3.5 fill-current" />
-                  <span className="text-[11px] font-bold">تم وضع إشارة مرجعية</span>
+                  <span className="text-[11px] font-bold">
+                    تم وضع إشارة مرجعية
+                  </span>
                 </div>
               </div>
             </Card>

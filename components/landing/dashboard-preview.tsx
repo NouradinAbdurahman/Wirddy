@@ -74,10 +74,14 @@ export function DashboardPreview() {
                   </div>
                   <div>
                     <h4 className="text-sm font-extrabold text-foreground">
-                      {language === "ar" ? "مرحباً بك، عبد الرحمن" : "Welcome, Abdurahman"}
+                      {language === "ar"
+                        ? "مرحباً بك، عبد الرحمن"
+                        : "Welcome, Abdurahman"}
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      {language === "ar" ? "لديك ٣ ورد نشط هذا الأسبوع" : "You have 3 active assignments this week"}
+                      {language === "ar"
+                        ? "لديك ٣ ورد نشط هذا الأسبوع"
+                        : "You have 3 active assignments this week"}
                     </p>
                   </div>
                 </div>
@@ -91,7 +95,9 @@ export function DashboardPreview() {
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
                     <IconCompass className="h-4 w-4" />
-                    <span>{language === "ar" ? "وردك لليوم" : "Today's Reading"}</span>
+                    <span>
+                      {language === "ar" ? "وردك لليوم" : "Today's Reading"}
+                    </span>
                   </div>
                   <span className="text-[11px] font-semibold text-muted-foreground">
                     {language === "ar" ? "الأسبوع الثاني" : "Week 2"}
@@ -100,13 +106,20 @@ export function DashboardPreview() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-black text-foreground">
-                      {language === "ar" ? "سورة البقرة (الآيات ٢٥٣ — ٢٨٦)" : "Surah Al-Baqarah (Ayahs 253 — 286)"}
+                      {language === "ar"
+                        ? "سورة البقرة (الآيات ٢٥٣ — ٢٨٦)"
+                        : "Surah Al-Baqarah (Ayahs 253 — 286)"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {language === "ar" ? "الجزء الثالث • صفحة ٤٢ إلى ٤٩" : "Juz 3 • Pages 42 to 49"}
+                      {language === "ar"
+                        ? "الجزء الثالث • صفحة ٤٢ إلى ٤٩"
+                        : "Juz 3 • Pages 42 to 49"}
                     </p>
                   </div>
-                  <Button size="sm" className="h-8 gap-1 rounded-lg text-xs font-bold shadow-sm">
+                  <Button
+                    size="sm"
+                    className="h-8 gap-1 rounded-lg text-xs font-bold shadow-sm"
+                  >
                     <IconBook className="h-3.5 w-3.5" />
                     <span>{language === "ar" ? "اقرأ الآن" : "Read Now"}</span>
                   </Button>
@@ -119,9 +132,13 @@ export function DashboardPreview() {
                 <div className="rounded-xl border border-border/50 bg-muted/40 p-3">
                   <div className="flex items-center justify-between pb-1">
                     <span className="text-xs font-bold text-foreground">
-                      {language === "ar" ? "ختمة الفجر الأسبوعية" : "Fajr Weekly Khatmah"}
+                      {language === "ar"
+                        ? "ختمة الفجر الأسبوعية"
+                        : "Fajr Weekly Khatmah"}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">٦ أعضاء</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      ٦ أعضاء
+                    </span>
                   </div>
                   <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                     <div className="h-full w-3/4 rounded-full bg-primary" />
@@ -134,12 +151,16 @@ export function DashboardPreview() {
                     <div className="flex items-center gap-1">
                       <IconBookmark className="h-3 w-3 text-amber-500" />
                       <span className="text-xs font-bold text-foreground">
-                        {language === "ar" ? "آية الكرسي (البقرة ٢٥٥)" : "Ayat Al-Kursi (2:255)"}
+                        {language === "ar"
+                          ? "آية الكرسي (البقرة ٢٥٥)"
+                          : "Ayat Al-Kursi (2:255)"}
                       </span>
                     </div>
                   </div>
                   <span className="text-[10px] text-muted-foreground">
-                    {language === "ar" ? "آخر إشارة محفوظة" : "Latest saved bookmark"}
+                    {language === "ar"
+                      ? "آخر إشارة محفوظة"
+                      : "Latest saved bookmark"}
                   </span>
                 </div>
               </div>
