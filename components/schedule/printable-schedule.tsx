@@ -97,15 +97,12 @@ export function PrintableSchedule({
             </div>
 
             {qrCodeUrl && (
-              <div className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xs">
+              <div className="flex items-center justify-center rounded-xl border border-slate-200 bg-white p-1.5 shadow-xs">
                 <img
                   src={qrCodeUrl}
                   alt="QR Code"
                   className="h-16 w-16 object-contain"
                 />
-                <span className="text-[8px] font-bold text-slate-500">
-                  wirddy.vercel.app
-                </span>
               </div>
             )}
           </div>
