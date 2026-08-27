@@ -1,17 +1,64 @@
 /**
- * Triggers a browser file download from a Blob, managing object URL creation and revocation.
+ * Triggers a browser file download from a Blob.
  *
- * NOTE: The HTML `download` attribute silently fails in Chrome/Safari on macOS when the
- * filename contains non-ASCII characters (Arabic, etc.), causing the browser to fall back
- * to the blob URL UUID (no extension, unreadable file). We force ASCII-safe names here.
+ * CROSS-BROWSER STRATEGY:
+ *
+ * Chrome breaks the "user gesture" chain after any `await`. When link.click()
+ * is called inside an async export pipeline (font loading → rAF waits → toBlob
+ * → etc.), Chrome no longer considers it user-initiated and silently ignores
+ * link.download, using the blob URL UUID as filename instead.
+ *
+ * Fix: Use the File System Access API (showSaveFilePicker) in Chrome — this API
+ * shows a native "Save As" dialog and does NOT require the original user gesture
+ * to still be active. It pre-fills the filename correctly.
+ *
+ * Safari / Firefox don't have this issue and the classic blob URL approach works fine.
  */
-export function triggerBrowserDownload(blob: Blob, filename: string): void {
+export async function triggerBrowserDownload(
+  blob: Blob,
+  filename: string
+): Promise<void> {
   if (typeof window === "undefined") return
 
-  // Force an ASCII-safe filename so the `download` attribute is respected by all browsers.
-  // Non-ASCII chars (Arabic numerals, Arabic text) are transliterated or stripped.
   const safeFilename = toAsciiFriendlyFilename(filename)
+  const ext = safeFilename.split(".").pop()?.toLowerCase() || "bin"
 
+  // --- Chrome path: File System Access API ---
+  // showSaveFilePicker works even in async context and always preserves filename.
+  if ("showSaveFilePicker" in window) {
+    const mimeMap: Record<string, string> = {
+      png: "image/png",
+      pdf: "application/pdf",
+      zip: "application/zip",
+    }
+    const mimeType = mimeMap[ext] ?? "application/octet-stream"
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: safeFilename,
+        types: [
+          {
+            description: "Download",
+            accept: { [mimeType]: [`.${ext}`] },
+          },
+        ],
+      })
+      const writable = await handle.createWritable()
+      await writable.write(blob)
+      await writable.close()
+      return
+    } catch (err: unknown) {
+      // AbortError = user clicked Cancel in the dialog — do nothing
+      if ((err as { name?: string })?.name === "AbortError") return
+      // Any other error: fall through to the classic approach below
+      console.warn("[Wirddy] showSaveFilePicker failed, falling back:", err)
+    }
+  }
+
+  // --- Safari / Firefox path: classic blob URL anchor ---
+  // Safari doesn't break the user gesture chain through await, so link.download
+  // is respected and the filename is preserved.
   const url = URL.createObjectURL(blob)
   const link = document.createElement("a")
   link.style.display = "none"
@@ -21,7 +68,6 @@ export function triggerBrowserDownload(blob: Blob, filename: string): void {
   document.body.appendChild(link)
   link.click()
 
-  // Cleanup after browser triggers download
   setTimeout(() => {
     try {
       document.body.removeChild(link)
@@ -34,18 +80,19 @@ export function triggerBrowserDownload(blob: Blob, filename: string): void {
 
 /**
  * Converts a filename that may contain Arabic/Unicode characters into a safe ASCII filename.
- * Preserves the file extension, transliterates common patterns, strips the rest.
+ * Preserves the file extension. Transliterates common Arabic strings used in Wirddy filenames.
+ *
+ * Needed because the HTML <a download> attribute is silently ignored by Chrome/Safari when
+ * the filename contains non-ASCII characters.
  */
 function toAsciiFriendlyFilename(filename: string): string {
   if (!filename) return "Wirddy-export"
 
-  // Split extension off
   const lastDot = filename.lastIndexOf(".")
   const hasExt = lastDot > 0 && lastDot < filename.length - 1
   const ext = hasExt ? filename.slice(lastDot) : "" // e.g. ".png", ".pdf", ".zip"
   const base = hasExt ? filename.slice(0, lastDot) : filename
 
-  // Common Arabic transliterations used in Wirddy filenames
   const transliterated = base
     .replace(/الأسبوع/g, "Week")
     .replace(/الخطة-كاملة/g, "Full-Plan")
@@ -56,7 +103,7 @@ function toAsciiFriendlyFilename(filename: string): string {
     )
     // Strip remaining non-ASCII characters
     .replace(/[^\x20-\x7E]/g, "")
-    // Clean up any double-dashes or leading/trailing dashes
+    // Clean up double-dashes or leading/trailing dashes
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "")
     .trim()

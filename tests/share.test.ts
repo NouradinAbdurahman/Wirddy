@@ -137,7 +137,7 @@ describe("Schedule Full Plan PDF Share", () => {
 
     const downloadSpy = vi
       .spyOn(downloadModule, "triggerBrowserDownload")
-      .mockImplementation(() => {})
+      .mockImplementation(async () => {})
 
     const abortError = new Error("User canceled share")
     abortError.name = "AbortError"
@@ -163,7 +163,7 @@ describe("Schedule Full Plan PDF Share", () => {
 
     const downloadSpy = vi
       .spyOn(downloadModule, "triggerBrowserDownload")
-      .mockImplementation(() => {})
+      .mockImplementation(async () => {})
 
     vi.stubGlobal("navigator", {
       share: undefined,
