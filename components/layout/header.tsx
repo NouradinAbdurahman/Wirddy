@@ -52,18 +52,31 @@ export function Header({
     const supabase = getSupabaseBrowserClient()
     if (!supabase) return
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
+    // Initial session & user check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
         setUser({
-          email: user.email,
+          email: session.user.email,
           name:
-            user.user_metadata?.full_name ||
-            user.user_metadata?.name ||
-            user.email?.split("@")[0],
-          avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+            session.user.user_metadata?.full_name ||
+            session.user.user_metadata?.name ||
+            session.user.email?.split("@")[0],
+          avatar:
+            session.user.user_metadata?.avatar_url ||
+            session.user.user_metadata?.picture,
         })
       } else {
         setUser(null)
+      }
+
+      // If landed with code/error query param in address bar, cleanly strip it
+      if (
+        typeof window !== "undefined" &&
+        (window.location.search.includes("code=") ||
+          window.location.search.includes("error="))
+      ) {
+        const cleanUrl = window.location.pathname + (window.location.hash || "")
+        window.history.replaceState({}, "", cleanUrl)
       }
     })
 

@@ -1,4 +1,5 @@
-import { createClient, SupabaseClient } from "@supabase/supabase-js"
+import { createBrowserClient } from "@supabase/ssr"
+import { SupabaseClient } from "@supabase/supabase-js"
 import { Database } from "./types"
 
 let browserClient: SupabaseClient<Database> | null = null
@@ -22,22 +23,18 @@ export function isSupabaseConfigured(): boolean {
 }
 
 /**
- * Returns a browser-safe Supabase client initialized with publishable/anon credentials.
+ * Returns a browser-safe Supabase client initialized with @supabase/ssr.
+ * Automatically synchronizes session state and cookies with document.cookie.
  * Returns null if Supabase is not configured.
  */
 export function getSupabaseBrowserClient(): SupabaseClient<Database> | null {
   if (typeof window === "undefined") {
-    // In SSR, create or return client if configured
+    // In SSR, return client if configured
     if (!isSupabaseConfigured()) return null
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const key = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!
-    return createClient<Database>(url, key, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    })
+    return createBrowserClient<Database>(url, key)
   }
 
   if (browserClient) return browserClient
@@ -50,14 +47,7 @@ export function getSupabaseBrowserClient(): SupabaseClient<Database> | null {
   const key = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!
 
-  browserClient = createClient<Database>(url, key, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: "pkce",
-    },
-  })
+  browserClient = createBrowserClient<Database>(url, key)
 
   return browserClient
 }
