@@ -258,7 +258,7 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col bg-background font-sans antialiased">
       <Header onLogoClick={() => setStep("landing")} />
 
-      <main className="container mx-auto flex-1 px-4 py-8 sm:px-6">
+      <main className="container mx-auto flex-1 px-4 py-8 sm:px-6 print:m-0 print:w-full print:max-w-none print:p-0">
         <AnimatePresence mode="wait">
           {/* 1. Landing Page */}
           {step === "landing" && (

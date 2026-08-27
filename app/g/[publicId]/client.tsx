@@ -292,7 +292,7 @@ export function PublicScheduleClient({
     <div className="flex min-h-screen flex-col bg-background font-sans antialiased">
       <Header />
 
-      <main className="container mx-auto flex-1 px-4 py-8 sm:px-6">
+      <main className="container mx-auto flex-1 px-4 py-8 sm:px-6 print:m-0 print:w-full print:max-w-none print:p-0">
         {/* Editor Mode Banner */}
         {isEditor && !isEditing && (
           <div className="mx-auto mb-6 flex max-w-5xl items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 sm:px-5">
