@@ -56,7 +56,7 @@ export function PrintableSchedule({
   return (
     <div
       dir={dir}
-      className="hidden print:block print:w-full print:bg-white print:text-slate-900 print:antialiased"
+      className="hidden print:mx-auto print:block print:w-full print:max-w-4xl print:bg-white print:p-6 print:text-slate-900 print:antialiased"
     >
       {/* Cover / Header Section */}
       <div className="mb-6 rounded-2xl border-2 border-slate-200 bg-slate-50/80 p-6 print:border-slate-300 print:bg-slate-50">

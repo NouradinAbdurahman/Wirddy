@@ -133,7 +133,7 @@
 
 @media print {
   @page {
-    margin: 12mm 14mm;
+    margin: 15mm 16mm;
     size: A4 portrait;
   }
 
