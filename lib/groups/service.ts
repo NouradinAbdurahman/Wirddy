@@ -2251,3 +2251,345 @@ export async function processRecurringCycle(
 
   return saved
 }
+
+export interface UserTodaysReadingResult {
+  groupPublicId: string
+  groupName: string
+  memberPublicId: string
+  memberName: string
+  weekNumber: number
+  dayNumber: number
+  surahNumber: number
+  surahNameAr: string
+  surahNameEn: string
+  startAyah: number
+  endAyah: number
+  endSurahNumber?: number
+  endSurahNameAr?: string
+  endSurahNameEn?: string
+  juzNumber: number
+  isCompleted: boolean
+  dateFormatted?: string
+  totalWeeklyAmount: number
+  totalWeeks: number
+}
+
+export interface MemberProgressSummary {
+  memberPublicId: string
+  memberName: string
+  weeklyAmount: number
+  assignedPortionDescriptionAr: string
+  assignedPortionDescriptionEn: string
+  completedDays: number
+  totalDays: number
+  isCompleted: boolean
+  percent: number
+  lastActivityAt: string | null
+  isLinked: boolean
+  linkedUserId: string | null
+}
+
+export interface GroupProgressSummary {
+  groupPublicId: string
+  groupName: string
+  totalMembers: number
+  totalJuz: number
+  completedJuz: number
+  remainingJuz: number
+  overallPercent: number
+  currentWeek: number
+  totalWeeks: number
+  members: MemberProgressSummary[]
+}
+
+/**
+ * Derives the active today's reading assignment for an authenticated user from their active groups.
+ */
+export async function fetchUserTodaysReading(
+  userId: string
+): Promise<UserTodaysReadingResult | null> {
+  if (!userId) return null
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return null
+
+  // 1. Fetch user's active groups
+  const userGroups = await fetchUserGroups(userId, "active")
+  if (!userGroups || userGroups.length === 0) return null
+
+  // Prioritize group where user has a linked member slot, otherwise first active group
+  const activeGroupSummary =
+    userGroups.find((g) => Boolean(g.memberPublicId)) || userGroups[0]
+
+  if (!activeGroupSummary) return null
+
+  // 2. Fetch full loaded group data
+  const group = await getGroupByPublicId(activeGroupSummary.publicId)
+  if (!group || !group.schedule || !group.schedule.weeks.length) return null
+
+  // 3. Determine current week (1-indexed)
+  let currentWeekNum = 1
+  if (group.usesDates && group.startDate) {
+    const start = new Date(group.startDate).getTime()
+    const now = Date.now()
+    if (now >= start) {
+      const elapsedDays = Math.floor((now - start) / (24 * 60 * 60 * 1000))
+      currentWeekNum = Math.min(
+        group.schedule.weeksCount,
+        Math.max(1, Math.floor(elapsedDays / 7) + 1)
+      )
+    }
+  }
+
+  // 4. Determine current day of week (1 to 7)
+  const currentDayNum = Math.max(1, Math.min(7, (new Date().getDay() + 1)))
+
+  // 5. Find member
+  const targetMemberPublicId =
+    activeGroupSummary.memberPublicId ||
+    group.membersConfig[0]?.publicId ||
+    group.membersConfig[0]?.id
+
+  const member =
+    group.membersConfig.find(
+      (m) =>
+        m.publicId === targetMemberPublicId || m.id === targetMemberPublicId
+    ) || group.membersConfig[0]
+
+  if (!member) return null
+
+  // 6. Find assignment for the current week
+  const week =
+    group.schedule.weeks.find((w) => w.weekNumber === currentWeekNum) ||
+    group.schedule.weeks[0]
+
+  const assignment =
+    week.assignments.find(
+      (a) =>
+        a.memberPublicId === member.publicId ||
+        a.memberId === member.id ||
+        a.memberName.toLowerCase().trim() === member.name.toLowerCase().trim()
+    ) || week.assignments[0]
+
+  if (!assignment) return null
+
+  // 7. Check if daily breakdown applies
+  let surahNumber = assignment.startAyah.surahNumber
+  let surahNameAr = assignment.startAyah.surahNameAr
+  let surahNameEn = assignment.startAyah.surahNameEn
+  let startAyah = assignment.startAyah.ayahNumber
+  let endSurahNumber = assignment.endAyah.surahNumber
+  let endSurahNameAr = assignment.endAyah.surahNameAr
+  let endSurahNameEn = assignment.endAyah.surahNameEn
+  let endAyah = assignment.endAyah.ayahNumber
+  let juzNumber = assignment.startJuz
+  let dateFormatted: string | undefined = undefined
+
+  if (
+    group.dailyDivisionEnabled &&
+    assignment.dailyBreakdown &&
+    assignment.dailyBreakdown.length > 0
+  ) {
+    const dailyPortion =
+      assignment.dailyBreakdown[currentDayNum - 1] ||
+      assignment.dailyBreakdown[0]
+    if (dailyPortion) {
+      surahNumber = dailyPortion.startAyah.surahNumber
+      surahNameAr = dailyPortion.startAyah.surahNameAr
+      surahNameEn = dailyPortion.startAyah.surahNameEn
+      startAyah = dailyPortion.startAyah.ayahNumber
+      endSurahNumber = dailyPortion.endAyah.surahNumber
+      endSurahNameAr = dailyPortion.endAyah.surahNameAr
+      endSurahNameEn = dailyPortion.endAyah.surahNameEn
+      endAyah = dailyPortion.endAyah.ayahNumber
+      juzNumber = assignment.startJuz
+      dateFormatted = dailyPortion.formattedDateAr || dailyPortion.dateStr
+    }
+  }
+
+  // 8. Check completion status from reading_progress table
+  let isCompleted = false
+  try {
+    const { data: memberDb } = await supabase
+      .from("group_members")
+      .select("id")
+      .eq("public_id", member.publicId || targetMemberPublicId)
+      .single()
+
+    if (memberDb?.id) {
+      const { data: progressRow } = await supabase
+        .from("reading_progress")
+        .select("is_completed")
+        .eq("group_id", (group as any).id || (await supabase.from("groups").select("id").eq("public_id", group.publicId).single()).data?.id)
+        .eq("member_id", memberDb.id)
+        .eq("week_number", currentWeekNum)
+        .eq("day_number", currentDayNum)
+        .single()
+
+      if (progressRow) {
+        isCompleted = Boolean(progressRow.is_completed)
+      }
+    }
+  } catch {
+    // Non-fatal if query fails
+  }
+
+  return {
+    groupPublicId: group.publicId,
+    groupName: group.groupName,
+    memberPublicId: member.publicId || targetMemberPublicId,
+    memberName: member.name,
+    weekNumber: currentWeekNum,
+    dayNumber: currentDayNum,
+    surahNumber,
+    surahNameAr,
+    surahNameEn,
+    startAyah,
+    endAyah,
+    endSurahNumber,
+    endSurahNameAr,
+    endSurahNameEn,
+    juzNumber,
+    isCompleted,
+    dateFormatted,
+    totalWeeklyAmount: assignment.weeklyAmount,
+    totalWeeks: group.schedule.weeksCount,
+  }
+}
+
+/**
+ * Aggregates complete progress details and percentages for all members of a group.
+ */
+export async function fetchGroupProgressSummary(
+  groupPublicId: string
+): Promise<GroupProgressSummary | null> {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return null
+
+  const group = await getGroupByPublicId(groupPublicId)
+  if (!group || !group.schedule) return null
+
+  // 1. Determine current week
+  let currentWeekNum = 1
+  if (group.usesDates && group.startDate) {
+    const start = new Date(group.startDate).getTime()
+    const now = Date.now()
+    if (now >= start) {
+      const elapsedDays = Math.floor((now - start) / (24 * 60 * 60 * 1000))
+      currentWeekNum = Math.min(
+        group.schedule.weeksCount,
+        Math.max(1, Math.floor(elapsedDays / 7) + 1)
+      )
+    }
+  }
+
+  // 2. Fetch group DB record & members with linked_user_id
+  const { data: groupDb } = await supabase
+    .from("groups")
+    .select("id")
+    .eq("public_id", groupPublicId.trim())
+    .single()
+
+  if (!groupDb) return null
+
+  const { data: membersDb } = await supabase
+    .from("group_members")
+    .select("id, public_id, name, linked_user_id, weekly_amount")
+    .eq("group_id", groupDb.id)
+
+  const { data: progressRows } = await supabase
+    .from("reading_progress")
+    .select("member_id, week_number, day_number, is_completed, completed_at, updated_at")
+    .eq("group_id", groupDb.id)
+    .eq("week_number", currentWeekNum)
+
+  const week =
+    group.schedule.weeks.find((w) => w.weekNumber === currentWeekNum) ||
+    group.schedule.weeks[0]
+
+  const totalDaysPerWeek = group.dailyDivisionEnabled ? 7 : 1
+
+  let totalCompletedJuz = 0
+  let totalAssignedJuz = 0
+
+  const memberSummaries: MemberProgressSummary[] = group.membersConfig.map((m) => {
+    const dbMem = membersDb?.find(
+      (dm: any) => dm.public_id === m.publicId || dm.id === m.id
+    )
+    const memberDbId = dbMem?.id
+
+    const assignment =
+      week?.assignments.find(
+        (a) =>
+          a.memberPublicId === m.publicId ||
+          a.memberId === m.id ||
+          a.memberName.toLowerCase().trim() === m.name.toLowerCase().trim()
+      )
+
+    const completedProgress = progressRows?.filter(
+      (p: any) => p.member_id === memberDbId && p.is_completed
+    ) || []
+
+    const completedDaysCount = completedProgress.length
+    const isCompleted = completedDaysCount >= totalDaysPerWeek
+    const percent = Math.min(
+      100,
+      Math.round((completedDaysCount / totalDaysPerWeek) * 100)
+    )
+
+    const memberWeeklyAmount = m.weeklyAmount || assignment?.weeklyAmount || 1
+    totalAssignedJuz += memberWeeklyAmount
+    totalCompletedJuz += memberWeeklyAmount * (percent / 100)
+
+    const lastActivity =
+      completedProgress.length > 0
+        ? completedProgress.sort(
+            (a: any, b: any) =>
+              new Date(b.completed_at || b.updated_at).getTime() -
+              new Date(a.completed_at || a.updated_at).getTime()
+          )[0]?.completed_at
+        : null
+
+    const portionDescAr = assignment
+      ? `الجزء ${assignment.startJuz} - ${assignment.endJuz} (سورة ${assignment.startAyah.surahNameAr} ${assignment.startAyah.ayahNumber} ← ${assignment.endAyah.surahNameAr} ${assignment.endAyah.ayahNumber})`
+      : `${m.weeklyAmount} أجزاء`
+
+    const portionDescEn = assignment
+      ? `Juz ${assignment.startJuz} - ${assignment.endJuz} (${assignment.startAyah.surahNameEn} ${assignment.startAyah.ayahNumber} to ${assignment.endAyah.surahNameEn} ${assignment.endAyah.ayahNumber})`
+      : `${m.weeklyAmount} Juz`
+
+    return {
+      memberPublicId: m.publicId || dbMem?.public_id || m.id,
+      memberName: m.name,
+      weeklyAmount: memberWeeklyAmount,
+      assignedPortionDescriptionAr: portionDescAr,
+      assignedPortionDescriptionEn: portionDescEn,
+      completedDays: completedDaysCount,
+      totalDays: totalDaysPerWeek,
+      isCompleted,
+      percent,
+      lastActivityAt: lastActivity,
+      isLinked: Boolean(dbMem?.linked_user_id),
+      linkedUserId: dbMem?.linked_user_id || null,
+    }
+  })
+
+  const overallPercent =
+    totalAssignedJuz > 0
+      ? Math.min(100, Math.round((totalCompletedJuz / totalAssignedJuz) * 100))
+      : 0
+
+  return {
+    groupPublicId: group.publicId,
+    groupName: group.groupName,
+    totalMembers: group.membersConfig.length,
+    totalJuz: totalAssignedJuz,
+    completedJuz: Math.round(totalCompletedJuz * 10) / 10,
+    remainingJuz: Math.max(0, Math.round((totalAssignedJuz - totalCompletedJuz) * 10) / 10),
+    overallPercent,
+    currentWeek: currentWeekNum,
+    totalWeeks: group.schedule.weeksCount,
+    members: memberSummaries,
+  }
+}
+

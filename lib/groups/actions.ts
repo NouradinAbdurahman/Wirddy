@@ -18,12 +18,15 @@ import {
   exportUserData,
   fetchAnnouncements,
   fetchGroupReadingProgress,
+  fetchGroupProgressSummary,
   fetchNotificationPreferences,
   fetchScheduleHistory,
   fetchUserBookmarks,
   fetchUserGroups,
+  fetchUserTodaysReading,
   getGroupByPublicId,
   getMemberScheduleByPublicId,
+  GroupProgressSummary,
   linkMemberAccount,
   LoadedPublicGroup,
   LoadedPublicMemberSchedule,
@@ -38,6 +41,7 @@ import {
   startNewKhatmah,
   updateGroupAndRegenerate,
   UserGroupSummary,
+  UserTodaysReadingResult,
   validateEditAccess,
 } from "./service"
 import { createSupabaseServerClient } from "../supabase/server"
@@ -847,3 +851,55 @@ export async function sendTestNotificationAction(): Promise<
     }
   }
 }
+
+/**
+ * Server Action: Fetches real today's reading portion for the authenticated user.
+ */
+export async function getTodaysReadingAction(): Promise<
+  ActionResponse<UserTodaysReadingResult | null>
+> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) {
+      return { success: true, data: null }
+    }
+
+    const data = await fetchUserTodaysReading(userId)
+    return {
+      success: true,
+      data,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to fetch today's reading.",
+      data: null,
+    }
+  }
+}
+
+/**
+ * Server Action: Fetches real group progress summary for all members and overall completion.
+ */
+export async function getGroupProgressSummaryAction(
+  groupPublicId: string
+): Promise<ActionResponse<GroupProgressSummary | null>> {
+  try {
+    if (!groupPublicId) {
+      return { success: false, error: "Group ID required.", data: null }
+    }
+
+    const summary = await fetchGroupProgressSummary(groupPublicId)
+    return {
+      success: true,
+      data: summary,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to fetch group progress summary.",
+      data: null,
+    }
+  }
+}
+

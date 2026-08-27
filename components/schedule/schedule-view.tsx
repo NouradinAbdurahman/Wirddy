@@ -9,6 +9,7 @@ import {
   IconCalendar,
   IconCalendarEvent,
   IconCheck,
+  IconChevronRight,
   IconCircleCheck,
   IconCopy,
   IconDownload,
@@ -23,7 +24,9 @@ import {
   IconTable,
   IconUser,
   IconUsers,
+  IconUsersGroup,
 } from "@tabler/icons-react"
+import { InviteMemberModal } from "@/components/dashboard/invite-member-modal"
 import { useI18n } from "@/lib/i18n/context"
 import {
   GeneratedSchedule,
@@ -79,12 +82,18 @@ export function ScheduleView({
   const { language, dir, t, formatNumber } = useI18n()
   const [activeWeekNum, setActiveWeekNum] = useState<number>(1)
   const [viewTab, setViewTab] = useState<"cards" | "table" | "daily">("cards")
-  const [activeMode, setActiveMode] = useState<"group" | "personal">(
+  const [activeMode, setActiveMode] = useState<"group" | "personal" | "members">(
     initialSelectedMemberId ? "personal" : "group"
   )
   const [selectedMemberId, setSelectedMemberId] = useState<string>(
     initialSelectedMemberId || schedule.members[0]?.id || ""
   )
+  const [inviteModalMember, setInviteModalMember] = useState<{
+    memberName: string
+    groupName: string
+    groupPublicId: string
+    memberPublicId: string
+  } | null>(null)
 
   const [showRegenerateDialog, setShowRegenerateDialog] =
     useState<boolean>(false)
@@ -298,9 +307,9 @@ export function ScheduleView({
           </div>
         </div>
 
-        {/* Group View vs My Personal Schedule Mode Toggle */}
+        {/* Group View vs My Personal Schedule vs Members & Invites Mode Toggle */}
         <div className="flex items-center justify-between gap-3 border-b border-border/30 pb-2">
-          <div className="flex items-center rounded-xl bg-muted/60 p-1">
+          <div className="flex flex-wrap items-center rounded-xl bg-muted/60 p-1 gap-1">
             <button
               type="button"
               onClick={() => setActiveMode("group")}
@@ -326,11 +335,119 @@ export function ScheduleView({
               <IconUser className="h-3.5 w-3.5" />
               <span>{t.viewModePersonal}</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveMode("members")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                activeMode === "members"
+                  ? "bg-card text-foreground shadow-xs ring-1 ring-border/50"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <IconUsersGroup className="h-3.5 w-3.5" />
+              <span>{language === "ar" ? "الأعضاء والدعوات" : "Members & Invites"}</span>
+            </button>
           </div>
         </div>
 
-        {/* Conditional View: Group View vs Personal Member View */}
-        {activeMode === "personal" && selectedMember ? (
+        {/* Conditional View: Members Hub vs Personal View vs Full Group View */}
+        {activeMode === "members" ? (
+          <Card className="space-y-6 rounded-2xl border border-border/70 bg-card/80 p-5 sm:p-6 shadow-xs text-start">
+            <div className="flex flex-col justify-between gap-4 border-b border-border/60 pb-4 sm:flex-row sm:items-center">
+              <div>
+                <h3 className="text-base font-extrabold text-foreground">
+                  {language === "ar" ? "أعضاء المجموعة وروابط الورد" : "Group Members & Reading Links"}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {language === "ar"
+                    ? "مشاركة روابط الانضمام والورد القرآني المخصص لكل عضو في المجموعة"
+                    : "Share personal reading schedules and join links with each member"}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs font-bold text-primary">
+                  {formatNumber(schedule.members.length)} {t.summaryMembers}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {schedule.members.map((m, idx) => {
+                const memberPublicId = m.publicId || m.id
+                return (
+                  <div
+                    key={m.id || idx}
+                    className="flex flex-col justify-between rounded-xl border border-border/70 bg-card/90 p-4 space-y-3 shadow-2xs hover:border-primary/40 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-xs font-black text-primary">
+                          {(m.name?.[0] || "U").toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="truncate text-sm font-extrabold text-foreground">
+                            {m.name}
+                          </h4>
+                          <p className="text-[11px] font-semibold text-primary">
+                            {language === "ar"
+                              ? `${toArabicNumerals(m.weeklyAmount)} أجزاء أسبوعياً`
+                              : `${m.weeklyAmount} Juz / week`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Badge variant="secondary" className="text-[10px] font-bold shrink-0">
+                        {m.knowledgeType === "entire"
+                          ? (language === "ar" ? "كامل القرآن" : "Entire Quran")
+                          : (language === "ar" ? `الأجزاء ${toArabicNumerals(m.startJuz)}-${toArabicNumerals(m.endJuz)}` : `Juz ${m.startJuz}-${m.endJuz}`)}
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-border/40 pt-3 text-[11px]">
+                      {savedData?.publicId ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setInviteModalMember({
+                              memberName: m.name,
+                              groupName: schedule.groupName,
+                              groupPublicId: savedData.publicId,
+                              memberPublicId,
+                            })
+                          }
+                          className="h-8 gap-1.5 rounded-xl border-primary/30 text-xs font-bold text-primary hover:bg-primary/10"
+                        >
+                          <IconShare className="h-3.5 w-3.5" />
+                          <span>{language === "ar" ? "إرسال رابط الورد" : "Invite Member"}</span>
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-[10px]">
+                          {language === "ar" ? "احفظ المجموعة لمشاركة الروابط" : "Save group to share"}
+                        </span>
+                      )}
+
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedMemberId(m.id)
+                          setActiveMode("personal")
+                        }}
+                        className="h-8 gap-1 text-xs font-bold text-muted-foreground hover:text-foreground"
+                      >
+                        <span>{language === "ar" ? "عرض الورد" : "View Schedule"}</span>
+                        <IconChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        ) : activeMode === "personal" && selectedMember ? (
           <PersonalMemberView
             groupPublicId={savedData?.publicId}
             groupName={schedule.groupName}
@@ -607,6 +724,18 @@ export function ScheduleView({
           onVersionRestored={() => {
             window.location.reload()
           }}
+        />
+      )}
+
+      {/* Invite Member Modal */}
+      {inviteModalMember && (
+        <InviteMemberModal
+          isOpen={!!inviteModalMember}
+          onClose={() => setInviteModalMember(null)}
+          memberName={inviteModalMember.memberName}
+          groupName={inviteModalMember.groupName}
+          groupPublicId={inviteModalMember.groupPublicId}
+          memberPublicId={inviteModalMember.memberPublicId}
         />
       )}
     </>

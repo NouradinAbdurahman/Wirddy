@@ -13,6 +13,7 @@ function ReaderPageContent() {
   const juzParam = searchParams.get("juz")
   const startAyahParam = searchParams.get("start")
   const endAyahParam = searchParams.get("end")
+  const endSurahParam = searchParams.get("endSurah")
 
   let targetPage: number | undefined = undefined
 
@@ -36,6 +37,7 @@ function ReaderPageContent() {
 
   const initialSurah = surahParam ? parseInt(surahParam, 10) : undefined
   const initialAyah = ayahParam ? parseInt(ayahParam, 10) : startAyahParam ? parseInt(startAyahParam, 10) : undefined
+  const endSurah = endSurahParam ? parseInt(endSurahParam, 10) : initialSurah
   const endAyah = endAyahParam ? parseInt(endAyahParam, 10) : undefined
 
   return (
@@ -43,7 +45,7 @@ function ReaderPageContent() {
       initialPage={targetPage}
       initialSurahNumber={initialSurah}
       initialAyahNumber={initialAyah}
-      endSurahNumber={initialSurah}
+      endSurahNumber={endSurah}
       endAyahNumber={endAyah}
       isModal={false}
     />

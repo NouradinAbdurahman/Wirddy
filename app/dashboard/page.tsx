@@ -45,20 +45,29 @@ import {
   deleteBookmarkAction,
   fetchScheduleHistoryAction,
   getAnnouncementsAction,
+  getGroupProgressSummaryAction,
   getGroupReadingProgressAction,
   getMyGroupsAction,
   getNotificationPreferencesAction,
+  getTodaysReadingAction,
   getUserBookmarksAction,
   restoreScheduleVersionAction,
   saveNotificationPreferencesAction,
   saveReadingProgressAction,
 } from "@/lib/groups/actions"
-import { ScheduleHistoryRecord, UserGroupSummary } from "@/lib/groups/service"
+import {
+  GroupProgressSummary,
+  MemberProgressSummary,
+  ScheduleHistoryRecord,
+  UserGroupSummary,
+  UserTodaysReadingResult,
+} from "@/lib/groups/service"
 import {
   TodaysReadingWidget,
   TodaysReadingData,
 } from "@/components/dashboard/todays-reading-widget"
 import { GroupCard } from "@/components/dashboard/group-card"
+import { InviteMemberModal } from "@/components/dashboard/invite-member-modal"
 import { BookmarkItem } from "@/components/dashboard/user-bookmarks-widget"
 import {
   getRecentSchedules,
@@ -81,14 +90,25 @@ function DashboardContent() {
   const [recentSchedules, setRecentSchedules] = useState<RecentScheduleItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  // Real Dynamic Today's Reading
+  const [todaysReading, setTodaysReading] = useState<TodaysReadingData | null>(null)
+
   // Group filter tab
   const [groupFilterTab, setGroupFilterTab] = useState<string>("active")
   const [groupSearchQuery, setGroupSearchQuery] = useState<string>("")
 
   // Group Progress Tab State
   const [selectedProgressGroup, setSelectedProgressGroup] = useState<string>("")
-  const [groupProgressData, setGroupProgressData] = useState<any[]>([])
+  const [groupProgressSummary, setGroupProgressSummary] = useState<GroupProgressSummary | null>(null)
   const [isLoadingProgress, setIsLoadingProgress] = useState(false)
+
+  // Invite Modal State
+  const [inviteModalMember, setInviteModalMember] = useState<{
+    memberName: string
+    groupName: string
+    groupPublicId: string
+    memberPublicId: string
+  } | null>(null)
 
   // Announcements Tab State
   const [selectedAnnounceGroup, setSelectedAnnounceGroup] = useState<string>("")
@@ -118,22 +138,32 @@ function DashboardContent() {
   const loadData = async (userId?: string) => {
     setIsLoading(true)
     try {
-      const [groupsRes, bookmarksRes] = await Promise.all([
+      const [groupsRes, bookmarksRes, todaysReadingRes] = await Promise.all([
         getMyGroupsAction("all"),
         getUserBookmarksAction(),
+        getTodaysReadingAction(),
       ])
 
       if (groupsRes.success && groupsRes.data) {
         setGroups(groupsRes.data)
         if (groupsRes.data.length > 0) {
-          if (!selectedProgressGroup) setSelectedProgressGroup(groupsRes.data[0].publicId)
-          if (!selectedAnnounceGroup) setSelectedAnnounceGroup(groupsRes.data[0].publicId)
-          if (!selectedHistoryGroup) setSelectedHistoryGroup(groupsRes.data[0].publicId)
+          const firstGrp = groupsRes.data[0].publicId
+          if (!selectedProgressGroup) setSelectedProgressGroup(firstGrp)
+          if (!selectedAnnounceGroup) setSelectedAnnounceGroup(firstGrp)
+          if (!selectedHistoryGroup) setSelectedHistoryGroup(firstGrp)
         }
       }
+
       if (bookmarksRes.success && bookmarksRes.data) {
         setBookmarks(bookmarksRes.data)
       }
+
+      if (todaysReadingRes.success && todaysReadingRes.data) {
+        setTodaysReading(todaysReadingRes.data)
+      } else {
+        setTodaysReading(null)
+      }
+
       setRecentSchedules(getRecentSchedules())
     } catch (err) {
       console.error("Dashboard loadData error:", err)
@@ -168,6 +198,7 @@ function DashboardContent() {
         setUser(null)
         setGroups([])
         setBookmarks([])
+        setTodaysReading(null)
       }
     })
 
@@ -184,10 +215,12 @@ function DashboardContent() {
   useEffect(() => {
     if (selectedProgressGroup) {
       setIsLoadingProgress(true)
-      getGroupReadingProgressAction(selectedProgressGroup).then((res) => {
+      getGroupProgressSummaryAction(selectedProgressGroup).then((res) => {
         setIsLoadingProgress(false)
         if (res.success && res.data) {
-          setGroupProgressData(res.data)
+          setGroupProgressSummary(res.data)
+        } else {
+          setGroupProgressSummary(null)
         }
       })
     }
@@ -226,27 +259,7 @@ function DashboardContent() {
     return groups.reduce((sum, g) => sum + (g.membersCount || 0), 0)
   }, [groups])
 
-  // Derive today's reading data from active group
-  const todaysReadingData: TodaysReadingData | null = useMemo(() => {
-    const active = groups.find((g) => !g.isArchived && g.status === "active")
-    if (!active) return null
-
-    return {
-      groupPublicId: active.publicId,
-      groupName: active.groupName,
-      memberPublicId: active.memberPublicId || "",
-      memberName: user?.firstName || (language === "ar" ? "أنت" : "You"),
-      weekNumber: 1,
-      dayNumber: 1,
-      surahNumber: 4,
-      surahNameAr: "النساء",
-      surahNameEn: "An-Nisa",
-      startAyah: 48,
-      endAyah: 71,
-      juzNumber: 5,
-      isCompleted: false,
-    }
-  }, [groups, user, language])
+  const todaysReadingData: TodaysReadingData | null = todaysReading
 
   // Filter groups
   const filteredGroups = useMemo(() => {
@@ -435,10 +448,14 @@ function DashboardContent() {
                 <IconTrendingUp className="h-4 w-4 shrink-0 text-emerald-500" />
               </div>
               <p className="mt-2 text-sm sm:text-base font-extrabold text-foreground">
-                {formatNumber(activeGroupsCount > 0 ? 32 : 0)}%
+                {formatNumber(groupProgressSummary ? groupProgressSummary.overallPercent : (activeGroupsCount > 0 ? 0 : 0))}%
               </p>
               <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground truncate">
-                {language === "ar" ? "١٢ / ٣٠ جزءاً" : "12 / 30 Juz"}
+                {groupProgressSummary
+                  ? (language === "ar"
+                      ? `${toArabicNumerals(groupProgressSummary.completedJuz)} / ${toArabicNumerals(groupProgressSummary.totalJuz)} جزءاً`
+                      : `${groupProgressSummary.completedJuz} / ${groupProgressSummary.totalJuz} Juz`)
+                  : (language === "ar" ? "٠ / ٣٠ جزءاً" : "0 / 30 Juz")}
               </p>
             </Card>
 
@@ -647,69 +664,177 @@ function DashboardContent() {
                 <div className="flex h-60 items-center justify-center">
                   <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 </div>
-              ) : (
+              ) : groupProgressSummary ? (
                 <Card className="space-y-6 rounded-2xl border border-border/70 bg-card/80 p-4 sm:p-6 shadow-xs">
                   <div className="flex flex-col justify-between gap-4 border-b border-border/60 pb-4 sm:flex-row sm:items-center">
                     <div>
-                      <h3 className="text-base font-extrabold text-foreground">
-                        {groups.find((g) => g.publicId === selectedProgressGroup)?.groupName || "المجموعة"}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "ar" ? "تتبع إنجاز وقراءة كل عضو في المجموعة" : "Track reading progress across all group members"}
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-extrabold text-foreground">
+                          {groupProgressSummary.groupName}
+                        </h3>
+                        <Badge variant="outline" className="text-[10px] font-bold text-primary">
+                          {language === "ar"
+                            ? `الأسبوع ${toArabicNumerals(groupProgressSummary.currentWeek)} من ${toArabicNumerals(groupProgressSummary.totalWeeks)}`
+                            : `Week ${groupProgressSummary.currentWeek} of ${groupProgressSummary.totalWeeks}`}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {language === "ar"
+                          ? "تتبع إنجاز وقراءة كل عضو في المجموعة للورد الأسبوعي"
+                          : "Track weekly Quran reading and completion across all members"}
                       </p>
                     </div>
 
-                    <Badge className="bg-emerald-500/15 text-xs font-bold text-emerald-600 dark:text-emerald-400 self-start sm:self-auto">
-                      {language === "ar" ? "ختمة جارية" : "In Progress"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-500/15 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        {groupProgressSummary.overallPercent === 100
+                          ? (language === "ar" ? "ختمة مكتملة" : "Completed")
+                          : (language === "ar" ? "ختمة جارية" : "In Progress")}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Group Overall Progress Banner */}
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-foreground">
+                        {language === "ar" ? "إجمالي تقدم الختمة الأسبوعية" : "Weekly Khatmah Total Progress"}
+                      </span>
+                      <span className="text-primary font-black text-sm">
+                        {formatNumber(groupProgressSummary.overallPercent)}%
+                      </span>
+                    </div>
+                    <Progress value={groupProgressSummary.overallPercent} className="h-2.5 rounded-full" />
+                    <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground pt-1">
+                      <span>
+                        {language === "ar"
+                          ? `المنجز: ${toArabicNumerals(groupProgressSummary.completedJuz)} من ${toArabicNumerals(groupProgressSummary.totalJuz)} جزءاً`
+                          : `Completed: ${groupProgressSummary.completedJuz} of ${groupProgressSummary.totalJuz} Juz`}
+                      </span>
+                      <span>
+                        {language === "ar"
+                          ? `المتبقي: ${toArabicNumerals(groupProgressSummary.remainingJuz)} جزءاً`
+                          : `Remaining: ${groupProgressSummary.remainingJuz} Juz`}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Responsive Member Progress Cards Breakdown */}
-                  {groupProgressData.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {groupProgressData.map((item: any, idx: number) => (
-                        <div key={item.id || idx} className="rounded-xl border border-border/70 bg-card/90 p-3.5 space-y-2.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
-                                {(item.memberName?.[0] || item.member_name?.[0] || "U").toUpperCase()}
-                              </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {groupProgressSummary.members.map((member: MemberProgressSummary) => (
+                      <div
+                        key={member.memberPublicId}
+                        className="rounded-xl border border-border/70 bg-card/90 p-4 space-y-3 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+                              {(member.memberName?.[0] || "U").toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
                               <p className="truncate text-xs font-extrabold text-foreground">
-                                {item.memberName || item.member_name || `Member ${idx + 1}`}
+                                {member.memberName}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {member.isLinked ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                    {language === "ar" ? "حساب منضم" : "Linked Member"}
+                                  </span>
+                                ) : (
+                                  <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                    {language === "ar" ? "قيد الانضمام" : "Pending Join"}
+                                  </span>
+                                )}
                               </p>
                             </div>
-                            <Badge variant={item.is_completed ? "default" : "secondary"} className="text-[10px] font-bold shrink-0">
-                              {item.is_completed ? (language === "ar" ? "مكتمل" : "Completed") : (language === "ar" ? "قيد القراءة" : "Reading")}
-                            </Badge>
                           </div>
-                          <Progress value={item.is_completed ? 100 : item.percent || 50} className="h-1.5 rounded-full" />
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>{item.portionDescription || (language === "ar" ? "الورد المخصص" : "Assigned Portion")}</span>
-                            <span className="font-bold text-foreground">{item.is_completed ? "100%" : `${item.percent || 50}%`}</span>
-                          </div>
+
+                          <Badge
+                            variant={member.isCompleted ? "default" : "secondary"}
+                            className={`text-[10px] font-bold shrink-0 ${
+                              member.isCompleted
+                                ? "bg-emerald-600 text-white dark:bg-emerald-600"
+                                : ""
+                            }`}
+                          >
+                            {member.isCompleted
+                              ? (language === "ar" ? "مكتمل" : "Completed")
+                              : (language === "ar" ? "قيد القراءة" : "Reading")}
+                          </Badge>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {groups.map((grp) => (
-                        <div key={grp.publicId} className="space-y-2 rounded-xl border border-border/60 bg-background/60 p-4">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-foreground">{grp.groupName}</span>
-                            <span className="font-extrabold text-primary">
-                              {formatNumber(grp.membersCount)} {language === "ar" ? "أعضاء" : "members"}
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span className="truncate max-w-[70%] font-medium">
+                              {language === "ar"
+                                ? member.assignedPortionDescriptionAr
+                                : member.assignedPortionDescriptionEn}
+                            </span>
+                            <span className="font-extrabold text-foreground">
+                              {formatNumber(member.percent)}%
                             </span>
                           </div>
-                          <Progress value={65} className="h-2 rounded-full" />
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>{language === "ar" ? "الورد المنجز: ٢٠ جزءاً" : "Completed: 20 Juz"}</span>
-                            <span>{language === "ar" ? "المتبقي: ١٠ أجزاء" : "Remaining: 10 Juz"}</span>
+                          <Progress value={member.percent} className="h-1.5 rounded-full" />
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-border/40 pt-2 text-[11px] text-muted-foreground">
+                          <span>
+                            {language === "ar"
+                              ? `${toArabicNumerals(member.completedDays)} / ${toArabicNumerals(member.totalDays)} أيام`
+                              : `${member.completedDays} / ${member.totalDays} Days`}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            {!member.isLinked && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  setInviteModalMember({
+                                    memberName: member.memberName,
+                                    groupName: groupProgressSummary.groupName,
+                                    groupPublicId: groupProgressSummary.groupPublicId,
+                                    memberPublicId: member.memberPublicId,
+                                  })
+                                }
+                                className="h-6 gap-1 rounded-md px-1.5 text-[10px] font-bold text-primary hover:bg-primary/10"
+                              >
+                                <IconShare className="h-3 w-3" />
+                                <span>{language === "ar" ? "إرسال دعوة" : "Invite"}</span>
+                              </Button>
+                            )}
+
+                            <Link
+                              href={`/g/${groupProgressSummary.groupPublicId}/member/${member.memberPublicId}`}
+                              className="inline-flex items-center gap-0.5 text-[10px] font-bold text-primary hover:underline"
+                            >
+                              <span>{language === "ar" ? "عرض الورد" : "View"}</span>
+                              <IconChevronRight className="h-3 w-3 rtl:rotate-180" />
+                            </Link>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    ))}
+                  </div>
                 </Card>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border/80 p-10 text-center">
+                  <IconChartBar className="mx-auto h-10 w-10 text-muted-foreground/60" />
+                  <h3 className="mt-3 text-sm font-bold text-foreground">
+                    {language === "ar" ? "لا توجد بيانات تقدم حالية" : "No progress data available"}
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {language === "ar"
+                      ? "قم بإنشاء مجموعة أو الانضمام لمجموعة لبدء تتبع التقدم"
+                      : "Create or join a group to start tracking reading progress"}
+                  </p>
+                  <Link href="/" className="mt-4 inline-block">
+                    <Button size="sm" className="rounded-xl text-xs font-extrabold">
+                      <IconPlus className="me-1.5 h-4 w-4" />
+                      <span>{t.dashboardQuickCreate}</span>
+                    </Button>
+                  </Link>
+                </div>
               )}
             </div>
           )}
@@ -1094,6 +1219,18 @@ function DashboardContent() {
           </div>
         </div>
       </main>
+
+      {/* Invite Member Modal */}
+      {inviteModalMember && (
+        <InviteMemberModal
+          isOpen={!!inviteModalMember}
+          onClose={() => setInviteModalMember(null)}
+          memberName={inviteModalMember.memberName}
+          groupName={inviteModalMember.groupName}
+          groupPublicId={inviteModalMember.groupPublicId}
+          memberPublicId={inviteModalMember.memberPublicId}
+        />
+      )}
     </div>
   )
 }

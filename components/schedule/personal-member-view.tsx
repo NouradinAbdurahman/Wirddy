@@ -377,6 +377,52 @@ export function PersonalMemberView({
         )}
       </Card>
 
+      {/* Account Linking / Join Banner */}
+      {groupPublicId && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <IconUserCheck className="h-5 w-5" />
+            </div>
+            <div className="text-start">
+              <p className="text-xs font-bold text-foreground">
+                {language === "ar"
+                  ? `هل هذا وردك الخاص يا ${member.name}؟`
+                  : `Is this your reading assignment, ${member.name}?`}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                {language === "ar"
+                  ? "اربط هذا الجدول بحسابك لتظهر قراءتك اليومية مباشرة في لوحة التحكم الخاصة بك وتتابع إنجازك."
+                  : "Link this schedule to your account to track your daily reading directly on your dashboard."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            {isLinked ? (
+              <Badge className="bg-emerald-500/15 text-xs font-bold text-emerald-600 dark:text-emerald-400 py-1.5 px-3">
+                <IconCheck className="h-3.5 w-3.5 me-1" />
+                <span>{language === "ar" ? "مرتبط بحسابك" : "Linked to Account"}</span>
+              </Badge>
+            ) : (
+              <Button
+                size="sm"
+                onClick={handleLinkAccount}
+                disabled={isLinking}
+                className="h-8.5 rounded-xl px-3.5 text-xs font-extrabold shadow-sm"
+              >
+                <IconUserCheck className="h-4 w-4 me-1.5" />
+                <span>
+                  {isLinking
+                    ? (language === "ar" ? "جاري الانضمام..." : "Linking...")
+                    : (language === "ar" ? "انضمام وربط بحسابي" : "Join & Link to My Dashboard")}
+                </span>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Weeks Timeline */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
