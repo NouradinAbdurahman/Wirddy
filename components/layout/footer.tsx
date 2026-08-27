@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import Link from "next/link"
 import { useI18n } from "@/lib/i18n/context"
 
 export function Footer() {
@@ -34,30 +35,30 @@ export function Footer() {
 
         {/* Quick Nav Links */}
         <nav className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-muted-foreground/80 sm:gap-6">
-          <a
-            href="#how-it-works"
+          <Link
+            href="/#how-it-works"
             className="transition-colors hover:text-foreground"
           >
             {t.navHowItWorks}
-          </a>
-          <a
-            href="#features"
+          </Link>
+          <Link
+            href="/#features"
             className="transition-colors hover:text-foreground"
           >
             {t.navFeatures}
-          </a>
-          <a
-            href="#preview"
+          </Link>
+          <Link
+            href="/#preview"
             className="transition-colors hover:text-foreground"
           >
             {t.navPreview}
-          </a>
-          <a
-            href="#install"
+          </Link>
+          <Link
+            href="/#install"
             className="transition-colors hover:text-foreground"
           >
             {t.navInstall}
-          </a>
+          </Link>
         </nav>
 
         {/* Copyright */}

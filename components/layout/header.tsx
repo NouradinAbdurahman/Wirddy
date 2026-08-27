@@ -132,30 +132,30 @@ export function Header({
 
         {/* Desktop Navigation Links: centered in the header regardless of logo/actions width */}
         <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-6 text-xs font-bold text-muted-foreground md:flex">
-          <a
-            href="#how-it-works"
+          <Link
+            href="/#how-it-works"
             className="transition-colors hover:text-foreground"
           >
             {t.navHowItWorks}
-          </a>
-          <a
-            href="#features"
+          </Link>
+          <Link
+            href="/#features"
             className="transition-colors hover:text-foreground"
           >
             {t.navFeatures}
-          </a>
-          <a
-            href="#preview"
+          </Link>
+          <Link
+            href="/#preview"
             className="transition-colors hover:text-foreground"
           >
             {t.navPreview}
-          </a>
-          <a
-            href="#install"
+          </Link>
+          <Link
+            href="/#install"
             className="transition-colors hover:text-foreground"
           >
             {t.navInstall}
-          </a>
+          </Link>
         </nav>
 
         {/* Action Controls */}
@@ -352,6 +352,32 @@ export function Header({
                       <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg bg-primary/10 px-2.5 py-2 text-xs font-bold text-primary focus:bg-primary/20">
                         <IconUser className="h-4 w-4 shrink-0" />
                         <span>{t.authSignIn}</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <DropdownMenuSeparator />
+
+                    <Link href="/#how-it-works">
+                      <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold">
+                        <span>{t.navHowItWorks}</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link href="/#features">
+                      <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold">
+                        <span>{t.navFeatures}</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link href="/#preview">
+                      <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold">
+                        <span>{t.navPreview}</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <Link href="/#install">
+                      <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold">
+                        <span>{t.navInstall}</span>
                       </DropdownMenuItem>
                     </Link>
 

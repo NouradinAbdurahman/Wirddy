@@ -22,7 +22,77 @@ export function ScheduleTableView({ week }: ScheduleTableViewProps) {
       className="w-full"
     >
       <Card className="gap-0 overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-0 text-start shadow-sm backdrop-blur-md dark:bg-card/70">
-        <div className="overflow-x-auto">
+        {/* Mobile View: Stacked Member Assignment Cards */}
+        <div className="divide-y divide-border/50 sm:hidden">
+          {week.assignments.map((assignment: MemberAssignment, idx: number) => {
+            const startSurah =
+              language === "ar"
+                ? `سورة ${assignment.startAyah.surahNameAr}`
+                : assignment.startAyah.surahNameEn
+            const endSurah =
+              language === "ar"
+                ? `سورة ${assignment.endAyah.surahNameAr}`
+                : assignment.endAyah.surahNameEn
+
+            return (
+              <div key={`m-${assignment.memberId}-${idx}`} className="p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/40 bg-muted/40 p-0.5">
+                      <img
+                        src="/logo-black.png"
+                        alt="Wirddy"
+                        className="block h-full w-full object-contain dark:hidden"
+                        suppressHydrationWarning
+                      />
+                      <img
+                        src="/logo-white.png"
+                        alt="Wirddy"
+                        className="hidden h-full w-full object-contain dark:block"
+                        suppressHydrationWarning
+                      />
+                    </div>
+                    <span className="truncate text-xs font-extrabold text-foreground">
+                      {assignment.memberName}
+                    </span>
+                  </div>
+
+                  <span className="inline-flex items-center justify-center rounded-md border border-border/50 bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground shrink-0">
+                    {formatNumber(assignment.weeklyAmount)} {language === "ar" ? "أجزاء" : "Juz"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 rounded-xl bg-background/60 p-2.5 text-xs">
+                  <div>
+                    <span className="block text-[10px] font-bold text-primary">
+                      {t.tableHeaderStart}
+                    </span>
+                    <p className="truncate font-extrabold text-foreground text-xs">
+                      {startSurah}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {t.juzLabel} {formatNumber(assignment.startJuz)} • {t.ayahLabel} {formatNumber(assignment.startAyah.ayahNumber)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-primary">
+                      {t.tableHeaderEnd}
+                    </span>
+                    <p className="truncate font-extrabold text-foreground text-xs">
+                      {endSurah}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {t.juzLabel} {formatNumber(assignment.endJuz)} • {t.ayahLabel} {formatNumber(assignment.endAyah.ayahNumber)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Desktop / Tablet View: Full Data Table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full border-collapse text-start text-sm">
             {/* Table Header */}
             <thead>

@@ -1,4 +1,9 @@
 import { JUZ_BOUNDARIES, SURAHS, SURAH_TO_JUZ_MAP } from "./data"
+import {
+  getPageForSurahAyah,
+  getSurahStartPage,
+  getJuzStartPage,
+} from "./pages-data"
 import { JuzBoundary, QuranLocation, SurahInfo } from "./types"
 
 /**
@@ -105,6 +110,8 @@ export class QuranDataService {
       }
     }
 
+    const pageNum = getPageForSurahAyah(surah.number, ayahInSurah)
+
     return {
       globalAyahNumber: clampedGlobal,
       juzNumber: juzNum,
@@ -112,6 +119,7 @@ export class QuranDataService {
       surahNameArabic: surah.nameAr,
       surahNameEnglish: surah.transliteration || surah.nameEn,
       ayahNumber: ayahInSurah,
+      page: pageNum,
     }
   }
 
@@ -124,6 +132,27 @@ export class QuranDataService {
   ): QuranLocation {
     const globalAyah = this.getGlobalAyahNumber(surahNumber, ayahNumber)
     return this.getLocationFromGlobalAyah(globalAyah)
+  }
+
+  /**
+   * Returns the canonical Mushaf page (1 to 604) for any (surahNumber, ayahNumber).
+   */
+  getPageForSurahAyah(surahNumber: number, ayahNumber: number = 1): number {
+    return getPageForSurahAyah(surahNumber, ayahNumber)
+  }
+
+  /**
+   * Returns the starting Mushaf page for a Surah (1 to 114).
+   */
+  getSurahStartPage(surahNumber: number): number {
+    return getSurahStartPage(surahNumber)
+  }
+
+  /**
+   * Returns the starting Mushaf page for a Juz (1 to 30).
+   */
+  getJuzStartPage(juzNumber: number): number {
+    return getJuzStartPage(juzNumber)
   }
 
   /**
@@ -188,3 +217,4 @@ export class QuranDataService {
 }
 
 export const quranService = new QuranDataService()
+

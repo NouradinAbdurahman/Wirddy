@@ -243,18 +243,20 @@ export function AddToHomeScreen() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.45, delay: 0.1 }}
-            className="flex justify-center lg:col-span-5"
+            className="flex justify-center lg:col-span-5 select-none"
           >
-            <div className="relative w-full max-w-[310px] sm:max-w-[340px]">
+            <div className="relative w-full max-w-[310px] sm:max-w-[340px] select-none pointer-events-none">
               <div className="absolute -inset-2 -z-10 rounded-[56px] bg-gradient-to-b from-primary/20 via-primary/10 to-transparent blur-2xl" />
-              <div className="relative rounded-[48px] border-[5px] border-neutral-300 bg-neutral-900 p-2 shadow-2xl ring-1 ring-black/10 sm:rounded-[52px] sm:border-[6px] dark:border-neutral-700/80 dark:ring-white/10">
-                <div className="relative overflow-hidden rounded-[38px] bg-black sm:rounded-[42px]">
+              <div className="relative rounded-[48px] border-[5px] border-neutral-300 bg-neutral-900 p-2 shadow-2xl ring-1 ring-black/10 sm:rounded-[52px] sm:border-[6px] dark:border-neutral-700/80 dark:ring-white/10 select-none">
+                <div className="relative overflow-hidden rounded-[38px] bg-black sm:rounded-[42px] select-none">
                   <img
                     src="/add-to-home-screen.gif"
                     alt={t.pwaGifAlt}
                     loading="lazy"
                     decoding="async"
-                    className="block h-auto w-full object-cover"
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
+                    className="block h-auto w-full object-cover select-none pointer-events-none [-webkit-user-drag:none] [user-select:none]"
                   />
                 </div>
               </div>

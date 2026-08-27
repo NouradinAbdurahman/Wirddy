@@ -2,6 +2,7 @@ import {
   ApiAyah,
   ApiJuzData,
   ApiMetaResponseData,
+  ApiPageData,
   ApiResponse,
   ApiSurahReference,
 } from "./types"
@@ -72,10 +73,12 @@ export async function fetchSurahs(): Promise<ApiSurahReference[]> {
 
 /**
  * Retrieves full Ayahs for a single Surah.
- * GET /surah/{number}
+ * GET /surah/{number}/{edition}
+ * Defaults to "quran-uthmani" (authentic Tanzil Uthmani text with standard Unicode Quranic glyphs).
  */
 export async function fetchSurah(
-  surahNumber: number
+  surahNumber: number,
+  edition: string = "quran-uthmani"
 ): Promise<ApiSurahReference & { ayahs: ApiAyah[] }> {
   if (surahNumber < 1 || surahNumber > 114) {
     throw new Error(
@@ -83,7 +86,26 @@ export async function fetchSurah(
     )
   }
   return fetchApi<ApiSurahReference & { ayahs: ApiAyah[] }>(
-    `/surah/${surahNumber}`
+    `/surah/${surahNumber}/${edition}`
+  )
+}
+
+/**
+ * Retrieves English translation for a single Surah.
+ * GET /surah/{number}/{edition}
+ * Defaults to "en.sahih" (Sahih International).
+ */
+export async function fetchSurahTranslation(
+  surahNumber: number,
+  edition: string = "en.sahih"
+): Promise<ApiSurahReference & { ayahs: ApiAyah[] }> {
+  if (surahNumber < 1 || surahNumber > 114) {
+    throw new Error(
+      `Invalid Surah number: ${surahNumber}. Must be between 1 and 114.`
+    )
+  }
+  return fetchApi<ApiSurahReference & { ayahs: ApiAyah[] }>(
+    `/surah/${surahNumber}/${edition}`
   )
 }
 
@@ -104,6 +126,80 @@ export async function fetchJuz(
     ? `/juz/${juzNumber}/${edition}`
     : `/juz/${juzNumber}`
   return fetchApi<ApiJuzData>(endpoint)
+}
+
+/**
+ * In-memory LRU cache for fetched Quran pages to enable instantaneous transitions.
+ */
+const pageCache = new Map<string, ApiPageData>()
+
+/**
+ * Retrieves all Ayahs belonging to a canonical Mushaf page (1 to 604).
+ * GET /page/{number}/{edition}
+ * Defaults to "quran-uthmani".
+ */
+export async function fetchPage(
+  pageNumber: number,
+  edition: string = "quran-uthmani"
+): Promise<ApiPageData> {
+  if (pageNumber < 1 || pageNumber > 604) {
+    throw new Error(
+      `Invalid Mushaf page number: ${pageNumber}. Must be between 1 and 604.`
+    )
+  }
+
+  const cacheKey = `${pageNumber}:${edition}`
+  if (pageCache.has(cacheKey)) {
+    return pageCache.get(cacheKey)!
+  }
+
+  const data = await fetchApi<ApiPageData>(`/page/${pageNumber}/${edition}`)
+  if (data) {
+    pageCache.set(cacheKey, data)
+  }
+
+  // Silently pre-fetch adjacent pages in the background
+  if (typeof window !== "undefined") {
+    if (pageNumber < 604 && !pageCache.has(`${pageNumber + 1}:${edition}`)) {
+      fetchApi<ApiPageData>(`/page/${pageNumber + 1}/${edition}`).then((p) => {
+        if (p) pageCache.set(`${pageNumber + 1}:${edition}`, p)
+      }).catch(() => {})
+    }
+    if (pageNumber > 1 && !pageCache.has(`${pageNumber - 1}:${edition}`)) {
+      fetchApi<ApiPageData>(`/page/${pageNumber - 1}/${edition}`).then((p) => {
+        if (p) pageCache.set(`${pageNumber - 1}:${edition}`, p)
+      }).catch(() => {})
+    }
+  }
+
+  return data
+}
+
+/**
+ * Retrieves English translation for all Ayahs belonging to a canonical Mushaf page.
+ * GET /page/{number}/{edition}
+ * Defaults to "en.sahih" (Sahih International).
+ */
+export async function fetchPageTranslation(
+  pageNumber: number,
+  edition: string = "en.sahih"
+): Promise<ApiPageData> {
+  if (pageNumber < 1 || pageNumber > 604) {
+    throw new Error(
+      `Invalid Mushaf page number: ${pageNumber}. Must be between 1 and 604.`
+    )
+  }
+
+  const cacheKey = `${pageNumber}:${edition}`
+  if (pageCache.has(cacheKey)) {
+    return pageCache.get(cacheKey)!
+  }
+
+  const data = await fetchApi<ApiPageData>(`/page/${pageNumber}/${edition}`)
+  if (data) {
+    pageCache.set(cacheKey, data)
+  }
+  return data
 }
 
 /**

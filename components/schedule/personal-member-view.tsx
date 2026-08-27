@@ -594,6 +594,7 @@ export function PersonalMemberView({
       {/* Embedded Quran Reader */}
       {activePortion && (
         <QuranReader
+          isModal={true}
           isOpen={!!activePortion}
           onClose={() => setActivePortion(null)}
           initialSurahNumber={activePortion.startAyah.surahNumber}

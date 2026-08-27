@@ -1,19 +1,19 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import {
   IconArrowLeft,
   IconArrowRight,
   IconBell,
-  IconBook,
   IconDatabase,
   IconDownload,
   IconLanguage,
   IconLogout,
   IconMoon,
   IconPalette,
+  IconSettings,
   IconSun,
   IconTrash,
   IconUser,
@@ -22,8 +22,8 @@ import { useI18n } from "@/lib/i18n/context"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Header } from "@/components/layout/header"
-import { Footer } from "@/components/layout/footer"
+import { Card } from "@/components/ui/card"
+import { AppSidebar } from "@/components/layout/app-sidebar"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { extractUserProfile, UserProfileInfo } from "@/lib/auth/user"
 import {
@@ -33,7 +33,7 @@ import {
   saveNotificationPreferencesAction,
 } from "@/lib/groups/actions"
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { language, setLanguage, dir, t } = useI18n()
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [user, setUser] = useState<UserProfileInfo | null>(null)
@@ -41,9 +41,7 @@ export default function SettingsPage() {
   const [notifTime, setNotifTime] = useState("20:00")
   const [notifIncomplete, setNotifIncomplete] = useState(true)
   const [notifAlerts, setNotifAlerts] = useState(true)
-  const [pushStatus, setPushStatus] = useState<
-    "default" | "granted" | "denied"
-  >("default")
+  const [pushStatus, setPushStatus] = useState<"default" | "granted" | "denied">("default")
   const [isSavingNotifs, setIsSavingNotifs] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
@@ -96,8 +94,7 @@ export default function SettingsPage() {
   }
 
   const handleRequestPush = async () => {
-    const { registerPushNotifications } =
-      await import("@/lib/notifications/client")
+    const { registerPushNotifications } = await import("@/lib/notifications/client")
     const res = await registerPushNotifications()
     setPushStatus(res.permission as any)
   }
@@ -138,27 +135,32 @@ export default function SettingsPage() {
   const BackIcon = dir === "rtl" ? IconArrowRight : IconArrowLeft
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <Header />
+    <div className="flex min-h-screen w-full flex-col bg-background text-foreground lg:flex-row">
+      {/* Persistent Left Sidebar */}
+      <AppSidebar activeKey="settings" />
 
-      <main className="container mx-auto max-w-3xl flex-1 px-4 py-8 sm:px-6">
-        <div className="flex items-center gap-3 border-b border-border/60 pb-5">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
-              <BackIcon className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">
-              {t.settingsTitle}
-            </h1>
+      {/* Main Settings Content */}
+      <main className="flex-1 overflow-y-auto min-w-0 p-3 sm:p-6 lg:p-8">
+        <div className="mx-auto max-w-3xl space-y-6">
+          <div className="flex items-center gap-3 border-b border-border/60 pb-5">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+                <BackIcon className="h-4 w-4" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">
+                {t.settingsTitle}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {language === "ar" ? "تخصيص الحساب والمظهر والتنبيهات" : "Manage your account, appearance and preferences"}
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-6 space-y-6">
           {/* Account Card */}
           {user && (
-            <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
+            <Card className="rounded-2xl border border-border/80 bg-card/80 p-6 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
                 <IconUser className="h-5 w-5 text-primary" />
                 <h3 className="text-sm font-extrabold text-foreground">
@@ -166,7 +168,7 @@ export default function SettingsPage() {
                 </h3>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 {user.avatarUrl ? (
                   <img
                     src={user.avatarUrl}
@@ -197,11 +199,11 @@ export default function SettingsPage() {
                   <span>{t.authSignOut}</span>
                 </Button>
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Appearance & Language */}
-          <div className="space-y-4 rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
+          <Card className="space-y-4 rounded-2xl border border-border/80 bg-card/80 p-6 shadow-sm">
             <div className="flex items-center gap-2">
               <IconPalette className="h-5 w-5 text-primary" />
               <h3 className="text-sm font-extrabold text-foreground">
@@ -227,38 +229,36 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between rounded-xl border border-border/70 p-3.5">
                 <span className="text-xs font-bold text-foreground">
-                  {language === "ar" ? "الوضع" : "Theme"}
+                  {language === "ar" ? "المظهر" : "Theme"}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() =>
                     setTheme(
-                      theme === "dark" || resolvedTheme === "dark"
-                        ? "light"
-                        : "dark"
+                      theme === "dark" || resolvedTheme === "dark" ? "light" : "dark"
                     )
                   }
                   className="h-8 text-xs font-bold"
                 >
                   {theme === "dark" || resolvedTheme === "dark" ? (
                     <>
-                      <IconSun className="me-1 h-3.5 w-3.5" />
-                      <span>فاتح</span>
+                      <IconSun className="me-1 h-3.5 w-3.5 text-amber-500" />
+                      <span>{language === "ar" ? "فاتح" : "Light"}</span>
                     </>
                   ) : (
                     <>
-                      <IconMoon className="me-1 h-3.5 w-3.5" />
-                      <span>داكن</span>
+                      <IconMoon className="me-1 h-3.5 w-3.5 text-primary" />
+                      <span>{language === "ar" ? "داكن" : "Dark"}</span>
                     </>
                   )}
                 </Button>
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Notifications */}
-          <div className="space-y-4 rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
+          <Card className="space-y-4 rounded-2xl border border-border/80 bg-card/80 p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <IconBell className="h-5 w-5 text-primary" />
@@ -340,15 +340,13 @@ export default function SettingsPage() {
                 >
                   <IconBell className="me-1 h-3.5 w-3.5" />
                   <span>
-                    {language === "ar"
-                      ? "إرسال تنبيه تجريبي"
-                      : "Send Test Push"}
+                    {language === "ar" ? "إرسال تنبيه تجريبي" : "Send Test Push"}
                   </span>
                 </Button>
               )}
               {saveSuccess && (
                 <span className="text-xs font-bold text-emerald-600">
-                  تم حفظ التفضيلات
+                  {language === "ar" ? "تم حفظ التفضيلات بنجاح" : "Preferences saved"}
                 </span>
               )}
               <Button
@@ -360,10 +358,10 @@ export default function SettingsPage() {
                 {language === "ar" ? "حفظ الإشعارات" : "Save Preferences"}
               </Button>
             </div>
-          </div>
+          </Card>
 
           {/* Data Management */}
-          <div className="space-y-4 rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
+          <Card className="space-y-4 rounded-2xl border border-border/80 bg-card/80 p-6 shadow-sm">
             <div className="flex items-center gap-2">
               <IconDatabase className="h-5 w-5 text-primary" />
               <h3 className="text-sm font-extrabold text-foreground">
@@ -392,11 +390,23 @@ export default function SettingsPage() {
                 <span>{t.deleteAccountBtn}</span>
               </Button>
             </div>
-          </div>
+          </Card>
         </div>
       </main>
-
-      <Footer />
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      }
+    >
+      <SettingsContent />
+    </Suspense>
   )
 }

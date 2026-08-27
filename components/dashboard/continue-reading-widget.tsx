@@ -71,12 +71,15 @@ export function ContinueReadingWidget({ data }: ContinueReadingWidgetProps) {
         </div>
       </motion.div>
 
-      <QuranReader
-        isOpen={isReaderOpen}
-        onClose={() => setIsReaderOpen(false)}
-        initialSurahNumber={data.surahNumber}
-        initialAyahNumber={data.ayahNumber}
-      />
+      {isReaderOpen && (
+        <QuranReader
+          isModal={true}
+          isOpen={isReaderOpen}
+          onClose={() => setIsReaderOpen(false)}
+          initialSurahNumber={data.surahNumber}
+          initialAyahNumber={data.ayahNumber}
+        />
+      )}
     </>
   )
 }

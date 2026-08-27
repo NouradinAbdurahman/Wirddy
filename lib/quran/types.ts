@@ -58,6 +58,20 @@ export interface ApiJuzData {
   }
 }
 
+export interface ApiPageData {
+  number: number
+  ayahs: ApiAyah[]
+  surahs?: Record<string, ApiPartialSurah>
+  edition?: {
+    identifier: string
+    language: string
+    name: string
+    englishName: string
+    format: string
+    type: string
+  }
+}
+
 export interface ApiMetaReference {
   surah: number
   ayah: number

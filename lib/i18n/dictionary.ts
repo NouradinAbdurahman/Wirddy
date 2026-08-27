@@ -521,9 +521,24 @@ export interface Translations {
 
   // Dashboard & Navigation
   navDashboard: string
-  navMyGroups: string
-  navSettings: string
+  navMySchedule: string
+  navQuranReader: string
   navBookmarks: string
+  navSearch: string
+  navMyGroups: string
+  navGroupProgress: string
+  navAnnouncements: string
+  navHistory: string
+  navNotifications: string
+  navSettings: string
+  sidebarReadingProgress: string
+  sidebarInstallApp: string
+  statThisWeekProgress: string
+  statStreak: string
+  statActiveGroups: string
+  statReadingStreak: string
+  quickActionJoinGroup: string
+  quickActionOpenQuran: string
   dashboardWelcome: string
   dashboardSubtitle: string
   dashboardTodaysReading: string
@@ -565,6 +580,13 @@ export interface Translations {
   readerSurah: string
   readerAyah: string
   readerJuz: string
+  readerPage: string
+  readerPageOf: string
+  readerPrevPage: string
+  readerNextPage: string
+  readerJumpToPage: string
+  readerFullscreen: string
+  readerExitFullscreen: string
   readerPrevAyah: string
   readerNextAyah: string
   readerPrevPortion: string
@@ -573,6 +595,38 @@ export interface Translations {
   readerBookmarkSaved: string
   readerMarkAssignmentDone: string
   readerOpenReader: string
+  readerSettings: string
+  readerFont: string
+  readerFontAmiriQuran: string
+  readerFontScheherazade: string
+  readerFontAmiri: string
+  readerFontIndoPak: string
+  readerTheme: string
+  readerThemeDark: string
+  readerThemeLight: string
+  readerThemeSepia: string
+  readerLineHeight: string
+  readerTranslation: string
+  readerShowTranslation: string
+  readerSurahList: string
+  readerJuzNav: string
+  readerSearchSurahs: string
+  readerSurahTypeMeccan: string
+  readerSurahTypeMedinan: string
+  readerAyahDetails: string
+  readerCopyArabic: string
+  readerCopyTranslation: string
+  readerCopied: string
+  readerShareAyah: string
+  readerStudyTafsir: string
+  readerStudyReflections: string
+  readerBookmarkAyah: string
+  readerBookmarkRemoved: string
+  readerTafsirTitle: string
+  readerTwoPageSpread: string
+  readerSinglePage: string
+  readerAutoSpread: string
+  readerToggleSidebar: string
 
   // Bookmarks
   bookmarksTitle: string
@@ -1193,9 +1247,24 @@ export const translations: Record<Language, Translations> = {
 
     // Dashboard & Navigation
     navDashboard: "الرئيسية",
-    navMyGroups: "جداولي",
-    navSettings: "الإعدادات",
+    navMySchedule: "جدولي",
+    navQuranReader: "المصحف الشريف",
     navBookmarks: "العلامات المحفوظة",
+    navSearch: "البحث في المصحف",
+    navMyGroups: "جداولي",
+    navGroupProgress: "تقدم المجموعة",
+    navAnnouncements: "الإعلانات والتنبيهات",
+    navHistory: "سجل التعديلات",
+    navNotifications: "الإشعارات",
+    navSettings: "الإعدادات",
+    sidebarReadingProgress: "ورد اليوم",
+    sidebarInstallApp: "تثبيت التطبيق",
+    statThisWeekProgress: "إنجاز الأسبوع",
+    statStreak: "أيام متتالية",
+    statActiveGroups: "مجموعات نشطة",
+    statReadingStreak: "سلسلة القراءة",
+    quickActionJoinGroup: "الانضمام لجدول",
+    quickActionOpenQuran: "فتح المصحف",
     dashboardWelcome: "مرحباً، {name}",
     dashboardSubtitle: "تابع وردك اليومي وأدر مجموعاتك بكل سهولة",
     dashboardTodaysReading: "وردك اليوم",
@@ -1238,6 +1307,13 @@ export const translations: Record<Language, Translations> = {
     readerSurah: "سورة",
     readerAyah: "آية",
     readerJuz: "الجزء",
+    readerPage: "صفحة",
+    readerPageOf: "صفحة {current} من {total}",
+    readerPrevPage: "الصفحة السابقة",
+    readerNextPage: "الصفحة التالية",
+    readerJumpToPage: "انتقال إلى صفحة...",
+    readerFullscreen: "ملء الشاشة",
+    readerExitFullscreen: "إنهاء ملء الشاشة",
     readerPrevAyah: "الآية السابقة",
     readerNextAyah: "الآية التالية",
     readerPrevPortion: "المقطع السابق",
@@ -1246,6 +1322,38 @@ export const translations: Record<Language, Translations> = {
     readerBookmarkSaved: "تم حفظ العلامة المرجعية بنجاح",
     readerMarkAssignmentDone: "إتمام قراءة هذا المقطع",
     readerOpenReader: "فتح المصحف",
+    readerSettings: "إعدادات القراءة",
+    readerFont: "نوع الخط",
+    readerFontAmiriQuran: "خط المصحف (الأميري)",
+    readerFontScheherazade: "خط النسخ (شهرزاد)",
+    readerFontAmiri: "الخط الأميري",
+    readerFontIndoPak: "خط النسخ الواضح",
+    readerTheme: "مظهر القراءة",
+    readerThemeDark: "الوضع الداكن",
+    readerThemeLight: "الوضع الفاتح",
+    readerThemeSepia: "الوضع الدافئ (ورقي)",
+    readerLineHeight: "تباعد الأسطر",
+    readerTranslation: "الترجمة الإنجليزية",
+    readerShowTranslation: "عرض الترجمة",
+    readerSurahList: "فهرس السور",
+    readerJuzNav: "التنقل بالأجزاء",
+    readerSearchSurahs: "ابحث عن سورة...",
+    readerSurahTypeMeccan: "مكية",
+    readerSurahTypeMedinan: "مدنية",
+    readerAyahDetails: "دراسة وتفاصيل الآية",
+    readerCopyArabic: "نسخ النص القرآني",
+    readerCopyTranslation: "نسخ الترجمة",
+    readerCopied: "تم النسخ بنجاح",
+    readerShareAyah: "مشاركة الآية",
+    readerStudyTafsir: "التفسير الميسر",
+    readerStudyReflections: "وقفات وتدبر",
+    readerBookmarkAyah: "حفظ العلامة",
+    readerBookmarkRemoved: "تمت إزالة العلامة",
+    readerTafsirTitle: "تفسير الآية",
+    readerTwoPageSpread: "عرض صفحتين (مصحف مفتوح)",
+    readerSinglePage: "عرض صفحة واحدة",
+    readerAutoSpread: "تلقائي حسب الشاشة",
+    readerToggleSidebar: "طي / إظهار القائمة",
 
     // Bookmarks
     bookmarksTitle: "العلامات المحفوظة",
@@ -1884,9 +1992,24 @@ export const translations: Record<Language, Translations> = {
 
     // Dashboard & Navigation
     navDashboard: "Dashboard",
-    navMyGroups: "My Groups",
-    navSettings: "Settings",
+    navMySchedule: "My Schedule",
+    navQuranReader: "Quran Reader",
     navBookmarks: "Bookmarks",
+    navSearch: "Quran Search",
+    navMyGroups: "My Groups",
+    navGroupProgress: "Group Progress",
+    navAnnouncements: "Announcements",
+    navHistory: "Version History",
+    navNotifications: "Notifications",
+    navSettings: "Settings",
+    sidebarReadingProgress: "Today's Reading",
+    sidebarInstallApp: "Install App",
+    statThisWeekProgress: "Week Progress",
+    statStreak: "Day Streak",
+    statActiveGroups: "Active Groups",
+    statReadingStreak: "Reading Streak",
+    quickActionJoinGroup: "Join Group",
+    quickActionOpenQuran: "Open Quran",
     dashboardWelcome: "Welcome back, {name}",
     dashboardSubtitle:
       "Track your daily reading and manage your groups with ease",
@@ -1931,6 +2054,13 @@ export const translations: Record<Language, Translations> = {
     readerSurah: "Surah",
     readerAyah: "Ayah",
     readerJuz: "Juz",
+    readerPage: "Page",
+    readerPageOf: "Page {current} of {total}",
+    readerPrevPage: "Previous Page",
+    readerNextPage: "Next Page",
+    readerJumpToPage: "Jump to Page...",
+    readerFullscreen: "Fullscreen",
+    readerExitFullscreen: "Exit Fullscreen",
     readerPrevAyah: "Previous Ayah",
     readerNextAyah: "Next Ayah",
     readerPrevPortion: "Previous Portion",
@@ -1939,6 +2069,38 @@ export const translations: Record<Language, Translations> = {
     readerBookmarkSaved: "Bookmark saved successfully",
     readerMarkAssignmentDone: "Complete this portion",
     readerOpenReader: "Open Quran",
+    readerSettings: "Reading Settings",
+    readerFont: "Font Style",
+    readerFontAmiriQuran: "Amiri Quran (Mushaf)",
+    readerFontScheherazade: "Scheherazade (Naskh)",
+    readerFontAmiri: "Amiri Classic",
+    readerFontIndoPak: "Clear Naskh",
+    readerTheme: "Theme",
+    readerThemeDark: "Dark Mode",
+    readerThemeLight: "Light Mode",
+    readerThemeSepia: "Sepia (Warm)",
+    readerLineHeight: "Line Height",
+    readerTranslation: "English Translation",
+    readerShowTranslation: "Show Translation",
+    readerSurahList: "Surahs List",
+    readerJuzNav: "Juz Navigation",
+    readerSearchSurahs: "Search Surahs...",
+    readerSurahTypeMeccan: "Meccan",
+    readerSurahTypeMedinan: "Medinan",
+    readerAyahDetails: "Ayah Details & Study",
+    readerCopyArabic: "Copy Arabic Text",
+    readerCopyTranslation: "Copy Translation",
+    readerCopied: "Copied to clipboard",
+    readerShareAyah: "Share Ayah",
+    readerStudyTafsir: "Tafsir (Explanation)",
+    readerStudyReflections: "Reflections",
+    readerBookmarkAyah: "Bookmark Ayah",
+    readerBookmarkRemoved: "Bookmark removed",
+    readerTafsirTitle: "Ayah Tafsir",
+    readerTwoPageSpread: "Two-Page Spread",
+    readerSinglePage: "Single Page",
+    readerAutoSpread: "Auto Spread",
+    readerToggleSidebar: "Toggle Sidebar",
 
     // Bookmarks
     bookmarksTitle: "Bookmarks",

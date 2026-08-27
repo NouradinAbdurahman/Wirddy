@@ -141,11 +141,11 @@ export function TodaysReadingWidget({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
             <Button
               size="sm"
               onClick={() => setIsReaderOpen(true)}
-              className="h-9 gap-1.5 rounded-xl bg-primary px-4 text-xs font-extrabold text-primary-foreground hover:bg-primary/90"
+              className="h-9 flex-1 sm:flex-initial gap-1.5 rounded-xl bg-primary px-4 text-xs font-extrabold text-primary-foreground hover:bg-primary/90"
             >
               <IconBook className="h-4 w-4" />
               <span>{t.dashboardReadNow}</span>
@@ -156,7 +156,7 @@ export function TodaysReadingWidget({
               size="sm"
               onClick={handleToggleComplete}
               disabled={isSubmitting}
-              className={`h-9 gap-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`h-9 flex-1 sm:flex-initial gap-1.5 rounded-xl text-xs font-bold transition-all ${
                 isCompleted
                   ? "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600"
                   : "border-border/80 hover:bg-muted"
@@ -172,25 +172,28 @@ export function TodaysReadingWidget({
       </motion.div>
 
       {/* Embedded Quran Reader Modal */}
-      <QuranReader
-        isOpen={isReaderOpen}
-        onClose={() => setIsReaderOpen(false)}
-        initialSurahNumber={reading.surahNumber}
-        initialAyahNumber={reading.startAyah}
-        endSurahNumber={reading.endSurahNumber || reading.surahNumber}
-        endAyahNumber={reading.endAyah}
-        assignmentTitle={`${reading.groupName} - ${language === "ar" ? `الأسبوع ${reading.weekNumber}` : `Week ${reading.weekNumber}`}`}
-        onCompleteAssignment={() => {
-          setIsCompleted(true)
-          saveReadingProgressAction(
-            reading.groupPublicId,
-            reading.memberPublicId,
-            reading.weekNumber,
-            reading.dayNumber,
-            true
-          )
-        }}
-      />
+      {isReaderOpen && (
+        <QuranReader
+          isModal={true}
+          isOpen={isReaderOpen}
+          onClose={() => setIsReaderOpen(false)}
+          initialSurahNumber={reading.surahNumber}
+          initialAyahNumber={reading.startAyah}
+          endSurahNumber={reading.endSurahNumber || reading.surahNumber}
+          endAyahNumber={reading.endAyah}
+          assignmentTitle={`${reading.groupName} - ${language === "ar" ? `الأسبوع ${reading.weekNumber}` : `Week ${reading.weekNumber}`}`}
+          onCompleteAssignment={() => {
+            setIsCompleted(true)
+            saveReadingProgressAction(
+              reading.groupPublicId,
+              reading.memberPublicId,
+              reading.weekNumber,
+              reading.dayNumber,
+              true
+            )
+          }}
+        />
+      )}
     </>
   )
 }

@@ -90,6 +90,7 @@ export function UserBookmarksWidget({
 
       {activeBookmark && (
         <QuranReader
+          isModal={true}
           isOpen={!!activeBookmark}
           onClose={() => setActiveBookmark(null)}
           initialSurahNumber={activeBookmark.surahNumber}

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Cairo, Inter } from "next/font/google"
+import { Cairo, Inter, Amiri, Amiri_Quran, Scheherazade_New } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -18,6 +18,27 @@ const cairo = Cairo({
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
+  display: "swap",
+})
+
+const amiri = Amiri({
+  subsets: ["arabic", "latin"],
+  weight: ["400", "700"],
+  variable: "--font-quran-amiri",
+  display: "swap",
+})
+
+const amiriQuran = Amiri_Quran({
+  subsets: ["arabic"],
+  weight: ["400"],
+  variable: "--font-quran-amiri-quran",
+  display: "swap",
+})
+
+const scheherazadeNew = Scheherazade_New({
+  subsets: ["arabic", "latin"],
+  weight: ["400", "700"],
+  variable: "--font-quran-scheherazade",
   display: "swap",
 })
 
@@ -107,7 +128,14 @@ export default function RootLayout({
       lang="ar"
       dir="rtl"
       suppressHydrationWarning
-      className={cn("font-sans antialiased", cairo.variable, inter.variable)}
+      className={cn(
+        "font-sans antialiased",
+        cairo.variable,
+        inter.variable,
+        amiri.variable,
+        amiriQuran.variable,
+        scheherazadeNew.variable
+      )}
     >
       <body
         suppressHydrationWarning
