@@ -281,7 +281,7 @@ export function ExportModal({
       open={open}
       onOpenChange={(val) => !isExporting && onOpenChange(val)}
     >
-      <DialogContent className="rounded-3xl p-6 text-start sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-3xl p-4.5 text-start sm:max-h-[88vh] sm:max-w-lg sm:p-6">
         <DialogHeader className="space-y-1.5 pb-1">
           <DialogTitle className="text-xl font-bold text-foreground">
             {t.exportTitle}
