@@ -63,7 +63,9 @@ describe("Wirddy Advanced Group Features Test Suite", () => {
       expect(ramadan1448.startsWith("2027")).toBe(true)
 
       const ramadan1447 = getRamadanStartDate(1447)
-      expect(ramadan1447.startsWith("2026") || ramadan1447.startsWith("2025")).toBe(true)
+      expect(
+        ramadan1447.startsWith("2026") || ramadan1447.startsWith("2025")
+      ).toBe(true)
     })
 
     it("provides valid Hijri year options for selector", () => {
@@ -209,16 +211,34 @@ describe("Wirddy Advanced Group Features Test Suite", () => {
       const input: ScheduleInput = {
         group: { name: "Test Group", weeksCount: 1 },
         members: [
-          { id: "1", name: "A", knowledgeType: "entire", startJuz: 1, endJuz: 30, weeklyAmount: 15 },
-          { id: "2", name: "B", knowledgeType: "entire", startJuz: 1, endJuz: 30, weeklyAmount: 15 },
+          {
+            id: "1",
+            name: "A",
+            knowledgeType: "entire",
+            startJuz: 1,
+            endJuz: 30,
+            weeklyAmount: 15,
+          },
+          {
+            id: "2",
+            name: "B",
+            knowledgeType: "entire",
+            startJuz: 1,
+            endJuz: 30,
+            weeklyAmount: 15,
+          },
         ],
       }
 
       const schedule = generateQuranSchedule(input)
       expect(schedule.members[0].publicId).toBeDefined()
       expect(schedule.members[1].publicId).toBeDefined()
-      expect(schedule.members[0].publicId).not.toBe(schedule.members[1].publicId)
-      expect(schedule.weeks[0].assignments[0].memberPublicId).toBe(schedule.members[0].publicId)
+      expect(schedule.members[0].publicId).not.toBe(
+        schedule.members[1].publicId
+      )
+      expect(schedule.weeks[0].assignments[0].memberPublicId).toBe(
+        schedule.members[0].publicId
+      )
     })
   })
 

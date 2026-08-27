@@ -38,7 +38,9 @@ export async function createAllMembersZip(
   const zip = new JSZip()
   const total = members.length
   const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://wirddy.app"
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://wirddy.app"
 
   const isArabic = options?.language ? options.language === "ar" : true
 
@@ -84,6 +86,7 @@ export async function createAllMembersZip(
 
   const zipBlob = await zip.generateAsync({
     type: "blob",
+    mimeType: "application/zip",
     compression: "DEFLATE",
     compressionOptions: { level: 6 },
   })

@@ -175,11 +175,7 @@ function solveWeekPermutation(
       used[candidateIdx] = true
       currentPerm.push(mState)
 
-      backtrack(
-        currentPosition + 1,
-        currentPerm,
-        currentScore + repetitionCost
-      )
+      backtrack(currentPosition + 1, currentPerm, currentScore + repetitionCost)
 
       currentPerm.pop()
       used[candidateIdx] = false
@@ -304,8 +300,7 @@ export function generateQuranSchedule(input: ScheduleInput): GeneratedSchedule {
   const normalizedMembers: MemberConfig[] = members.map((m) => ({
     ...m,
     publicId:
-      m.publicId ||
-      generateMemberPublicId(`${group.name}_${m.id || m.name}`),
+      m.publicId || generateMemberPublicId(`${group.name}_${m.id || m.name}`),
   }))
 
   const weeksCount = Math.max(1, Math.min(52, group.weeksCount || 1))
@@ -332,7 +327,9 @@ export function generateQuranSchedule(input: ScheduleInput): GeneratedSchedule {
       ? calculateWeekDateRanges(effectiveStartDate, weeksCount)
       : undefined
 
-  const seed = hashStringToSeed(group.name + normalizedMembers.map((m) => m.name).join("-"))
+  const seed = hashStringToSeed(
+    group.name + normalizedMembers.map((m) => m.name).join("-")
+  )
 
   // -------------------------------------------------------------
   // 1. CUSTOM QURAN RANGE SCHEDULER
@@ -351,7 +348,10 @@ export function generateQuranSchedule(input: ScheduleInput): GeneratedSchedule {
     const startLoc = quranService.getLocationFromGlobalAyah(startGlobal)
     const endLoc = quranService.getLocationFromGlobalAyah(endGlobal)
     const totalRangeAyahs = endGlobal - startGlobal + 1
-    const totalWeeklyAmount = normalizedMembers.reduce((s, m) => s + m.weeklyAmount, 0)
+    const totalWeeklyAmount = normalizedMembers.reduce(
+      (s, m) => s + m.weeklyAmount,
+      0
+    )
 
     const memberStates: MemberState[] = normalizedMembers.map((m, i) => ({
       member: m,

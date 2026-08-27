@@ -72,4 +72,3 @@ export function generateMemberPublicId(seedOrInput?: string): string {
   const bytes = crypto.randomBytes(6).toString("hex")
   return `m_${bytes}`
 }
-

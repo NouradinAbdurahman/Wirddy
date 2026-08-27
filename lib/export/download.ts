@@ -1,113 +1,175 @@
+import { getSafeDownloadFilename } from "./filenames"
+
 /**
- * Triggers a browser file download from a Blob.
+ * Diagnostic payload printed before each export download in non-production environments.
+ */
+export interface DownloadDiagnostics {
+  filename: string
+  mimeType: string
+  size: number
+  firstBytes: string
+}
+
+/**
+ * Inspects the initial bytes of a Blob as a hexadecimal string.
+ */
+export async function getBlobFirstBytesHex(
+  blob: Blob,
+  byteCount: number = 8
+): Promise<string> {
+  if (!blob || blob.size === 0) return ""
+  try {
+    const slice = blob.slice(0, Math.min(blob.size, byteCount))
+    const arrayBuffer = await slice.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuffer)
+    return Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+  } catch {
+    return ""
+  }
+}
+
+/**
+ * Centralized browser download pipeline.
  *
- * CROSS-BROWSER STRATEGY:
- *
- * Chrome breaks the "user gesture" chain after any `await`. When link.click()
- * is called inside an async export pipeline (font loading → rAF waits → toBlob
- * → etc.), Chrome no longer considers it user-initiated and silently ignores
- * link.download, using the blob URL UUID as filename instead.
- *
- * Fix: Use the File System Access API (showSaveFilePicker) in Chrome — this API
- * shows a native "Save As" dialog and does NOT require the original user gesture
- * to still be active. It pre-fills the filename correctly.
- *
- * Safari / Firefox don't have this issue and the classic blob URL approach works fine.
+ * Requirements fulfilled:
+ * 1. Validates real non-empty Blob instance.
+ * 2. Validates & enforces correct MIME type according to extension (image/png, application/pdf, application/zip).
+ * 3. Inspects & verifies magic byte signatures.
+ * 4. Sanitizes filename with guaranteed correct extension and cross-browser safety.
+ * 5. Uses standard HTML5 Anchor download with proper off-screen layout properties.
+ * 6. Safely retains Object URL for 60 seconds to prevent premature revocation in Chromium.
+ * 7. Emits diagnostic logging before download.
  */
 export async function triggerBrowserDownload(
   blob: Blob,
   filename: string
 ): Promise<void> {
-  if (typeof window === "undefined") return
+  if (!blob || !(blob instanceof Blob)) {
+    throw new Error(
+      "Cannot trigger download: provided argument is not a valid Blob."
+    )
+  }
 
-  const safeFilename = toAsciiFriendlyFilename(filename)
-  const ext = safeFilename.split(".").pop()?.toLowerCase() || "bin"
+  if (blob.size === 0) {
+    throw new Error("Cannot trigger download: Blob is empty (0 bytes).")
+  }
 
-  // --- Chrome path: File System Access API ---
-  // showSaveFilePicker works even in async context and always preserves filename.
-  if ("showSaveFilePicker" in window) {
-    const mimeMap: Record<string, string> = {
-      png: "image/png",
-      pdf: "application/pdf",
-      zip: "application/zip",
+  if (typeof window === "undefined" || typeof document === "undefined") return
+
+  // Detect file format from filename
+  const lowerName = filename.toLowerCase()
+  let expectedMime = blob.type
+  let expectedExt = ""
+
+  if (lowerName.endsWith(".png")) {
+    expectedMime = "image/png"
+    expectedExt = ".png"
+  } else if (lowerName.endsWith(".pdf")) {
+    expectedMime = "application/pdf"
+    expectedExt = ".pdf"
+  } else if (lowerName.endsWith(".zip")) {
+    expectedMime = "application/zip"
+    expectedExt = ".zip"
+  }
+
+  // Ensure Blob has the expected MIME type (wrap if missing or generic)
+  const finalBlob =
+    blob.type === expectedMime
+      ? blob
+      : new Blob([blob], { type: expectedMime || "application/octet-stream" })
+
+  // Validate magic bytes
+  const firstBytesHex = await getBlobFirstBytesHex(finalBlob, 8)
+
+  if (expectedExt === ".png") {
+    // PNG 8-byte signature: 89 50 4E 47 0D 0A 1A 0A
+    if (!firstBytesHex.startsWith("89504e470d0a1a0a")) {
+      console.warn(
+        "[Wirddy Export] Warning: PNG header signature mismatch:",
+        firstBytesHex
+      )
     }
-    const mimeType = mimeMap[ext] ?? "application/octet-stream"
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const handle = await (window as any).showSaveFilePicker({
-        suggestedName: safeFilename,
-        types: [
-          {
-            description: "Download",
-            accept: { [mimeType]: [`.${ext}`] },
-          },
-        ],
-      })
-      const writable = await handle.createWritable()
-      await writable.write(blob)
-      await writable.close()
-      return
-    } catch (err: unknown) {
-      // AbortError = user clicked Cancel in the dialog — do nothing
-      if ((err as { name?: string })?.name === "AbortError") return
-      // Any other error: fall through to the classic approach below
-      console.warn("[Wirddy] showSaveFilePicker failed, falling back:", err)
+  } else if (expectedExt === ".pdf") {
+    // PDF signature: 25 50 44 46 (%PDF)
+    if (!firstBytesHex.startsWith("25504446")) {
+      console.warn(
+        "[Wirddy Export] Warning: PDF header signature mismatch:",
+        firstBytesHex
+      )
+    }
+  } else if (expectedExt === ".zip") {
+    // ZIP signature: 50 4B 03 04 (PK..)
+    if (
+      !firstBytesHex.startsWith("504b0304") &&
+      !firstBytesHex.startsWith("504b0506")
+    ) {
+      console.warn(
+        "[Wirddy Export] Warning: ZIP header signature mismatch:",
+        firstBytesHex
+      )
     }
   }
 
-  // --- Safari / Firefox path: classic blob URL anchor ---
-  // Safari doesn't break the user gesture chain through await, so link.download
-  // is respected and the filename is preserved.
-  const url = URL.createObjectURL(blob)
+  // Obtain clean, safe download filename with guaranteed extension
+  const safeFilename = getSafeDownloadFilename(filename, expectedExt)
+
+  // Diagnostic logging
+  const diagnostics: DownloadDiagnostics = {
+    filename: safeFilename,
+    mimeType: finalBlob.type,
+    size: finalBlob.size,
+    firstBytes: firstBytesHex,
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[Wirddy Download Triggered]", diagnostics)
+  }
+
+  // Create Object URL for the validated Blob
+  const objectUrl = URL.createObjectURL(finalBlob)
+
+  // Create anchor element with safe layout properties (not display:none)
   const link = document.createElement("a")
-  link.style.display = "none"
-  link.href = url
+  link.style.position = "fixed"
+  link.style.left = "-99999px"
+  link.style.top = "-99999px"
+  link.style.opacity = "0"
+  link.style.pointerEvents = "none"
+  link.href = objectUrl
   link.download = safeFilename
+  link.rel = "noopener"
 
   document.body.appendChild(link)
-  link.click()
 
-  setTimeout(() => {
-    try {
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    } catch {
-      // Ignore cleanup errors
+  try {
+    // Dispatch native click event
+    if (typeof MouseEvent !== "undefined") {
+      link.dispatchEvent(
+        new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        })
+      )
+    } else {
+      link.click()
     }
-  }, 2000)
-}
+  } finally {
+    // Remove element from DOM
+    if (document.body.contains(link)) {
+      document.body.removeChild(link)
+    }
 
-/**
- * Converts a filename that may contain Arabic/Unicode characters into a safe ASCII filename.
- * Preserves the file extension. Transliterates common Arabic strings used in Wirddy filenames.
- *
- * Needed because the HTML <a download> attribute is silently ignored by Chrome/Safari when
- * the filename contains non-ASCII characters.
- */
-function toAsciiFriendlyFilename(filename: string): string {
-  if (!filename) return "Wirddy-export"
-
-  const lastDot = filename.lastIndexOf(".")
-  const hasExt = lastDot > 0 && lastDot < filename.length - 1
-  const ext = hasExt ? filename.slice(lastDot) : "" // e.g. ".png", ".pdf", ".zip"
-  const base = hasExt ? filename.slice(0, lastDot) : filename
-
-  const transliterated = base
-    .replace(/الأسبوع/g, "Week")
-    .replace(/الخطة-كاملة/g, "Full-Plan")
-    .replace(/جميع-الأسابيع/g, "All-Weeks")
-    // Arabic-Indic digits → Western digits
-    .replace(/[٠١٢٣٤٥٦٧٨٩]/g, (d) =>
-      String("٠١٢٣٤٥٦٧٨٩".indexOf(d))
-    )
-    // Strip remaining non-ASCII characters
-    .replace(/[^\x20-\x7E]/g, "")
-    // Clean up double-dashes or leading/trailing dashes
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .trim()
-
-  const safeName = transliterated || "Wirddy-export"
-  return `${safeName}${ext}`
+    // Retain object URL for 60 seconds so Chromium's asynchronous DownloadManager
+    // can safely finish fetching the stream without UUID fallback
+    setTimeout(() => {
+      try {
+        URL.revokeObjectURL(objectUrl)
+      } catch {
+        // Ignore cleanup errors
+      }
+    }, 60000)
+  }
 }

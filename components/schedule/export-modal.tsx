@@ -227,7 +227,7 @@ export function ExportModal({
 
       const safeGroupName = sanitizeFilename(schedule.groupName)
       const filename = `${safeGroupName} - Members Schedules.zip`
-      triggerBrowserDownload(zipBlob, filename)
+      await triggerBrowserDownload(zipBlob, filename)
 
       setSuccessMessage(t.exportSuccess)
       setTimeout(() => {

@@ -72,7 +72,9 @@ export function PersonalMemberView({
 
   const memberPublicId = member.publicId || member.id
   const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://wirddy.app"
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://wirddy.app"
   const memberPersonalUrl = groupPublicId
     ? `${origin}/g/${groupPublicId}/member/${memberPublicId}`
     : ""
@@ -144,11 +146,15 @@ export function PersonalMemberView({
           <select
             value={member.id}
             onChange={(e) => onSelectMember(e.target.value)}
-            className="h-10 rounded-xl border border-border/80 bg-card px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="h-10 rounded-xl border border-border/80 bg-card px-3 text-xs font-bold text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
           >
             {allMembers.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.name} ({language === "ar" ? toArabicNumerals(m.weeklyAmount) : m.weeklyAmount} {t.juzUnit})
+                {m.name} (
+                {language === "ar"
+                  ? toArabicNumerals(m.weeklyAmount)
+                  : m.weeklyAmount}{" "}
+                {t.juzUnit})
               </option>
             ))}
           </select>
@@ -167,7 +173,11 @@ export function PersonalMemberView({
                 className="gap-1 border-primary/40 bg-primary/10 text-xs font-bold text-primary"
               >
                 <IconSparkles className="h-3.5 w-3.5" />
-                <span>{language === "ar" ? "جدول القراءة الفردي" : "Personal Reading Schedule"}</span>
+                <span>
+                  {language === "ar"
+                    ? "جدول القراءة الفردي"
+                    : "Personal Reading Schedule"}
+                </span>
               </Badge>
 
               {schedule.occasionType === "ramadan" && (
@@ -198,7 +208,9 @@ export function PersonalMemberView({
 
             <div className="flex flex-wrap items-center gap-3 pt-2 text-xs">
               <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/50 px-2.5 py-1 font-semibold text-foreground">
-                <span>{language === "ar" ? "الورد الأسبوعي:" : "Weekly Amount:"}</span>
+                <span>
+                  {language === "ar" ? "الورد الأسبوعي:" : "Weekly Amount:"}
+                </span>
                 <span className="font-bold text-primary">
                   {language === "ar"
                     ? `${toArabicNumerals(member.weeklyAmount)} أجزاء / أسبوع`
@@ -306,7 +318,9 @@ export function PersonalMemberView({
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-base font-bold text-foreground">
-            {language === "ar" ? "جدول الأسابيع والورد" : "Weekly Schedule Breakdown"}
+            {language === "ar"
+              ? "جدول الأسابيع والورد"
+              : "Weekly Schedule Breakdown"}
           </h3>
           <span className="text-xs text-muted-foreground">
             {language === "ar"
@@ -365,7 +379,10 @@ export function PersonalMemberView({
                         </span>
 
                         {dateRange && (
-                          <Badge variant="outline" className="text-[11px] font-medium">
+                          <Badge
+                            variant="outline"
+                            className="text-[11px] font-medium"
+                          >
                             {language === "ar"
                               ? dateRange.formattedAr
                               : dateRange.formattedEn}
@@ -408,7 +425,7 @@ export function PersonalMemberView({
                 {/* 7-Day Daily Breakdown for this week */}
                 {hasDaily && isExpanded && (
                   <div className="border-t border-border/50 bg-muted/20">
-                    <div className="grid grid-cols-1 divide-y divide-border/40 sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:divide-border/40 sm:rtl:divide-x-reverse lg:grid-cols-7 lg:divide-y-0">
+                    <div className="grid grid-cols-1 divide-y divide-border/40 sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:divide-border/40 lg:grid-cols-7 lg:divide-y-0 sm:rtl:divide-x-reverse">
                       {assignment.dailyBreakdown!.map((portion, pIdx) => {
                         const dStartSurah =
                           language === "ar"
@@ -443,7 +460,8 @@ export function PersonalMemberView({
                                 <span className="text-[10px] text-muted-foreground">
                                   {language === "ar"
                                     ? portion.formattedDateAr
-                                    : portion.formattedDateEn || portion.dateStr?.slice(5)}
+                                    : portion.formattedDateEn ||
+                                      portion.dateStr?.slice(5)}
                                 </span>
                               )}
                             </div>
@@ -468,8 +486,10 @@ export function PersonalMemberView({
                               {portion.ramadanDay && (
                                 <span className="font-bold text-amber-600 dark:text-amber-400">
                                   {language === "ar"
-                                    ? portion.ramadanDayLabelAr || `رمضان ${toArabicNumerals(portion.ramadanDay)}`
-                                    : portion.ramadanDayLabelEn || `Ramadan ${portion.ramadanDay}`}
+                                    ? portion.ramadanDayLabelAr ||
+                                      `رمضان ${toArabicNumerals(portion.ramadanDay)}`
+                                    : portion.ramadanDayLabelEn ||
+                                      `Ramadan ${portion.ramadanDay}`}
                                 </span>
                               )}
                             </div>

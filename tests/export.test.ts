@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import {
   getExportFilename,
   getPdfExportFilename,
+  getSafeDownloadFilename,
   getZipExportFilename,
   sanitizeFilename,
 } from "../lib/export/filenames"
@@ -10,6 +11,10 @@ import {
   validatePngBlob,
   validateZipBlob,
 } from "../lib/export/validate-file"
+import {
+  getBlobFirstBytesHex,
+  triggerBrowserDownload,
+} from "../lib/export/download"
 import {
   normalizeScheduleToExport,
   normalizeWeekSchedule,
@@ -25,7 +30,7 @@ import {
 import { GeneratedSchedule } from "../lib/scheduler/types"
 import { generateQuranSchedule } from "../lib/scheduler/engine"
 
-describe("Export System: Filename Sanitization", () => {
+describe("Export System: Filename Sanitization & Safe Download Filenames", () => {
   it("sanitizes forbidden OS characters in group names", () => {
     const raw = "عائلة/النور:2027*<test>|group?"
     const sanitized = sanitizeFilename(raw)
@@ -55,6 +60,117 @@ describe("Export System: Filename Sanitization", () => {
     const enPdf = getPdfExportFilename("Friends Circle", "en")
     expect(arPdf).toBe("Wirddy-صحبة-الخير-الخطة-كاملة.pdf")
     expect(enPdf).toBe("Wirddy-Friends-Circle-Full-Plan.pdf")
+  })
+
+  it("generates cross-browser safe download filename without duplicate extensions", () => {
+    const safePng = getSafeDownloadFilename(
+      "Wirddy-عائلة-أحمد-الأسبوع-١.png",
+      ".png"
+    )
+    expect(safePng).toBe("Wirddy-عائلة-أحمد-Week-1.png")
+    expect(safePng.endsWith(".png")).toBe(true)
+    expect(safePng).not.toContain(".png.png")
+
+    const safePdf = getSafeDownloadFilename(
+      "Wirddy-عائلة-الخير-الخطة-كاملة.pdf",
+      ".pdf"
+    )
+    expect(safePdf).toBe("Wirddy-عائلة-الخير-Full-Plan.pdf")
+    expect(safePdf.endsWith(".pdf")).toBe(true)
+
+    const safeZip = getSafeDownloadFilename(
+      "Wirddy-عائلة-الخير-جميع-الأسابيع.zip",
+      ".zip"
+    )
+    expect(safeZip).toBe("Wirddy-عائلة-الخير-All-Weeks.zip")
+    expect(safeZip.endsWith(".zip")).toBe(true)
+  })
+
+  it("handles empty or special character filenames gracefully", () => {
+    const fallback = getSafeDownloadFilename("", ".png")
+    expect(fallback).toBe("Wirddy-export.png")
+
+    const sanitizedSpecial = getSafeDownloadFilename("///:::***???", ".pdf")
+    expect(sanitizedSpecial).toBe("Wirddy-export.pdf")
+  })
+})
+
+describe("Export System: Blob Magic Bytes & Download Helper", () => {
+  it("extracts correct magic byte hexadecimal signatures", async () => {
+    const pngHeader = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ])
+    const pngBlob = new Blob([pngHeader], { type: "image/png" })
+    const pngHex = await getBlobFirstBytesHex(pngBlob, 8)
+    expect(pngHex).toBe("89504e470d0a1a0a")
+
+    const pdfHeader = new Uint8Array([0x25, 0x50, 0x44, 0x46])
+    const pdfBlob = new Blob([pdfHeader], { type: "application/pdf" })
+    const pdfHex = await getBlobFirstBytesHex(pdfBlob, 4)
+    expect(pdfHex).toBe("25504446")
+
+    const zipHeader = new Uint8Array([0x50, 0x4b, 0x03, 0x04])
+    const zipBlob = new Blob([zipHeader], { type: "application/zip" })
+    const zipHex = await getBlobFirstBytesHex(zipBlob, 4)
+    expect(zipHex).toBe("504b0304")
+  })
+
+  it("triggerBrowserDownload rejects empty Blobs", async () => {
+    const emptyBlob = new Blob([], { type: "image/png" })
+    await expect(triggerBrowserDownload(emptyBlob, "test.png")).rejects.toThrow(
+      "Blob is empty"
+    )
+  })
+
+  it("triggerBrowserDownload performs download with anchor click and safe attributes", async () => {
+    const pngBytes = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3,
+    ])
+    const testBlob = new Blob([pngBytes], { type: "image/png" })
+
+    const mockAnchor = {
+      style: {},
+      href: "",
+      download: "",
+      rel: "",
+      click: vi.fn(),
+      dispatchEvent: vi.fn().mockReturnValue(true),
+    }
+
+    const mockDocument = {
+      createElement: vi.fn().mockReturnValue(mockAnchor),
+      body: {
+        appendChild: vi.fn(),
+        removeChild: vi.fn(),
+        contains: vi.fn().mockReturnValue(true),
+      },
+    }
+
+    const originalCreateObjectURL = globalThis.URL.createObjectURL
+    const originalRevokeObjectURL = globalThis.URL.revokeObjectURL
+    const mockCreateObjectURL = vi
+      .fn()
+      .mockReturnValue("blob:http://localhost:3000/mock-uuid")
+    const mockRevokeObjectURL = vi.fn()
+
+    globalThis.URL.createObjectURL = mockCreateObjectURL
+    globalThis.URL.revokeObjectURL = mockRevokeObjectURL
+
+    vi.stubGlobal("window", {})
+    vi.stubGlobal("document", mockDocument)
+
+    await triggerBrowserDownload(testBlob, "Wirddy-Week-1.png")
+
+    expect(mockCreateObjectURL).toHaveBeenCalled()
+    expect(mockDocument.createElement).toHaveBeenCalledWith("a")
+    expect(mockDocument.body.appendChild).toHaveBeenCalledWith(mockAnchor)
+    expect(mockAnchor.download).toBe("Wirddy-Week-1.png")
+    expect(mockAnchor.click).toHaveBeenCalled()
+    expect(mockDocument.body.removeChild).toHaveBeenCalledWith(mockAnchor)
+
+    globalThis.URL.createObjectURL = originalCreateObjectURL
+    globalThis.URL.revokeObjectURL = originalRevokeObjectURL
+    vi.unstubAllGlobals()
   })
 })
 

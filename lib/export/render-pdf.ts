@@ -185,7 +185,9 @@ export async function renderSchedulePdfBlob(
       await waitForImagesToLoad(targetElement)
 
       // Double rAF — guarantees a full layout + paint cycle before measuring.
-      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+      await new Promise<void>((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r()))
+      )
 
       // Embed fonts as base64 so Chrome renders Cairo/Inter inside SVG foreignObject.
       const fontEmbedCSS = await getEmbeddedFontCSS()
@@ -275,7 +277,7 @@ export async function exportScheduleAsPdf(
     options,
     onProgress
   )
-  triggerBrowserDownload(blob, filename)
+  await triggerBrowserDownload(blob, filename)
   return blob
 }
 

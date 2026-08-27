@@ -116,7 +116,10 @@ export function AdvancedOptions({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1.5 text-start">
-            <Label htmlFor="sched-title" className="text-xs font-semibold text-foreground">
+            <Label
+              htmlFor="sched-title"
+              className="text-xs font-semibold text-foreground"
+            >
               {t.groupTitleLabel}
             </Label>
             <Input
@@ -130,7 +133,10 @@ export function AdvancedOptions({
           </div>
 
           <div className="space-y-1.5 text-start">
-            <Label htmlFor="sched-desc" className="text-xs font-semibold text-foreground">
+            <Label
+              htmlFor="sched-desc"
+              className="text-xs font-semibold text-foreground"
+            >
               {t.groupDescLabel}
             </Label>
             <Input
@@ -196,10 +202,13 @@ export function AdvancedOptions({
 
         {/* Ramadan Year Selector */}
         {occasionType === "ramadan" && (
-          <div className="animate-in fade-in-50 slide-in-from-top-1 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 text-start">
+          <div className="animate-in rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 text-start fade-in-50 slide-in-from-top-1">
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <Label htmlFor="islamic-year" className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                <Label
+                  htmlFor="islamic-year"
+                  className="text-xs font-bold text-amber-700 dark:text-amber-300"
+                >
                   {t.islamicYearLabel}
                 </Label>
                 <p className="text-[11px] text-muted-foreground">
@@ -213,7 +222,7 @@ export function AdvancedOptions({
                 id="islamic-year"
                 value={islamicYear}
                 onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
-                className="h-9 rounded-lg border border-amber-500/40 bg-card px-3 text-xs font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="h-9 rounded-lg border border-amber-500/40 bg-card px-3 text-xs font-bold text-foreground focus:ring-2 focus:ring-amber-500 focus:outline-none"
               >
                 {supportedYears.map((yr) => (
                   <option key={yr} value={yr}>
@@ -294,8 +303,11 @@ export function AdvancedOptions({
           </div>
 
           {usesDates && (
-            <div className="animate-in fade-in-50 slide-in-from-top-1 space-y-2 pt-1 text-start">
-              <Label htmlFor="start-date-input" className="text-xs font-semibold text-foreground">
+            <div className="animate-in space-y-2 pt-1 text-start fade-in-50 slide-in-from-top-1">
+              <Label
+                htmlFor="start-date-input"
+                className="text-xs font-semibold text-foreground"
+              >
                 {t.startDatePickerLabel}
               </Label>
               <Input

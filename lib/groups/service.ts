@@ -120,9 +120,11 @@ export async function saveScheduleGroup(
   const description = input.group.description?.trim() || null
   const startDate = input.group.startDate || schedule.startDate || null
   const usesDates = !!input.group.usesDates || !!schedule.usesDates
-  const occasionType = input.group.occasionType || schedule.occasionType || "normal"
+  const occasionType =
+    input.group.occasionType || schedule.occasionType || "normal"
   const islamicYear = input.group.islamicYear || schedule.islamicYear || null
-  const dailyDivisionEnabled = !!input.group.dailyDivisionEnabled || !!schedule.dailyDivisionEnabled
+  const dailyDivisionEnabled =
+    !!input.group.dailyDivisionEnabled || !!schedule.dailyDivisionEnabled
 
   // 2. Insert Group
   // Try with all new columns first. If migration hasn't been applied yet (PGRST204),
@@ -159,7 +161,9 @@ export async function saveScheduleGroup(
 
   // PGRST204 = column not found in schema cache (migration not yet applied to this DB)
   if (groupError?.code === "PGRST204") {
-    console.warn("[Wirddy] Advanced columns not found — applying base-only fallback (run migration to enable all features).")
+    console.warn(
+      "[Wirddy] Advanced columns not found — applying base-only fallback (run migration to enable all features)."
+    )
     const fb = (await supabase
       .from("groups")
       .insert({
@@ -178,7 +182,10 @@ export async function saveScheduleGroup(
         range_end_ayah: customRange?.endAyah || null,
       } as any)
       .select("id, expires_at")
-      .single()) as { data: { id: string; expires_at: string } | null; error: any }
+      .single()) as {
+      data: { id: string; expires_at: string } | null
+      error: any
+    }
     groupData = fb.data
     groupError = fb.error
   }
@@ -646,12 +653,16 @@ export async function getGroupByPublicId(
   }))
 
   const effectiveTitle = plan.title || group.title || undefined
-  const effectiveDescription = plan.description || group.description || undefined
+  const effectiveDescription =
+    plan.description || group.description || undefined
   const effectiveStartDate = plan.start_date || group.start_date || undefined
   const effectiveUsesDates = plan.uses_dates ?? group.uses_dates ?? false
-  const effectiveOccasion = plan.occasion_type || group.occasion_type || "normal"
-  const effectiveIslamicYear = plan.islamic_year || group.islamic_year || undefined
-  const effectiveDaily = plan.daily_division_enabled ?? group.daily_division_enabled ?? false
+  const effectiveOccasion =
+    plan.occasion_type || group.occasion_type || "normal"
+  const effectiveIslamicYear =
+    plan.islamic_year || group.islamic_year || undefined
+  const effectiveDaily =
+    plan.daily_division_enabled ?? group.daily_division_enabled ?? false
 
   const schedule: GeneratedSchedule = {
     id: group.id,
@@ -849,9 +860,11 @@ export async function updateGroupAndRegenerate(
   const description = input.group.description?.trim() || null
   const startDate = input.group.startDate || newSchedule.startDate || null
   const usesDates = !!input.group.usesDates || !!newSchedule.usesDates
-  const occasionType = input.group.occasionType || newSchedule.occasionType || "normal"
+  const occasionType =
+    input.group.occasionType || newSchedule.occasionType || "normal"
   const islamicYear = input.group.islamicYear || newSchedule.islamicYear || null
-  const dailyDivisionEnabled = !!input.group.dailyDivisionEnabled || !!newSchedule.dailyDivisionEnabled
+  const dailyDivisionEnabled =
+    !!input.group.dailyDivisionEnabled || !!newSchedule.dailyDivisionEnabled
 
   // Update group record
   await (supabase.from("groups") as any)

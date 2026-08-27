@@ -3,7 +3,12 @@
  * Implements exact astronomical and Umm al-Qura conversion without hardcoded approximations.
  */
 
-import { addDaysToDate, parseIsoDate, toArabicNumerals, toIsoDateString } from "./calendar"
+import {
+  addDaysToDate,
+  parseIsoDate,
+  toArabicNumerals,
+  toIsoDateString,
+} from "./calendar"
 
 export interface HijriDateInfo {
   year: number
@@ -133,7 +138,9 @@ export function getRamadanStartDate(hijriYear: number): string {
   let searchDate = new Date(Date.UTC(approxGregorianYear, 0, 1, 12, 0, 0))
 
   for (let offset = -60; offset <= 365; offset++) {
-    const candidate = new Date(Date.UTC(approxGregorianYear, 0, 1 + offset, 12, 0, 0))
+    const candidate = new Date(
+      Date.UTC(approxGregorianYear, 0, 1 + offset, 12, 0, 0)
+    )
     const h = getHijriDate(candidate)
     if (h.year === hijriYear && h.month === 9 && h.day === 1) {
       return toIsoDateString(candidate)
@@ -143,7 +150,9 @@ export function getRamadanStartDate(hijriYear: number): string {
   // Fallback estimation
   const diffFrom1448 = hijriYear - 1448
   const base1448 = parseIsoDate("2027-02-08")
-  base1448.setUTCDate(base1448.getUTCDate() + Math.round(diffFrom1448 * 354.367))
+  base1448.setUTCDate(
+    base1448.getUTCDate() + Math.round(diffFrom1448 * 354.367)
+  )
   return toIsoDateString(base1448)
 }
 

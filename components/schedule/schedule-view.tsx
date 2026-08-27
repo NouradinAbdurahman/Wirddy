@@ -24,7 +24,11 @@ import {
   IconUsers,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
-import { GeneratedSchedule, MemberConfig, ScheduleInput } from "@/lib/scheduler/types"
+import {
+  GeneratedSchedule,
+  MemberConfig,
+  ScheduleInput,
+} from "@/lib/scheduler/types"
 import { ExportViewMode } from "@/lib/export"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -80,7 +84,8 @@ export function ScheduleView({
     initialSelectedMemberId || schedule.members[0]?.id || ""
   )
 
-  const [showRegenerateDialog, setShowRegenerateDialog] = useState<boolean>(false)
+  const [showRegenerateDialog, setShowRegenerateDialog] =
+    useState<boolean>(false)
   const [showExportModal, setShowExportModal] = useState<boolean>(false)
   const [showSaveShareDialog, setShowSaveShareDialog] = useState<boolean>(false)
   const [isDuplicating, setIsDuplicating] = useState<boolean>(false)
@@ -92,8 +97,9 @@ export function ScheduleView({
     schedule.weeks[0]
 
   const selectedMember =
-    schedule.members.find((m) => m.id === selectedMemberId || m.publicId === selectedMemberId) ||
-    schedule.members[0]
+    schedule.members.find(
+      (m) => m.id === selectedMemberId || m.publicId === selectedMemberId
+    ) || schedule.members[0]
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
@@ -125,7 +131,9 @@ export function ScheduleView({
     if (!selectedMember) return
     try {
       const origin =
-        typeof window !== "undefined" ? window.location.origin : "https://wirddy.app"
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "https://wirddy.app"
       const memberQrUrl = savedData?.publicId
         ? `${origin}/g/${savedData.publicId}/member/${selectedMember.publicId || selectedMember.id}`
         : undefined
@@ -138,7 +146,7 @@ export function ScheduleView({
       )
       const safeName = sanitizeFilename(selectedMember.name)
       const safeGroup = sanitizeFilename(schedule.groupName)
-      triggerBrowserDownload(blob, `${safeName} - ${safeGroup}.png`)
+      await triggerBrowserDownload(blob, `${safeName} - ${safeGroup}.png`)
     } catch (err) {
       console.error("Failed to export member PNG:", err)
     }
@@ -149,7 +157,9 @@ export function ScheduleView({
     if (!selectedMember) return
     try {
       const origin =
-        typeof window !== "undefined" ? window.location.origin : "https://wirddy.app"
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "https://wirddy.app"
       const memberQrUrl = savedData?.publicId
         ? `${origin}/g/${savedData.publicId}/member/${selectedMember.publicId || selectedMember.id}`
         : undefined
@@ -341,7 +351,10 @@ export function ScheduleView({
                     <span>{schedule.title || t.planTitle}</span>
                     {schedule.occasionType === "ramadan" && (
                       <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300">
-                        {t.ramadanBadge} {schedule.islamicYear ? `${toArabicNumerals(schedule.islamicYear)} هـ` : ""}
+                        {t.ramadanBadge}{" "}
+                        {schedule.islamicYear
+                          ? `${toArabicNumerals(schedule.islamicYear)} هـ`
+                          : ""}
                       </Badge>
                     )}
                   </div>
@@ -399,7 +412,8 @@ export function ScheduleView({
                         {t.memberCount}
                       </div>
                       <div className="text-xs font-bold text-foreground">
-                        {formatNumber(schedule.members.length)} {t.summaryMembers}
+                        {formatNumber(schedule.members.length)}{" "}
+                        {t.summaryMembers}
                       </div>
                     </div>
                   </div>

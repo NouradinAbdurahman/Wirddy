@@ -66,7 +66,9 @@ export function MemberScheduleClient({
     ) || initialGroupData.membersConfig[0]
 
   const handleSelectMember = (selectedId: string) => {
-    const selected = initialGroupData.membersConfig.find((m) => m.id === selectedId)
+    const selected = initialGroupData.membersConfig.find(
+      (m) => m.id === selectedId
+    )
     if (selected) {
       const pId = selected.publicId || selected.id
       router.push(`/g/${groupPublicId}/member/${pId}`)
@@ -80,7 +82,9 @@ export function MemberScheduleClient({
   const handleExportPng = async () => {
     try {
       const origin =
-        typeof window !== "undefined" ? window.location.origin : "https://wirddy.app"
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "https://wirddy.app"
       const memberQrUrl = `${origin}/g/${groupPublicId}/member/${member.publicId || member.id}`
 
       const blob = await renderMemberPersonalSchedulePngBlob(
@@ -91,7 +95,7 @@ export function MemberScheduleClient({
       )
       const safeName = sanitizeFilename(member.name)
       const safeGroup = sanitizeFilename(initialGroupData.groupName)
-      triggerBrowserDownload(blob, `${safeName} - ${safeGroup}.png`)
+      await triggerBrowserDownload(blob, `${safeName} - ${safeGroup}.png`)
     } catch (err) {
       console.error("Failed to export member PNG:", err)
     }
@@ -100,7 +104,9 @@ export function MemberScheduleClient({
   const handleExportPdf = async () => {
     try {
       const origin =
-        typeof window !== "undefined" ? window.location.origin : "https://wirddy.app"
+        typeof window !== "undefined"
+          ? window.location.origin
+          : "https://wirddy.app"
       const memberQrUrl = `${origin}/g/${groupPublicId}/member/${member.publicId || member.id}`
 
       await exportMemberScheduleAsPdf(

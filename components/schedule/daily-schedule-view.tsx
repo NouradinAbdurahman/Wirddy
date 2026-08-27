@@ -64,7 +64,7 @@ export function DailyScheduleView({
 
             {/* Daily portions grid */}
             {breakdown.length > 0 ? (
-              <div className="grid grid-cols-1 divide-y divide-border/40 sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:divide-border/40 sm:rtl:divide-x-reverse lg:grid-cols-7 lg:divide-y-0">
+              <div className="grid grid-cols-1 divide-y divide-border/40 sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:divide-border/40 lg:grid-cols-7 lg:divide-y-0 sm:rtl:divide-x-reverse">
                 {breakdown.map((portion, pIdx) => {
                   const surahStart =
                     language === "ar"
@@ -100,7 +100,8 @@ export function DailyScheduleView({
                           <span className="text-[10px] text-muted-foreground">
                             {language === "ar"
                               ? portion.formattedDateAr
-                              : portion.formattedDateEn || portion.dateStr?.slice(5)}
+                              : portion.formattedDateEn ||
+                                portion.dateStr?.slice(5)}
                           </span>
                         )}
                       </div>
@@ -135,8 +136,10 @@ export function DailyScheduleView({
                         {portion.ramadanDay && (
                           <span className="font-bold text-amber-600 dark:text-amber-400">
                             {language === "ar"
-                              ? portion.ramadanDayLabelAr || `رمضان ${toArabicNumerals(portion.ramadanDay)}`
-                              : portion.ramadanDayLabelEn || `Ramadan ${portion.ramadanDay}`}
+                              ? portion.ramadanDayLabelAr ||
+                                `رمضان ${toArabicNumerals(portion.ramadanDay)}`
+                              : portion.ramadanDayLabelEn ||
+                                `Ramadan ${portion.ramadanDay}`}
                           </span>
                         )}
                       </div>

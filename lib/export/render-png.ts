@@ -37,6 +37,6 @@ export async function exportWeekAsPng(
   options?: ExportRenderOptions
 ): Promise<Blob> {
   const { blob, filename } = await renderWeekPngBlob(week, options)
-  triggerBrowserDownload(blob, filename)
+  await triggerBrowserDownload(blob, filename)
   return blob
 }

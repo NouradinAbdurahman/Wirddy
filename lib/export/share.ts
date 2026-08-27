@@ -79,7 +79,7 @@ export async function shareScheduleAsPdf(
         return { success: false, method: "canceled" }
       }
       // Fallback to download
-      triggerBrowserDownload(blob, filename)
+      await triggerBrowserDownload(blob, filename)
       return {
         success: true,
         method: "fallback-download",
@@ -89,6 +89,6 @@ export async function shareScheduleAsPdf(
   }
 
   // Fallback for unsupported browsers
-  triggerBrowserDownload(blob, filename)
+  await triggerBrowserDownload(blob, filename)
   return { success: true, method: "fallback-download" }
 }

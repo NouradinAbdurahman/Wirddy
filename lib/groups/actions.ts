@@ -267,7 +267,10 @@ export async function getMemberScheduleAction(
   memberPublicId: string
 ): Promise<ActionResponse<LoadedPublicMemberSchedule>> {
   try {
-    const data = await getMemberScheduleByPublicId(groupPublicId, memberPublicId)
+    const data = await getMemberScheduleByPublicId(
+      groupPublicId,
+      memberPublicId
+    )
     if (!data) {
       return {
         success: false,

@@ -71,5 +71,5 @@ export async function exportScheduleAsPdf(
   // Use blob output + triggerBrowserDownload to ensure ASCII-safe filename
   // (pdf.save() with Arabic filenames fails silently in Chrome/Safari on macOS)
   const pdfBlob = pdf.output("blob")
-  triggerBrowserDownload(pdfBlob, `${filename}.pdf`)
+  await triggerBrowserDownload(pdfBlob, `${filename}.pdf`)
 }

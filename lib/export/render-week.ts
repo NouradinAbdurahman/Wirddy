@@ -67,7 +67,9 @@ export function buildMemberCardHtml(
   if (member.dailyBreakdown && member.dailyBreakdown.length > 0) {
     const dailyItems = member.dailyBreakdown
       .map((d) => {
-        const dSurah = isArabic ? d.startAyah.surahNameAr : d.startAyah.surahNameEn
+        const dSurah = isArabic
+          ? d.startAyah.surahNameAr
+          : d.startAyah.surahNameEn
         const dDay = isArabic ? d.dayNameAr : d.dayNameEn
         const dAyahRange = `${formatArabicNumeral(d.startAyah.ayahNumber)}-${formatArabicNumeral(d.endAyah.ayahNumber)}`
         return `
@@ -567,9 +569,14 @@ export function buildMemberPersonalScheduleHtml(
 
   const weekRowsHtml = memberWeeks
     .map(({ weekNumber, assignment, dateRange }) => {
-      const sSurah = isArabic ? assignment.startAyah.surahNameAr : assignment.startAyah.surahNameEn
-      const eSurah = isArabic ? assignment.endAyah.surahNameAr : assignment.endAyah.surahNameEn
-      const isSame = assignment.startAyah.surahNumber === assignment.endAyah.surahNumber
+      const sSurah = isArabic
+        ? assignment.startAyah.surahNameAr
+        : assignment.startAyah.surahNameEn
+      const eSurah = isArabic
+        ? assignment.endAyah.surahNameAr
+        : assignment.endAyah.surahNameEn
+      const isSame =
+        assignment.startAyah.surahNumber === assignment.endAyah.surahNumber
       const rangeText = isSame
         ? `${sSurah} (${formatArabicNumeral(assignment.startAyah.ayahNumber)} - ${formatArabicNumeral(assignment.endAyah.ayahNumber)})`
         : `${sSurah} (${formatArabicNumeral(assignment.startAyah.ayahNumber)}) ← ${eSurah} (${formatArabicNumeral(assignment.endAyah.ayahNumber)})`
@@ -676,7 +683,7 @@ export async function renderMemberPersonalSchedulePngBlob(
     "box-sizing:border-box",
     "pointer-events:none",
     "overflow:visible",
-    "visibility:visible",   // visible from the start so the browser lays it out
+    "visibility:visible", // visible from the start so the browser lays it out
   ].join(";")
 
   container.innerHTML = buildMemberPersonalScheduleHtml(
@@ -697,7 +704,9 @@ export async function renderMemberPersonalSchedulePngBlob(
     await waitForImagesToLoad(targetElement)
 
     // Double rAF guarantees the browser has completed a full layout + paint cycle.
-    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+    await new Promise<void>((r) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => r()))
+    )
 
     // Embed fonts as base64 so Chrome can render Cairo/Inter inside SVG foreignObject.
     // Chrome strips CSS custom properties (var(--font-arabic)) in that context.
@@ -783,7 +792,9 @@ export async function renderWeekToPngBlob(
     await waitForImagesToLoad(targetElement)
 
     // Double rAF guarantees browser completes full layout + paint before we measure.
-    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+    await new Promise<void>((r) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => r()))
+    )
 
     // Embed fonts as base64 so Chrome renders Cairo/Inter inside SVG foreignObject.
     const fontEmbedCSS = await getEmbeddedFontCSS()

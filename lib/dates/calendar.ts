@@ -36,7 +36,12 @@ export function toArabicNumerals(num: number | string): string {
  */
 export function parseIsoDate(dateStr: string): Date {
   const parts = dateStr.split("-").map(Number)
-  if (parts.length !== 3 || isNaN(parts[0]) || isNaN(parts[1]) || isNaN(parts[2])) {
+  if (
+    parts.length !== 3 ||
+    isNaN(parts[0]) ||
+    isNaN(parts[1]) ||
+    isNaN(parts[2])
+  ) {
     return new Date()
   }
   return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 12, 0, 0))
@@ -129,7 +134,10 @@ const ENGLISH_WEEKDAYS = [
 /**
  * Formats a single date in Arabic (e.g. "١ سبتمبر ٢٠٢٦" or "١ سبتمبر").
  */
-export function formatSingleDateAr(dateStr: string, includeYear = false): string {
+export function formatSingleDateAr(
+  dateStr: string,
+  includeYear = false
+): string {
   const d = parseIsoDate(dateStr)
   const day = toArabicNumerals(d.getUTCDate())
   const month = ARABIC_MONTHS[d.getUTCMonth()]
@@ -140,7 +148,10 @@ export function formatSingleDateAr(dateStr: string, includeYear = false): string
 /**
  * Formats a single date in English (e.g. "September 1, 2026" or "Sep 1").
  */
-export function formatSingleDateEn(dateStr: string, includeYear = false): string {
+export function formatSingleDateEn(
+  dateStr: string,
+  includeYear = false
+): string {
   const d = parseIsoDate(dateStr)
   const day = d.getUTCDate()
   const monthShort = ENGLISH_MONTHS_SHORT[d.getUTCMonth()]

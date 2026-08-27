@@ -69,6 +69,7 @@ export async function exportAllWeeksAsZip(
 
   const zipBlob = await zip.generateAsync({
     type: "blob",
+    mimeType: "application/zip",
     compression: "DEFLATE",
     compressionOptions: { level: 6 },
   })
@@ -83,7 +84,7 @@ export async function exportAllWeeksAsZip(
     schedule.groupName,
     schedule.language
   )
-  triggerBrowserDownload(zipBlob, zipFilename)
+  await triggerBrowserDownload(zipBlob, zipFilename)
 
   return zipBlob
 }

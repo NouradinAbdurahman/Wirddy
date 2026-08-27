@@ -598,7 +598,8 @@ export const translations: Record<Language, Translations> = {
     exportMemberPdf: "ملف جدولي (PDF)",
     exportAllMembersZip: "جداول جميع الأعضاء (ZIP)",
     downloadAllMembersZip: "تحميل جداول الأعضاء (ZIP)",
-    downloadAllMembersZipDesc: "تنزيل ملف مضغوط يحتوي على بطاقة جدول 4K مستقلة لكل عضو",
+    downloadAllMembersZipDesc:
+      "تنزيل ملف مضغوط يحتوي على بطاقة جدول 4K مستقلة لكل عضو",
     downloadMySchedule: "تحميل جدولي",
     scanToOpenMySchedule: "امسح لفتح جدولي",
     personalQrCode: "رمز QR الخاص بجداول القراءة",
@@ -837,7 +838,8 @@ export const translations: Record<Language, Translations> = {
     dailyDivisionTitle: "Daily Division",
     noDailyDivision: "Weekly Only",
     withDailyDivision: "Daily Breakdown (7 Days)",
-    dailyDivisionDesc: "Divide each week's portion equally across 7 days with exact Ayahs",
+    dailyDivisionDesc:
+      "Divide each week's portion equally across 7 days with exact Ayahs",
     weeksCountLabel: "Number of Weeks",
     weeksCountHelper: "Choose plan duration (from 1 to 52 weeks)",
     weekUnit: "weeks",
@@ -967,7 +969,8 @@ export const translations: Record<Language, Translations> = {
     exportMemberPdf: "My schedule (PDF)",
     exportAllMembersZip: "All members cards (ZIP)",
     downloadAllMembersZip: "Download All Members (ZIP)",
-    downloadAllMembersZipDesc: "Download a ZIP containing an independent 4K schedule card for each member",
+    downloadAllMembersZipDesc:
+      "Download a ZIP containing an independent 4K schedule card for each member",
     downloadMySchedule: "Download My Schedule",
     scanToOpenMySchedule: "Scan to open my schedule",
     personalQrCode: "Personal Reading Schedule QR Code",

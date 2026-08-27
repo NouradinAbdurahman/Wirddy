@@ -33,7 +33,7 @@ export async function exportElementAsPng(
     // (direct link.download with Arabic filenames silently fails in Chrome/macOS)
     const res = await fetch(dataUrl)
     const blob = await res.blob()
-    triggerBrowserDownload(blob, `${filename}.png`)
+    await triggerBrowserDownload(blob, `${filename}.png`)
 
     return dataUrl
   } catch (error) {
