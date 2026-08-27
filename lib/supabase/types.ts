@@ -6,211 +6,392 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.17"
+  }
   public: {
     Tables: {
-      groups: {
-        Row: {
-          id: string
-          public_id: string
-          edit_token_hash: string
-          name: string
-          language: "ar" | "en"
-          direction: "rtl" | "ltr"
-          scheduler_version: string
-          expires_at: string
-          created_at: string
-          updated_at: string
-          owner_user_id: string | null
-        }
-        Insert: {
-          id?: string
-          public_id: string
-          edit_token_hash: string
-          name: string
-          language?: "ar" | "en"
-          direction?: "rtl" | "ltr"
-          scheduler_version?: string
-          expires_at?: string
-          created_at?: string
-          updated_at?: string
-          owner_user_id?: string | null
-        }
-        Update: {
-          id?: string
-          public_id?: string
-          edit_token_hash?: string
-          name?: string
-          language?: "ar" | "en"
-          direction?: "rtl" | "ltr"
-          scheduler_version?: string
-          expires_at?: string
-          created_at?: string
-          updated_at?: string
-          owner_user_id?: string | null
-        }
-      }
       group_members: {
         Row: {
-          id: string
-          group_id: string
-          name: string
-          knowledge_type: "entire" | "juz_range" | "surah_range"
-          start_juz: number
+          created_at: string
           end_juz: number
-          start_surah: number | null
           end_surah: number | null
-          weekly_amount: number
-          sort_order: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
           group_id: string
+          id: string
+          knowledge_type: string
           name: string
-          knowledge_type?: "entire" | "juz_range" | "surah_range"
-          start_juz?: number
-          end_juz?: number
-          start_surah?: number | null
-          end_surah?: number | null
+          sort_order: number
+          start_juz: number
+          start_surah: number | null
           weekly_amount: number
-          sort_order?: number
-          created_at?: string
         }
-        Update: {
-          id?: string
-          group_id?: string
-          name?: string
-          knowledge_type?: "entire" | "juz_range" | "surah_range"
-          start_juz?: number
+        Insert: {
+          created_at?: string
           end_juz?: number
-          start_surah?: number | null
           end_surah?: number | null
-          weekly_amount?: number
+          group_id: string
+          id?: string
+          knowledge_type?: string
+          name: string
           sort_order?: number
-          created_at?: string
-        }
-      }
-      schedule_plans: {
-        Row: {
-          id: string
-          group_id: string
-          version_number: number
-          weeks_count: number
-          total_juz_per_week: number
-          scheduler_version: string
-          is_active: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          group_id: string
-          version_number?: number
-          weeks_count: number
-          total_juz_per_week?: number
-          scheduler_version?: string
-          is_active?: boolean
-          created_at?: string
+          start_juz?: number
+          start_surah?: number | null
+          weekly_amount: number
         }
         Update: {
-          id?: string
+          created_at?: string
+          end_juz?: number
+          end_surah?: number | null
           group_id?: string
-          version_number?: number
-          weeks_count?: number
-          total_juz_per_week?: number
-          scheduler_version?: string
-          is_active?: boolean
-          created_at?: string
+          id?: string
+          knowledge_type?: string
+          name?: string
+          sort_order?: number
+          start_juz?: number
+          start_surah?: number | null
+          weekly_amount?: number
         }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      schedule_weeks: {
+      groups: {
         Row: {
-          id: string
-          schedule_plan_id: string
-          week_number: number
-          total_juz: number
           created_at: string
+          direction: string
+          edit_token_hash: string
+          expires_at: string
+          id: string
+          language: string
+          name: string
+          owner_user_id: string | null
+          public_id: string
+          scheduler_version: string
+          updated_at: string
         }
         Insert: {
-          id?: string
-          schedule_plan_id: string
-          week_number: number
-          total_juz?: number
           created_at?: string
+          direction?: string
+          edit_token_hash: string
+          expires_at?: string
+          id?: string
+          language?: string
+          name: string
+          owner_user_id?: string | null
+          public_id: string
+          scheduler_version?: string
+          updated_at?: string
         }
         Update: {
-          id?: string
-          schedule_plan_id?: string
-          week_number?: number
-          total_juz?: number
           created_at?: string
+          direction?: string
+          edit_token_hash?: string
+          expires_at?: string
+          id?: string
+          language?: string
+          name?: string
+          owner_user_id?: string | null
+          public_id?: string
+          scheduler_version?: string
+          updated_at?: string
         }
+        Relationships: []
       }
       schedule_assignments: {
         Row: {
-          id: string
-          schedule_week_id: string
-          member_id: string
-          member_name: string
-          weekly_amount: number
-          start_juz: number
+          created_at: string
+          end_ayah: number
+          end_global_ayah: number | null
           end_juz: number
-          start_surah: number
-          start_surah_name_ar: string
-          start_surah_name_en: string
-          start_ayah: number
           end_surah: number
           end_surah_name_ar: string
           end_surah_name_en: string
-          end_ayah: number
-          start_global_ayah: number | null
-          end_global_ayah: number | null
+          id: string
+          member_id: string
+          member_name: string
+          schedule_week_id: string
           sort_order: number
-          created_at: string
+          start_ayah: number
+          start_global_ayah: number | null
+          start_juz: number
+          start_surah: number
+          start_surah_name_ar: string
+          start_surah_name_en: string
+          weekly_amount: number
         }
         Insert: {
-          id?: string
-          schedule_week_id: string
-          member_id: string
-          member_name: string
-          weekly_amount: number
-          start_juz: number
+          created_at?: string
+          end_ayah: number
+          end_global_ayah?: number | null
           end_juz: number
-          start_surah: number
-          start_surah_name_ar: string
-          start_surah_name_en: string
-          start_ayah: number
           end_surah: number
           end_surah_name_ar: string
           end_surah_name_en: string
-          end_ayah: number
-          start_global_ayah?: number | null
-          end_global_ayah?: number | null
+          id?: string
+          member_id: string
+          member_name: string
+          schedule_week_id: string
           sort_order?: number
-          created_at?: string
+          start_ayah: number
+          start_global_ayah?: number | null
+          start_juz: number
+          start_surah: number
+          start_surah_name_ar: string
+          start_surah_name_en: string
+          weekly_amount: number
         }
         Update: {
-          id?: string
-          schedule_week_id?: string
-          member_id?: string
-          member_name?: string
-          weekly_amount?: number
-          start_juz?: number
+          created_at?: string
+          end_ayah?: number
+          end_global_ayah?: number | null
           end_juz?: number
-          start_surah?: number
-          start_surah_name_ar?: string
-          start_surah_name_en?: string
-          start_ayah?: number
           end_surah?: number
           end_surah_name_ar?: string
           end_surah_name_en?: string
-          end_ayah?: number
-          start_global_ayah?: number | null
-          end_global_ayah?: number | null
+          id?: string
+          member_id?: string
+          member_name?: string
+          schedule_week_id?: string
           sort_order?: number
-          created_at?: string
+          start_ayah?: number
+          start_global_ayah?: number | null
+          start_juz?: number
+          start_surah?: number
+          start_surah_name_ar?: string
+          start_surah_name_en?: string
+          weekly_amount?: number
         }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_assignments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "group_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_assignments_schedule_week_id_fkey"
+            columns: ["schedule_week_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
+      schedule_plans: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean
+          scheduler_version: string
+          total_juz_per_week: number
+          version_number: number
+          weeks_count: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          scheduler_version?: string
+          total_juz_per_week?: number
+          version_number?: number
+          weeks_count: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          scheduler_version?: string
+          total_juz_per_week?: number
+          version_number?: number
+          weeks_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_plans_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_weeks: {
+        Row: {
+          created_at: string
+          id: string
+          schedule_plan_id: string
+          total_juz: number
+          week_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          schedule_plan_id: string
+          total_juz?: number
+          week_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          schedule_plan_id?: string
+          total_juz?: number
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_weeks_schedule_plan_id_fkey"
+            columns: ["schedule_plan_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

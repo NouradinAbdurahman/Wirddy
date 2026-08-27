@@ -1,5 +1,5 @@
 -- =============================================================================
--- Wirddy Supabase Database Schema (No-Login Saved Groups)
+-- Wirddy Production Database Schema & Migration (No-Login Saved Groups)
 -- Version: 1.0.0
 -- =============================================================================
 
@@ -85,7 +85,6 @@ create table if not exists public.schedule_assignments (
 -- =============================================================================
 -- PERFORMANCE INDEXES
 -- =============================================================================
-create index if not exists idx_groups_public_id on public.groups(public_id);
 create index if not exists idx_groups_expires_at on public.groups(expires_at);
 create index if not exists idx_group_members_group_id on public.group_members(group_id, sort_order);
 create index if not exists idx_schedule_plans_group_id on public.schedule_plans(group_id, is_active);
@@ -153,3 +152,19 @@ create policy "Allow public read access to assignments of non-expired groups"
         and g.expires_at > timezone('utc'::text, now())
     )
   );
+
+-- =============================================================================
+-- SECURITY ADVISOR REMEDIATION
+-- =============================================================================
+-- Revoke execution of internal trigger functions from anon and authenticated roles
+do $$
+begin
+  if exists (
+    select 1 from pg_proc p
+    join pg_namespace n on p.pronamespace = n.oid
+    where n.nspname = 'public' and p.proname = 'rls_auto_enable'
+  ) then
+    execute 'revoke execute on function public.rls_auto_enable() from public, anon, authenticated;';
+  end if;
+end
+$$;
