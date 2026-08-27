@@ -23,7 +23,6 @@ import {
   normalizeScheduleToExport,
   normalizeWeekSchedule,
   shareScheduleAsPdf,
-  shareScheduleWeekAsPng,
 } from "@/lib/export"
 import {
   Dialog,
@@ -178,58 +177,7 @@ export function ExportModal({
     }
   }
 
-  // 4. Share Current Week (PNG File)
-  const handleShareCurrentPng = async () => {
-    if (isExporting) return
-    setIsExporting(true)
-    resetStatus()
-    setExportProgress(t.exportLoadingShare)
-
-    try {
-      const targetWeek =
-        schedule.weeks.find((w) => w.weekNumber === activeWeek) ||
-        schedule.weeks[0]
-
-      const exportWeek = normalizeWeekSchedule(
-        targetWeek,
-        schedule.weeksCount,
-        schedule.groupName,
-        language,
-        activeExportTheme,
-        viewMode
-      )
-
-      const result = await shareScheduleWeekAsPng(exportWeek, {
-        theme: activeExportTheme,
-        view: viewMode,
-      })
-
-      if (result.method === "native-share") {
-        setSuccessMessage(t.exportShareSuccess)
-        setTimeout(() => {
-          onOpenChange(false)
-          setSuccessMessage(null)
-        }, 1400)
-      } else if (result.method === "canceled") {
-        // User closed share sheet — no error
-        resetStatus()
-      } else if (result.method === "fallback-download") {
-        if (result.error) {
-          setInfoMessage(t.exportShareFallbackError)
-        } else {
-          setInfoMessage(t.exportShareFallbackUnsupported)
-        }
-      }
-    } catch (err) {
-      console.error("Share PNG failed:", err)
-      setErrorMessage(t.exportError)
-    } finally {
-      setIsExporting(false)
-      setExportProgress(null)
-    }
-  }
-
-  // 5. Share Full Plan (PDF File)
+  // 4. Share Full Plan (PDF File)
   const handleShareFullPdf = async () => {
     if (isExporting) return
     setIsExporting(true)
@@ -323,15 +271,15 @@ export function ExportModal({
           </div>
         )}
 
-        {/* 1. Direct Share Actions Section */}
+        {/* 1. Direct Share Actions Section (Single Full Plan PDF Share) */}
         <div className="space-y-2 pt-1">
           <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
             {t.exportShareSection}
           </div>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {/* Share Current Week PNG */}
+          <div>
+            {/* Share Full Plan PDF */}
             <Card
-              onClick={!isExporting ? handleShareCurrentPng : undefined}
+              onClick={!isExporting ? handleShareFullPdf : undefined}
               className={`flex items-center gap-3.5 rounded-2xl border p-3.5 text-start transition-all ${
                 isExporting
                   ? "cursor-not-allowed border-border/40 opacity-60"
@@ -340,28 +288,6 @@ export function ExportModal({
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105">
                 <IconShare className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-foreground">
-                  {t.exportSharePngCurrent}
-                </div>
-                <div className="text-[10px] text-muted-foreground">
-                  {t.exportPngCurrentFormat}
-                </div>
-              </div>
-            </Card>
-
-            {/* Share Full Plan PDF */}
-            <Card
-              onClick={!isExporting ? handleShareFullPdf : undefined}
-              className={`flex items-center gap-3.5 rounded-2xl border p-3.5 text-start transition-all ${
-                isExporting
-                  ? "cursor-not-allowed border-border/40 opacity-60"
-                  : "group cursor-pointer border-border/70 bg-card/90 shadow-xs hover:border-rose-500/50 hover:bg-rose-500/5 hover:shadow-sm"
-              }`}
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 transition-transform group-hover:scale-105 dark:text-rose-400">
-                <IconFileTypePdf className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-bold text-foreground">

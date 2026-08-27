@@ -151,7 +151,6 @@ export interface Translations {
   exportZipAllFormat: string
   exportPdfAll: string
   exportPdfAllFormat: string
-  exportSharePngCurrent: string
   exportSharePdfAll: string
   exportLoadingCurrent: string
   exportLoadingAll: string
@@ -334,18 +333,17 @@ export const translations: Record<Language, Translations> = {
     exportZipAllFormat: "ZIP",
     exportPdfAll: "الخطة كاملة",
     exportPdfAllFormat: "PDF",
-    exportSharePngCurrent: "مشاركة صورة الأسبوع (PNG)",
-    exportSharePdfAll: "مشاركة ملف الختمة (PDF)",
+    exportSharePdfAll: "مشاركة الخطة الكاملة",
     exportLoadingCurrent: "جارٍ تجهيز صورة الأسبوع الحالي...",
     exportLoadingAll: "جارٍ تجهيز صور جميع الأسابيع...",
     exportLoadingPdf: "جارٍ إنشاء ملف PDF...",
-    exportLoadingShare: "جارٍ تجهيز الجدول للمشاركة...",
+    exportLoadingShare: "جارٍ تجهيز الخطة للمشاركة...",
     exportOpeningShare: "جارٍ فتح قائمة المشاركة...",
     exportSuccess: "تم تنزيل الملف بنجاح.",
-    exportShareSuccess: "تمت مشاركة الجدول بنجاح.",
+    exportShareSuccess: "تمت مشاركة الخطة بنجاح.",
     exportError: "تعذر إنشاء الملف. يرجى المحاولة مرة أخرى.",
     exportShareFallbackUnsupported:
-      "المشاركة المباشرة غير مدعومة في هذا المتصفح. تم تنزيل الملف ويمكنك مشاركته من جهازك.",
+      "المشاركة المباشرة غير مدعومة في هذا المتصفح. تم تنزيل ملف PDF ويمكنك مشاركته من جهازك.",
     exportShareFallbackError:
       "تعذرت مشاركة الجدول. تم تنزيل الملف بدلًا من ذلك.",
     preparingExport: "جارٍ تجهيز الملف...",
@@ -523,18 +521,17 @@ export const translations: Record<Language, Translations> = {
     exportZipAllFormat: "ZIP",
     exportPdfAll: "Full plan",
     exportPdfAllFormat: "PDF",
-    exportSharePngCurrent: "Share week image (PNG)",
     exportSharePdfAll: "Share full plan (PDF)",
     exportLoadingCurrent: "Preparing current week image...",
     exportLoadingAll: "Generating all weeks...",
     exportLoadingPdf: "Generating PDF file...",
-    exportLoadingShare: "Preparing schedule for sharing...",
+    exportLoadingShare: "Preparing full plan for sharing...",
     exportOpeningShare: "Opening share sheet...",
     exportSuccess: "File downloaded successfully.",
-    exportShareSuccess: "Schedule shared successfully.",
+    exportShareSuccess: "Full plan shared successfully.",
     exportError: "Unable to create the file. Please try again.",
     exportShareFallbackUnsupported:
-      "Direct file sharing is not supported in this browser. The file has been downloaded so you can share it from your device.",
+      "Direct sharing is not supported in this browser. The PDF has been downloaded so you can share it from your device.",
     exportShareFallbackError:
       "Unable to share the schedule. The file has been downloaded instead.",
     preparingExport: "Preparing your export...",

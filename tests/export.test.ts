@@ -17,9 +17,10 @@ import {
 import { paginateWeeksForA4 } from "../lib/export/render-pdf"
 import {
   buildMemberCardHtml,
-  buildWeeklyTableSectionHtml,
-  buildWeeklyCardsSectionHtml,
+  buildPdfPageHtml,
   buildStandaloneWeekExportHtml,
+  buildWeeklyCardsSectionHtml,
+  buildWeeklyTableSectionHtml,
 } from "../lib/export/render-week"
 import { GeneratedSchedule } from "../lib/scheduler/types"
 import { generateQuranSchedule } from "../lib/scheduler/engine"
@@ -368,5 +369,148 @@ describe("Export System: Dynamic Content-Aware A4 PDF Pagination", () => {
     expect(pages[0].length).toBe(1) // Week 1 alone on page 1
     expect(pages[1].length).toBe(1) // Week 2 alone on page 2
     expect(pages[2].length).toBe(1) // Week 3 alone on page 3
+  })
+
+  describe("5-Week Schedule Combinations (8/8 Tested)", () => {
+    const members = [
+      {
+        id: "1",
+        name: "طارق",
+        knowledgeType: "entire" as const,
+        startJuz: 1,
+        endJuz: 30,
+        weeklyAmount: 10,
+      },
+      {
+        id: "2",
+        name: "زينب",
+        knowledgeType: "entire" as const,
+        startJuz: 1,
+        endJuz: 30,
+        weeklyAmount: 10,
+      },
+      {
+        id: "3",
+        name: "يوسف",
+        knowledgeType: "entire" as const,
+        startJuz: 1,
+        endJuz: 30,
+        weeklyAmount: 10,
+      },
+    ]
+
+    const fiveWeekSchedule = generateQuranSchedule({
+      group: { name: "عائلة الأمل", weeksCount: 5 },
+      members,
+    })
+
+    const combinations = [
+      {
+        lang: "ar" as const,
+        view: "cards" as const,
+        theme: "light" as const,
+        dir: "rtl",
+      },
+      {
+        lang: "ar" as const,
+        view: "cards" as const,
+        theme: "dark" as const,
+        dir: "rtl",
+      },
+      {
+        lang: "ar" as const,
+        view: "table" as const,
+        theme: "light" as const,
+        dir: "rtl",
+      },
+      {
+        lang: "ar" as const,
+        view: "table" as const,
+        theme: "dark" as const,
+        dir: "rtl",
+      },
+      {
+        lang: "en" as const,
+        view: "cards" as const,
+        theme: "light" as const,
+        dir: "ltr",
+      },
+      {
+        lang: "en" as const,
+        view: "cards" as const,
+        theme: "dark" as const,
+        dir: "ltr",
+      },
+      {
+        lang: "en" as const,
+        view: "table" as const,
+        theme: "light" as const,
+        dir: "ltr",
+      },
+      {
+        lang: "en" as const,
+        view: "table" as const,
+        theme: "dark" as const,
+        dir: "ltr",
+      },
+    ]
+
+    combinations.forEach(({ lang, view, theme, dir }) => {
+      it(`renders valid 5-week PDF pages for ${lang} + ${view} + ${theme}`, () => {
+        const exportSchedule = normalizeScheduleToExport(
+          fiveWeekSchedule,
+          lang,
+          theme,
+          view
+        )
+
+        expect(exportSchedule.weeks.length).toBe(5)
+        expect(exportSchedule.language).toBe(lang)
+        expect(exportSchedule.theme).toBe(theme)
+        expect(exportSchedule.direction).toBe(dir)
+
+        const pageBatches = paginateWeeksForA4(exportSchedule.weeks, view)
+        expect(pageBatches.length).toBeGreaterThan(0)
+
+        // Flatten all weeks from batches and ensure all 5 weeks are preserved
+        const totalWeeksInPages = pageBatches.reduce(
+          (acc, batch) => acc + batch.length,
+          0
+        )
+        expect(totalWeeksInPages).toBe(5)
+
+        const dummyAssets = {
+          wirddyLogoBlack: "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=",
+          wirddyLogoWhite: "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=",
+          logoBlack: "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=",
+          logoWhite: "data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=",
+        }
+
+        // Generate HTML for page 1 and verify content
+        const page1Html = buildPdfPageHtml(
+          pageBatches[0],
+          exportSchedule,
+          1,
+          pageBatches.length,
+          true,
+          dummyAssets,
+          theme,
+          view
+        )
+
+        expect(page1Html).toContain(`dir="${dir}"`)
+        if (theme === "dark") {
+          expect(page1Html).toContain("#020617")
+        } else {
+          expect(page1Html).toContain("#f8fafc")
+        }
+
+        if (view === "table") {
+          expect(page1Html).toContain("table")
+        } else {
+          expect(page1Html).toContain("grid-template-columns")
+        }
+      })
+    })
   })
 })

@@ -1,12 +1,9 @@
 import { triggerBrowserDownload } from "./download"
-import { formatArabicNumeral } from "./filenames"
 import { renderSchedulePdfBlob } from "./render-pdf"
-import { renderWeekPngBlob } from "./render-png"
 import {
   ExportProgressCallback,
   ExportRenderOptions,
   ExportSchedule,
-  ExportWeek,
 } from "./types"
 
 export type ShareMethod = "native-share" | "fallback-download" | "canceled"
@@ -41,59 +38,8 @@ export function canShareFiles(file?: File): boolean {
 }
 
 /**
- * Shares the current week's schedule as a PNG file using native Web Share,
- * or gracefully falls back to downloading the file.
- */
-export async function shareScheduleWeekAsPng(
-  week: ExportWeek,
-  options?: ExportRenderOptions
-): Promise<ShareResult> {
-  const { blob, filename } = await renderWeekPngBlob(week, options)
-
-  const pngFile = new File([blob], filename, {
-    type: "image/png",
-  })
-
-  const isArabic = week.language === "ar"
-  const title = isArabic
-    ? `وِردي - ${week.groupName}`
-    : `Wirddy - ${week.groupName}`
-  const text = isArabic
-    ? `${week.groupName} - الأسبوع ${formatArabicNumeral(week.weekNumber)}`
-    : `${week.groupName} - Week ${week.weekNumber}`
-
-  // Check if browser supports sharing this File
-  if (canShareFiles(pngFile)) {
-    try {
-      await navigator.share({
-        files: [pngFile],
-        title,
-        text,
-      })
-      return { success: true, method: "native-share" }
-    } catch (err: any) {
-      if (err?.name === "AbortError") {
-        // User closed or canceled the share sheet — NOT an error
-        return { success: false, method: "canceled" }
-      }
-      // For any other unexpected native share failure, fallback to download
-      triggerBrowserDownload(blob, filename)
-      return {
-        success: true,
-        method: "fallback-download",
-        error: err?.message || "Native share failed",
-      }
-    }
-  }
-
-  // Fallback for browsers without file-share support (e.g. desktop)
-  triggerBrowserDownload(blob, filename)
-  return { success: true, method: "fallback-download" }
-}
-
-/**
- * Shares the entire schedule plan as a PDF file using native Web Share,
- * or gracefully falls back to downloading the file.
+ * Shares the complete generated plan as a PDF file using the native Web Share API,
+ * or gracefully falls back to downloading the PDF file.
  */
 export async function shareScheduleAsPdf(
   schedule: ExportSchedule,
@@ -112,11 +58,11 @@ export async function shareScheduleAsPdf(
 
   const isArabic = schedule.language === "ar"
   const title = isArabic
-    ? `وِردي - ${schedule.groupName}`
+    ? `وردي - ${schedule.groupName}`
     : `Wirddy - ${schedule.groupName}`
   const text = isArabic
-    ? `${schedule.groupName} - خطة الختمة كاملة (${formatArabicNumeral(schedule.totalWeeks)} أسابيع)`
-    : `${schedule.groupName} - Complete Schedule (${schedule.totalWeeks} Weeks)`
+    ? `الخطة الكاملة لورد القرآن - ${schedule.groupName}`
+    : `${schedule.groupName} - Full Quran Schedule`
 
   // Check if browser supports sharing this PDF File
   if (canShareFiles(pdfFile)) {
@@ -129,7 +75,7 @@ export async function shareScheduleAsPdf(
       return { success: true, method: "native-share" }
     } catch (err: any) {
       if (err?.name === "AbortError") {
-        // User closed or canceled the share sheet
+        // User closed or canceled the share sheet — NOT an error
         return { success: false, method: "canceled" }
       }
       // Fallback to download
