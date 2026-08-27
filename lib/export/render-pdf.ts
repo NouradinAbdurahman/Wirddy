@@ -145,19 +145,22 @@ export async function renderSchedulePdfBlob(
       onProgress(pageNum, totalPages, msg)
     }
 
-    // Create off-canvas container for the complete A4 page.
-    // Do NOT use z-index:-9999 — that hides from the compositor and yields blank PDF pages.
+    // Mount off-canvas, visible from the start so the browser lays it out fully.
+    // Do NOT use z-index:-9999 — hides from compositor, yields blank blobs.
+    // Do NOT start with visibility:hidden — height resolves to 0, canvas is empty.
     const container = document.createElement("div")
-    container.style.position = "absolute"
-    container.style.left = "-9999px"
-    container.style.top = "0"
-    container.style.width = "1000px"
-    container.style.minWidth = "1000px"
-    container.style.maxWidth = "1000px"
-    container.style.boxSizing = "border-box"
-    container.style.pointerEvents = "none"
-    container.style.visibility = "hidden"
-    container.style.overflow = "visible"
+    container.style.cssText = [
+      "position:absolute",
+      "left:-9999px",
+      "top:0",
+      "width:1000px",
+      "min-width:1000px",
+      "max-width:1000px",
+      "box-sizing:border-box",
+      "pointer-events:none",
+      "overflow:visible",
+      "visibility:visible",
+    ].join(";")
 
     container.innerHTML = buildPdfPageHtml(
       pageWeeks,
@@ -171,8 +174,6 @@ export async function renderSchedulePdfBlob(
     )
 
     document.body.appendChild(container)
-    // Make visible just before capture so the browser fully paints it
-    container.style.visibility = "visible"
 
     try {
       const targetElement = container.firstElementChild as HTMLElement
@@ -181,12 +182,20 @@ export async function renderSchedulePdfBlob(
       }
 
       await waitForImagesToLoad(targetElement)
-      // Wait for the browser to fully rasterize the off-canvas element
-      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 150)))
+
+      // Double rAF — guarantees a full layout + paint cycle before measuring.
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+
+      // Use getBoundingClientRect for layout-accurate dimensions.
+      const rect = targetElement.getBoundingClientRect()
+      const measuredWidth = Math.round(rect.width) || 1000
+      const measuredHeight = Math.round(rect.height) || 1414
 
       const pageBlob = await toBlob(targetElement, {
         quality: 1.0,
-        pixelRatio: 3.6, // Ultra-sharp 4K resolution (1000px * 3.6 = 3600px width) for crystal-clear PDF output
+        pixelRatio: 3.6,
+        width: measuredWidth,
+        height: measuredHeight,
         skipFonts: true,
         cacheBust: false,
       })

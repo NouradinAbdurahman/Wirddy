@@ -662,19 +662,21 @@ export async function renderMemberPersonalSchedulePngBlob(
     ensureFontsReady(),
   ])
 
+  // Mount the container off-canvas. We use position:absolute + left:-9999px
+  // (NOT z-index:-9999, which hides from the compositor and returns blank blobs).
   const container = document.createElement("div")
-  // Position off-canvas so html-to-image can paint it, but the user doesn't see it.
-  // Do NOT use z-index:-9999 — that hides from the compositor and yields blank blobs.
-  container.style.position = "absolute"
-  container.style.left = "-9999px"
-  container.style.top = "0"
-  container.style.width = "880px"
-  container.style.minWidth = "880px"
-  container.style.maxWidth = "880px"
-  container.style.boxSizing = "border-box"
-  container.style.pointerEvents = "none"
-  container.style.visibility = "hidden"
-  container.style.overflow = "visible"
+  container.style.cssText = [
+    "position:absolute",
+    "left:-9999px",
+    "top:0",
+    "width:880px",
+    "min-width:880px",
+    "max-width:880px",
+    "box-sizing:border-box",
+    "pointer-events:none",
+    "overflow:visible",
+    "visibility:visible",   // visible from the start so the browser lays it out
+  ].join(";")
 
   container.innerHTML = buildMemberPersonalScheduleHtml(
     member,
@@ -684,8 +686,6 @@ export async function renderMemberPersonalSchedulePngBlob(
     isArabic
   )
   document.body.appendChild(container)
-  // Make visible just before capture so the browser fully paints it
-  container.style.visibility = "visible"
 
   try {
     const targetElement = container.firstElementChild as HTMLElement
@@ -694,12 +694,21 @@ export async function renderMemberPersonalSchedulePngBlob(
     }
 
     await waitForImagesToLoad(targetElement)
-    // Wait for the browser to fully rasterize the off-canvas element
-    await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 150)))
+
+    // Double rAF guarantees the browser has completed a full layout + paint cycle.
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+
+    // Measure the ACTUAL rendered size — clientWidth/clientHeight are unreliable
+    // for off-canvas elements. getBoundingClientRect is layout-accurate.
+    const rect = targetElement.getBoundingClientRect()
+    const measuredWidth = Math.round(rect.width) || 880
+    const measuredHeight = Math.round(rect.height) || 1200
 
     const blob = await toBlob(targetElement, {
       quality: 1.0,
       pixelRatio,
+      width: measuredWidth,
+      height: measuredHeight,
       skipFonts: true,
       cacheBust: false,
     })
@@ -729,28 +738,28 @@ export async function renderWeekToPngBlob(
 ): Promise<Blob> {
   const theme = options?.theme || week.theme || "dark"
   const viewMode = options?.view || week.view || "cards"
-  const pixelRatio = options?.pixelRatio || 4.0 // 4K Ultra-HD Crisp Resolution (880px * 4 = 3520px)
+  const pixelRatio = options?.pixelRatio || 4.0
   const qrUrl = week.branding?.qrUrl
 
-  // Preload assets & wait for font readiness
   const [assets] = await Promise.all([
     preloadExportAssets(qrUrl),
     ensureFontsReady(),
   ])
 
-  // Create isolated off-canvas mount container.
-  // Do NOT use z-index:-9999 — that hides from the compositor and yields blank blobs.
+  // Mount off-canvas. visible from the start so the browser lays it out fully.
   const container = document.createElement("div")
-  container.style.position = "absolute"
-  container.style.left = "-9999px"
-  container.style.top = "0"
-  container.style.width = "880px"
-  container.style.minWidth = "880px"
-  container.style.maxWidth = "880px"
-  container.style.boxSizing = "border-box"
-  container.style.pointerEvents = "none"
-  container.style.visibility = "hidden"
-  container.style.overflow = "visible"
+  container.style.cssText = [
+    "position:absolute",
+    "left:-9999px",
+    "top:0",
+    "width:880px",
+    "min-width:880px",
+    "max-width:880px",
+    "box-sizing:border-box",
+    "pointer-events:none",
+    "overflow:visible",
+    "visibility:visible",
+  ].join(";")
 
   container.innerHTML = buildStandaloneWeekExportHtml(
     week,
@@ -759,8 +768,6 @@ export async function renderWeekToPngBlob(
     viewMode
   )
   document.body.appendChild(container)
-  // Make visible just before capture so the browser fully paints it
-  container.style.visibility = "visible"
 
   try {
     const targetElement = container.firstElementChild as HTMLElement
@@ -769,12 +776,21 @@ export async function renderWeekToPngBlob(
     }
 
     await waitForImagesToLoad(targetElement)
-    // Wait for the browser to fully rasterize the off-canvas element
-    await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 150)))
+
+    // Double rAF guarantees browser completes full layout + paint before we measure.
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+
+    // Use getBoundingClientRect for layout-accurate dimensions.
+    // clientWidth/clientHeight are unreliable for off-canvas elements and give 0 height.
+    const rect = targetElement.getBoundingClientRect()
+    const measuredWidth = Math.round(rect.width) || 880
+    const measuredHeight = Math.round(rect.height) || 1200
 
     const blob = await toBlob(targetElement, {
       quality: 1.0,
       pixelRatio,
+      width: measuredWidth,
+      height: measuredHeight,
       skipFonts: true,
       cacheBust: false,
     })
