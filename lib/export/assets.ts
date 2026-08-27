@@ -176,11 +176,18 @@ export interface ExportAssets {
 export async function preloadExportAssets(
   qrUrl?: string
 ): Promise<ExportAssets> {
-  const resolvedQrUrl =
-    qrUrl ||
-    (typeof window !== "undefined" && window.location?.href
-      ? window.location.href.split("?")[0]
-      : "https://wirddy.app")
+  const defaultBase = "https://wirddy.vercel.app"
+  let resolvedQrUrl = qrUrl
+  if (!resolvedQrUrl) {
+    if (
+      typeof window !== "undefined" &&
+      window.location?.pathname?.startsWith("/g/")
+    ) {
+      resolvedQrUrl = `${window.location.origin}${window.location.pathname}`
+    } else {
+      resolvedQrUrl = defaultBase
+    }
+  }
 
   const [wirddyLogoBlack, wirddyLogoWhite, logoBlack, logoWhite, qrCode] =
     await Promise.all([

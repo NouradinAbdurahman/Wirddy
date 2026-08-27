@@ -57,7 +57,7 @@ export function SaveShareDialog({
   const origin =
     typeof window !== "undefined"
       ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL || "https://wirddy.app"
+      : process.env.NEXT_PUBLIC_APP_URL || "https://wirddy.vercel.app"
 
   const publicUrl = savedData ? `${origin}/g/${savedData.publicId}` : ""
   const editUrl = savedData

@@ -372,19 +372,7 @@ export function buildStandaloneWeekExportHtml(
       <!-- Bottom Footer -->
       <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid ${borderPrimary}; padding-top: 16px; font-size: 10.5px; color: ${textSecondary}; margin-top: 12px;">
         <div style="display: flex; align-items: center; gap: 12px;">
-          ${
-            showQr && assets.qrCode
-              ? `
-            <div style="display: flex; align-items: center; gap: 8px; background-color: ${isDark ? "rgba(15, 23, 42, 0.7)" : "rgba(241, 245, 249, 0.9)"}; padding: 4px 8px; border-radius: 8px; border: 1px solid ${borderPrimary};">
-              <img src="${assets.qrCode}" alt="QR" width="38" height="38" style="width: 38px; height: 38px; border-radius: 4px; background-color: #ffffff; padding: 2px; box-sizing: border-box; flex-shrink: 0; display: block;" />
-              <div style="display: flex; flex-direction: column; text-align: ${isArabic ? "right" : "left"};">
-                <span style="font-size: 9.5px; font-weight: 800; color: ${textPrimary}; white-space: nowrap;">${isArabic ? "امسح لفتح الجدول" : "Scan for schedule"}</span>
-                <span style="font-size: 8.5px; color: #0d9488; font-weight: 700; white-space: nowrap;">wirddy.app</span>
-              </div>
-            </div>
-          `
-              : ""
-          }
+          ${showQr && assets.qrCode ? `<img src="${assets.qrCode}" alt="QR Code" width="46" height="46" style="width: 46px; height: 46px; border-radius: 6px; background-color: #ffffff; padding: 2px; box-sizing: border-box; flex-shrink: 0; display: block; border: 1px solid ${borderPrimary};" />` : ""}
           <span style="white-space: nowrap;">${footerText}</span>
         </div>
         ${showDate ? `<span style="white-space: nowrap;">${dateStr}</span>` : ""}
@@ -491,19 +479,7 @@ export function buildPdfPageHtml(
       <!-- Page-Level Single Footer -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid ${borderPrimary}; padding-top: 14px; font-size: 10.5px; color: ${textSecondary}; margin-top: 20px;">
         <div style="display: flex; align-items: center; gap: 12px;">
-          ${
-            showQr && assets.qrCode
-              ? `
-            <div style="display: flex; align-items: center; gap: 8px; background-color: ${isDark ? "rgba(15, 23, 42, 0.7)" : "rgba(241, 245, 249, 0.9)"}; padding: 3px 8px; border-radius: 6px; border: 1px solid ${borderPrimary};">
-              <img src="${assets.qrCode}" alt="QR" width="32" height="32" style="width: 32px; height: 32px; border-radius: 3px; background-color: #ffffff; padding: 2px; box-sizing: border-box; flex-shrink: 0; display: block;" />
-              <div style="display: flex; flex-direction: column; text-align: ${isArabic ? "right" : "left"};">
-                <span style="font-size: 9px; font-weight: 800; color: ${textPrimary}; white-space: nowrap;">${isArabic ? "امسح لفتح الجدول" : "Scan for schedule"}</span>
-                <span style="font-size: 8px; color: #0d9488; font-weight: 700; white-space: nowrap;">wirddy.app</span>
-              </div>
-            </div>
-          `
-              : ""
-          }
+          ${showQr && assets.qrCode ? `<img src="${assets.qrCode}" alt="QR Code" width="38" height="38" style="width: 38px; height: 38px; border-radius: 4px; background-color: #ffffff; padding: 2px; box-sizing: border-box; flex-shrink: 0; display: block; border: 1px solid ${borderPrimary};" />` : ""}
           <span style="min-width: 0; white-space: nowrap;">${footerText}</span>
         </div>
         <div style="display: flex; align-items: center; gap: 12px;">
