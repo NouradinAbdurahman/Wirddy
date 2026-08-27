@@ -176,13 +176,19 @@ export interface ExportAssets {
 export async function preloadExportAssets(
   qrUrl?: string
 ): Promise<ExportAssets> {
+  const resolvedQrUrl =
+    qrUrl ||
+    (typeof window !== "undefined" && window.location?.href
+      ? window.location.href.split("?")[0]
+      : "https://wirddy.app")
+
   const [wirddyLogoBlack, wirddyLogoWhite, logoBlack, logoWhite, qrCode] =
     await Promise.all([
       getEmbeddedWirddyLogo("light"),
       getEmbeddedWirddyLogo("dark"),
       preloadImageAsBase64("/logo-black.png"),
       preloadImageAsBase64("/logo-white.png"),
-      qrUrl ? generateQrDataUrl(qrUrl) : Promise.resolve(undefined),
+      generateQrDataUrl(resolvedQrUrl),
     ])
 
   return {
@@ -190,7 +196,7 @@ export async function preloadExportAssets(
     wirddyLogoWhite,
     logoBlack,
     logoWhite,
-    qrCode,
+    qrCode: qrCode || undefined,
   }
 }
 
