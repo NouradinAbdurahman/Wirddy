@@ -14,7 +14,7 @@ export async function exportElementAsPng(
 
   try {
     // Embed fonts as base64 so Chrome renders Cairo/Inter inside SVG foreignObject.
-    const fontEmbedCSS = await getEmbeddedFontCSS(element)
+    const fontEmbedCSS = await getEmbeddedFontCSS()
 
     const dataUrl = await toPng(element, {
       quality: 0.98,

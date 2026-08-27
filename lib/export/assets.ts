@@ -229,32 +229,37 @@ export async function ensureFontsReady(): Promise<void> {
 }
 
 /**
- * Cache for embedded font CSS base64 blobs.
+ * Cache for embedded font CSS base64 blobs (session-level, cleared on page reload).
  * Chrome strips CSS custom properties (var(--font-arabic)) inside SVG foreignObject.
  * Embedding the actual font bytes solves the blank-canvas issue in Chrome.
+ *
+ * IMPORTANT: We pass document.body (not the off-canvas element) to getFontEmbedCSS.
+ * html-to-image's getUsedFonts() walks the node's computed styles to filter which
+ * @font-face rules to embed. An off-canvas element may not have resolved computed
+ * font families yet, causing getUsedFonts to return an empty set → empty fontEmbedCSS
+ * → fonts not embedded → Chrome renders without Cairo/Inter.
+ * Using document.body ensures all currently used fonts are included.
  */
 let fontEmbedCSSCache: string | null = null
 
-export async function getEmbeddedFontCSS(
-  element: HTMLElement
-): Promise<string | undefined> {
-  if (typeof window === "undefined") return undefined
+export async function getEmbeddedFontCSS(): Promise<string | undefined> {
+  if (typeof window === "undefined" || typeof document === "undefined")
+    return undefined
 
-  // Return from cache after first call
+  // Return from cache after first successful call
   if (fontEmbedCSSCache !== null) return fontEmbedCSSCache
 
   try {
-    // Use html-to-image's own font embed helper to serialize all loaded
-    // @font-face rules as base64 data URLs (avoids CORS tainting in Chrome).
+    // Use html-to-image's getFontEmbedCSS on document.body so it can see ALL
+    // @font-face rules and ALL font-families currently used in the page.
     const { getFontEmbedCSS } = await import("html-to-image")
-    const css = await getFontEmbedCSS(element)
+    const css = await getFontEmbedCSS(document.body)
     fontEmbedCSSCache = css || ""
     return fontEmbedCSSCache
   } catch {
-    // Fallback: manually embed the Cairo font URLs from Google Fonts as
-    // a @font-face declaration so Chrome can render Arabic text.
-    fontEmbedCSSCache = ""
-    return fontEmbedCSSCache
+    // Non-fatal: fonts will render from browser cache in most cases.
+    // Do NOT cache the failure — let the next export retry.
+    return undefined
   }
 }
 

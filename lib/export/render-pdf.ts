@@ -188,7 +188,7 @@ export async function renderSchedulePdfBlob(
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
       // Embed fonts as base64 so Chrome renders Cairo/Inter inside SVG foreignObject.
-      const fontEmbedCSS = await getEmbeddedFontCSS(targetElement)
+      const fontEmbedCSS = await getEmbeddedFontCSS()
 
       // Use getBoundingClientRect for layout-accurate dimensions.
       const rect = targetElement.getBoundingClientRect()

@@ -72,11 +72,17 @@ export function ExportModal({
   const activeExportTheme: ExportTheme =
     theme === "light" || resolvedTheme === "light" ? "light" : "dark"
 
+  // Build the QR URL from the group's public page if available.
+  const qrUrl = groupPublicId
+    ? `${typeof window !== "undefined" ? window.location.origin : "https://wirddy.vercel.app"}/g/${groupPublicId}`
+    : undefined
+
   const branding: ExportBrandingOptions = {
     showLogo,
     showQr,
     showGroupName,
     showDate,
+    qrUrl,
   }
 
   const resetStatus = () => {

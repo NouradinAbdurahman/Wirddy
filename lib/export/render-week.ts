@@ -701,7 +701,7 @@ export async function renderMemberPersonalSchedulePngBlob(
 
     // Embed fonts as base64 so Chrome can render Cairo/Inter inside SVG foreignObject.
     // Chrome strips CSS custom properties (var(--font-arabic)) in that context.
-    const fontEmbedCSS = await getEmbeddedFontCSS(targetElement)
+    const fontEmbedCSS = await getEmbeddedFontCSS()
 
     // Measure the ACTUAL rendered size — clientWidth/clientHeight are unreliable
     // for off-canvas elements. getBoundingClientRect is layout-accurate.
@@ -786,7 +786,7 @@ export async function renderWeekToPngBlob(
     await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
 
     // Embed fonts as base64 so Chrome renders Cairo/Inter inside SVG foreignObject.
-    const fontEmbedCSS = await getEmbeddedFontCSS(targetElement)
+    const fontEmbedCSS = await getEmbeddedFontCSS()
 
     // Use getBoundingClientRect for layout-accurate dimensions.
     const rect = targetElement.getBoundingClientRect()
