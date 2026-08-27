@@ -1,4 +1,5 @@
 import { toPng } from "html-to-image"
+import { triggerBrowserDownload } from "./download"
 
 export async function exportElementAsPng(
   elementId: string,
@@ -24,12 +25,11 @@ export async function exportElementAsPng(
       },
     })
 
-    const link = document.createElement("a")
-    link.download = `${filename}.png`
-    link.href = dataUrl
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    // Convert data URL to Blob and use the safe download helper
+    // (direct link.download with Arabic filenames silently fails in Chrome/macOS)
+    const res = await fetch(dataUrl)
+    const blob = await res.blob()
+    triggerBrowserDownload(blob, `${filename}.png`)
 
     return dataUrl
   } catch (error) {

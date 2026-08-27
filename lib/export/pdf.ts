@@ -1,5 +1,6 @@
 import { toPng } from "html-to-image"
 import { jsPDF } from "jspdf"
+import { triggerBrowserDownload } from "./download"
 
 export async function exportScheduleAsPdf(
   elementIds: string[],
@@ -37,7 +38,6 @@ export async function exportScheduleAsPdf(
       pdf.addPage()
     }
 
-    // Add image scaled to fit A4 page while preserving exact aspect ratio
     const margin = 12
     const maxImgWidth = pageWidth - margin * 2
     const maxImgHeight = pageHeight - margin * 2
@@ -68,5 +68,8 @@ export async function exportScheduleAsPdf(
     )
   }
 
-  pdf.save(`${filename}.pdf`)
+  // Use blob output + triggerBrowserDownload to ensure ASCII-safe filename
+  // (pdf.save() with Arabic filenames fails silently in Chrome/Safari on macOS)
+  const pdfBlob = pdf.output("blob")
+  triggerBrowserDownload(pdfBlob, `${filename}.pdf`)
 }
