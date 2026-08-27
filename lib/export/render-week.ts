@@ -1,6 +1,7 @@
 import { toBlob } from "html-to-image"
 import {
   ensureFontsReady,
+  ExportAssets,
   preloadExportAssets,
   waitForImagesToLoad,
 } from "./assets"
@@ -305,12 +306,7 @@ export function buildWeeklySectionHtml(
  */
 export function buildStandaloneWeekExportHtml(
   week: ExportWeek,
-  assets: {
-    wirddyLogoBlack: string
-    wirddyLogoWhite: string
-    logoBlack: string
-    logoWhite: string
-  },
+  assets: ExportAssets,
   theme: "light" | "dark",
   viewMode: ExportViewMode = "cards"
 ): string {
@@ -327,9 +323,12 @@ export function buildStandaloneWeekExportHtml(
     : "rgba(226, 232, 240, 0.8)"
   const planTag = isArabic ? "خطة ختم القرآن الكريم" : "Quran Completion Plan"
   const footerText = isArabic
+    ? "تم إنشاء هذا الجدول عبر تطبيق وِردي"
+    : "Generated with Wirddy"
   const showLogo = week.branding?.showLogo !== false
   const showGroupName = week.branding?.showGroupName !== false
   const showDate = week.branding?.showDate !== false
+  const showQr = week.branding?.showQr !== false
   const dateStr = new Date().toLocaleDateString(isArabic ? "ar-SA" : "en-US", {
     year: "numeric",
     month: "short",
@@ -372,7 +371,10 @@ export function buildStandaloneWeekExportHtml(
 
       <!-- Bottom Footer -->
       <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid ${borderPrimary}; padding-top: 16px; font-size: 10.5px; color: ${textSecondary}; margin-top: 12px;">
-        <span style="white-space: nowrap;">${footerText}</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          ${showQr && assets.qrCode ? `<img src="${assets.qrCode}" alt="QR" width="32" height="32" style="width: 32px; height: 32px; border-radius: 5px; background-color: #ffffff; padding: 2px; box-sizing: border-box; flex-shrink: 0;" />` : ""}
+          <span style="white-space: nowrap;">${footerText}</span>
+        </div>
         ${showDate ? `<span style="white-space: nowrap;">${dateStr}</span>` : ""}
       </div>
     </div>
@@ -388,18 +390,23 @@ export function buildPdfPageHtml(
   pageNumber: number,
   totalPages: number,
   isFirstPage: boolean,
-  assets: {
-    wirddyLogoBlack: string
-    wirddyLogoWhite: string
-    logoBlack: string
-    logoWhite: string
-  },
+  assets: ExportAssets,
   theme: "light" | "dark",
   viewMode: ExportViewMode = "cards"
 ): string {
   const isArabic = schedule.language === "ar"
   const isDark = theme === "dark"
   const dir = isArabic ? "rtl" : "ltr"
+
+  const showLogo = schedule.branding?.showLogo !== false
+  const showGroupName = schedule.branding?.showGroupName !== false
+  const showDate = schedule.branding?.showDate !== false
+  const showQr = schedule.branding?.showQr !== false
+  const dateStr = new Date().toLocaleDateString(isArabic ? "ar-SA" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
 
   const logoSrc = isDark ? assets.wirddyLogoWhite : assets.wirddyLogoBlack
   const bg = isDark ? "#020617" : "#f8fafc"
@@ -426,14 +433,12 @@ export function buildPdfPageHtml(
     ? `
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 18px; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1 1 auto;">
-          <img src="${logoSrc}" alt="Wirddy" width="140" height="38" style="flex-shrink: 0; width: 140px; height: 38px; max-width: 140px; max-height: 38px; object-fit: contain; display: block;" />
+          ${showLogo ? `<img src="${logoSrc}" alt="Wirddy" width="140" height="38" style="flex-shrink: 0; width: 140px; height: 38px; max-width: 140px; max-height: 38px; object-fit: contain; display: block;" />` : ""}
           <div style="min-width: 0;">
             <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
             </div>
-            <div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">
-              ${schedule.groupName}
-            </div>
+            ${showGroupName ? `<div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">${schedule.groupName}</div>` : ""}
           </div>
         </div>
 
@@ -450,10 +455,8 @@ export function buildPdfPageHtml(
     : `
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 12px; margin-bottom: 18px;">
         <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto;">
-          <img src="${logoSrc}" alt="Wirddy" width="100" height="28" style="flex-shrink: 0; width: 100px; height: 28px; max-width: 100px; max-height: 28px; object-fit: contain; display: block;" />
-          <span style="min-width: 0; font-size: 13px; font-weight: 800; color: ${textPrimary}; white-space: nowrap;">
-            ${schedule.groupName}
-          </span>
+          ${showLogo ? `<img src="${logoSrc}" alt="Wirddy" width="100" height="28" style="flex-shrink: 0; width: 100px; height: 28px; max-width: 100px; max-height: 28px; object-fit: contain; display: block;" />` : ""}
+          ${showGroupName ? `<span style="min-width: 0; font-size: 13px; font-weight: 800; color: ${textPrimary}; white-space: nowrap;">${schedule.groupName}</span>` : ""}
         </div>
         <div style="flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: ${textSecondary}; white-space: nowrap;">
           ${pageLabelStr}
@@ -475,8 +478,14 @@ export function buildPdfPageHtml(
 
       <!-- Page-Level Single Footer -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid ${borderPrimary}; padding-top: 14px; font-size: 10.5px; color: ${textSecondary}; margin-top: 20px;">
-        <span style="min-width: 0; white-space: nowrap;">${footerText}</span>
-        <span style="flex-shrink: 0; font-weight: 600; white-space: nowrap;">${pageLabelStr}</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          ${showQr && assets.qrCode ? `<img src="${assets.qrCode}" alt="QR" width="30" height="30" style="width: 30px; height: 30px; border-radius: 4px; background-color: #ffffff; padding: 2px; box-sizing: border-box; flex-shrink: 0;" />` : ""}
+          <span style="min-width: 0; white-space: nowrap;">${footerText}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          ${showDate ? `<span style="white-space: nowrap;">${dateStr}</span>` : ""}
+          <span style="flex-shrink: 0; font-weight: 600; white-space: nowrap;">${pageLabelStr}</span>
+        </div>
       </div>
     </div>
   `

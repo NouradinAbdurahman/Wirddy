@@ -92,9 +92,18 @@ export function PublicScheduleClient({
 
   const BackArrowIcon = dir === "rtl" ? IconArrowRight : IconArrowLeft
 
-  // Save to device-local history on mount if valid
+  // Save to device-local history and offline cache on mount if valid
   useEffect(() => {
     if (groupData && !groupData.isExpired) {
+      try {
+        localStorage.setItem(
+          `wirddy_cached_group_${publicId}`,
+          JSON.stringify(groupData)
+        )
+      } catch {
+        // ignore
+      }
+
       saveRecentSchedule({
         publicId: groupData.publicId,
         editToken: editToken || undefined,
@@ -103,8 +112,24 @@ export function PublicScheduleClient({
         totalJuz: 30,
         updatedAt: new Date().toISOString(),
       })
+    } else if (!groupData && publicId && typeof window !== "undefined") {
+      // Attempt to load from client-side offline cached snapshot
+      try {
+        const raw = localStorage.getItem(`wirddy_cached_group_${publicId}`)
+        if (raw) {
+          const cached = JSON.parse(raw)
+          if (cached && cached.publicId === publicId) {
+            setGroupData(cached)
+            setGroupName(cached.groupName || "")
+            setWeeksCount(cached.schedule?.weeksCount || 4)
+            setMembers(cached.membersConfig || [])
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
-  }, [groupData, editToken])
+  }, [groupData, editToken, publicId])
 
   // Verify edit token if provided in query string
   useEffect(() => {

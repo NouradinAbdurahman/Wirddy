@@ -1,3 +1,4 @@
+import QRCode from "qrcode"
 import { ExportTheme } from "./types"
 
 /**
@@ -99,52 +100,57 @@ export async function preloadImageAsBase64(src: string): Promise<string> {
       assetCache.set(src, fallbackDataUrl)
       return fallbackDataUrl
     } catch {
-      return src
+      return ""
     }
   }
 }
 
 /**
- * Reusable helper that loads, validates, and caches the appropriate theme Wirddy logo as a base64 Data URL.
- * Light theme -> /wirddy-logo-black.png
- * Dark theme -> /wirddy-logo-white.png
+ * Generates a base64 QR Code data URL.
+ */
+export async function generateQrDataUrl(text: string): Promise<string> {
+  try {
+    return await QRCode.toDataURL(text, {
+      margin: 1,
+      width: 160,
+      color: {
+        dark: "#0f172a",
+        light: "#ffffff",
+      },
+    })
+  } catch (err) {
+    console.warn("Failed to generate QR code:", err)
+    return ""
+  }
+}
+
+/**
+ * Retrieves the embedded base64 logo with caching and multiple fallbacks.
  */
 export async function getEmbeddedWirddyLogo(
   theme: ExportTheme
 ): Promise<string> {
-  const cached = embeddedLogoCache[theme]
-  if (cached && validateEmbeddedLogoDataUrl(cached)) {
-    return cached
+  if (embeddedLogoCache[theme]) {
+    return embeddedLogoCache[theme]!
   }
 
-  const src =
-    theme === "dark" ? "/wirddy-logo-white.png" : "/wirddy-logo-black.png"
+  const primaryPath =
+    theme === "light" ? "/wirddy-logo-black.png" : "/wirddy-logo-white.png"
+  const secondaryPath =
+    theme === "light" ? "/logo-black.png" : "/logo-white.png"
 
-  // 1. Try Network / Cache fetch + FileReader
   try {
-    const response = await fetch(src)
-    if (response.ok) {
-      const blob = await response.blob()
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.onerror = () =>
-          reject(new Error(`Failed to convert ${src} to base64.`))
-        reader.readAsDataURL(blob)
-      })
-
-      if (validateEmbeddedLogoDataUrl(dataUrl)) {
-        embeddedLogoCache[theme] = dataUrl
-        return dataUrl
-      }
+    const dataUrl = await preloadImageAsBase64(primaryPath)
+    if (validateEmbeddedLogoDataUrl(dataUrl)) {
+      embeddedLogoCache[theme] = dataUrl
+      return dataUrl
     }
   } catch {
-    // Fall through to Canvas fallback
+    // Fall through
   }
 
-  // 2. Try Image + Canvas conversion
   try {
-    const dataUrl = await convertImageViaCanvas(src)
+    const dataUrl = await preloadImageAsBase64(secondaryPath)
     if (validateEmbeddedLogoDataUrl(dataUrl)) {
       embeddedLogoCache[theme] = dataUrl
       return dataUrl
@@ -161,18 +167,22 @@ export interface ExportAssets {
   wirddyLogoWhite: string
   logoBlack: string
   logoWhite: string
+  qrCode?: string
 }
 
 /**
  * Preloads all essential Wirddy brand assets as base64 data URLs before export HTML generation.
  */
-export async function preloadExportAssets(): Promise<ExportAssets> {
-  const [wirddyLogoBlack, wirddyLogoWhite, logoBlack, logoWhite] =
+export async function preloadExportAssets(
+  qrUrl?: string
+): Promise<ExportAssets> {
+  const [wirddyLogoBlack, wirddyLogoWhite, logoBlack, logoWhite, qrCode] =
     await Promise.all([
       getEmbeddedWirddyLogo("light"),
       getEmbeddedWirddyLogo("dark"),
       preloadImageAsBase64("/logo-black.png"),
       preloadImageAsBase64("/logo-white.png"),
+      qrUrl ? generateQrDataUrl(qrUrl) : Promise.resolve(undefined),
     ])
 
   return {
@@ -180,6 +190,7 @@ export async function preloadExportAssets(): Promise<ExportAssets> {
     wirddyLogoWhite,
     logoBlack,
     logoWhite,
+    qrCode,
   }
 }
 
@@ -210,7 +221,6 @@ export function waitForImagesToLoad(
   }
 
   const imageReady = async (img: HTMLImageElement) => {
-    // If image is already complete and has valid natural dimensions
     if (img.complete) {
       if (img.naturalWidth > 0 && img.naturalHeight > 0) {
         if (typeof img.decode === "function") {
