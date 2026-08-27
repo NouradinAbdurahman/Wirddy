@@ -172,7 +172,7 @@ export function SaveShareDialog({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl border border-border/80 bg-background/95 p-6 shadow-2xl backdrop-blur-xl sm:p-7"
+        className="max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain rounded-3xl border border-border/80 bg-background/95 p-6 shadow-2xl backdrop-blur-xl sm:max-w-xl sm:p-7"
         dir={dir}
       >
         <DialogHeader className="text-start">

@@ -249,9 +249,9 @@ export function ExportModal({
       open={open}
       onOpenChange={(val) => !isExporting && onOpenChange(val)}
     >
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-3xl p-4.5 text-start sm:max-h-[88vh] sm:max-w-lg sm:p-6">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] w-full overflow-y-auto overscroll-contain rounded-3xl p-5 text-start sm:max-h-[88vh] sm:max-w-2xl sm:p-7">
         <DialogHeader className="space-y-1.5 pb-1">
-          <DialogTitle className="text-xl font-bold text-foreground">
+          <DialogTitle className="text-xl font-bold text-foreground sm:text-2xl">
             {t.exportTitle}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground sm:text-sm">
@@ -292,52 +292,52 @@ export function ExportModal({
         )}
 
         {/* Branding Options Section */}
-        <div className="space-y-2 rounded-2xl border border-border/60 bg-muted/20 p-3.5 text-start">
+        <div className="space-y-2.5 rounded-2xl border border-border/60 bg-muted/20 p-4 text-start">
           <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-            <IconSettings className="h-3.5 w-3.5 text-primary" />
+            <IconSettings className="h-4 w-4 text-primary" />
             <span>{t.exportOptionsTitle}</span>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-[11.5px]">
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-3 py-2 transition-colors hover:bg-card">
+          <div className="grid grid-cols-1 gap-2.5 text-xs sm:grid-cols-2">
+            <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border/40 bg-card/60 px-3.5 py-2.5 transition-colors hover:bg-card">
               <input
                 type="checkbox"
                 checked={showLogo}
                 onChange={(e) => setShowLogo(e.target.checked)}
-                className="h-3.5 w-3.5 rounded-sm text-primary accent-primary"
+                className="h-4 w-4 rounded text-primary accent-primary"
               />
               <span className="font-medium text-foreground">
                 {t.optShowLogo}
               </span>
             </label>
 
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-3 py-2 transition-colors hover:bg-card">
+            <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border/40 bg-card/60 px-3.5 py-2.5 transition-colors hover:bg-card">
               <input
                 type="checkbox"
                 checked={showQr}
                 onChange={(e) => setShowQr(e.target.checked)}
-                className="h-3.5 w-3.5 rounded-sm text-primary accent-primary"
+                className="h-4 w-4 rounded text-primary accent-primary"
               />
               <span className="font-medium text-foreground">{t.optShowQr}</span>
             </label>
 
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-3 py-2 transition-colors hover:bg-card">
+            <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border/40 bg-card/60 px-3.5 py-2.5 transition-colors hover:bg-card">
               <input
                 type="checkbox"
                 checked={showGroupName}
                 onChange={(e) => setShowGroupName(e.target.checked)}
-                className="h-3.5 w-3.5 rounded-sm text-primary accent-primary"
+                className="h-4 w-4 rounded text-primary accent-primary"
               />
               <span className="font-medium text-foreground">
                 {t.optShowGroupName}
               </span>
             </label>
 
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border/40 bg-card/60 px-3 py-2 transition-colors hover:bg-card">
+            <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-border/40 bg-card/60 px-3.5 py-2.5 transition-colors hover:bg-card">
               <input
                 type="checkbox"
                 checked={showDate}
                 onChange={(e) => setShowDate(e.target.checked)}
-                className="h-3.5 w-3.5 rounded-sm text-primary accent-primary"
+                className="h-4 w-4 rounded text-primary accent-primary"
               />
               <span className="font-medium text-foreground">
                 {t.optShowDate}
@@ -347,7 +347,7 @@ export function ExportModal({
         </div>
 
         {/* 1. Direct Share Actions Section (Single Full Plan PDF Share) */}
-        <div className="space-y-2 pt-1">
+        <div className="space-y-2.5 pt-1">
           <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
             {t.exportShareSection}
           </div>
@@ -355,20 +355,20 @@ export function ExportModal({
             {/* Share Full Plan PDF */}
             <Card
               onClick={!isExporting ? handleShareFullPdf : undefined}
-              className={`flex items-center gap-3.5 rounded-2xl border p-3.5 text-start transition-all ${
+              className={`flex items-center gap-4 rounded-2xl border p-4 text-start transition-all ${
                 isExporting
                   ? "cursor-not-allowed border-border/40 opacity-60"
                   : "group cursor-pointer border-border/70 bg-card/90 shadow-xs hover:border-primary/50 hover:bg-primary/5 hover:shadow-sm"
               }`}
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105">
                 <IconShare className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-foreground">
+                <div className="text-sm font-bold text-foreground">
                   {t.exportSharePdfAll}
                 </div>
-                <div className="text-[10px] text-muted-foreground">
+                <div className="text-xs text-muted-foreground">
                   {t.exportPdfAllFormat}
                 </div>
               </div>
@@ -377,28 +377,28 @@ export function ExportModal({
         </div>
 
         {/* 2. Download Files Actions Section */}
-        <div className="space-y-2 border-t border-border/40 pt-3">
+        <div className="space-y-2.5 border-t border-border/40 pt-4">
           <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
             {t.exportDownloadSection}
           </div>
-          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {/* Download Current Week PNG */}
             <Card
               onClick={!isExporting ? handleExportCurrentPng : undefined}
-              className={`flex flex-col justify-between rounded-2xl border p-3.5 text-start transition-all ${
+              className={`flex flex-col justify-between rounded-2xl border p-4 text-start transition-all ${
                 isExporting
                   ? "cursor-not-allowed border-border/40 opacity-60"
                   : "group cursor-pointer border-border/60 bg-muted/20 shadow-xs hover:border-teal-500/50 hover:bg-teal-500/5"
               }`}
             >
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-600 transition-transform group-hover:scale-105 dark:text-teal-400">
-                <IconFileTypePng className="h-4 w-4" />
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600 transition-transform group-hover:scale-105 dark:text-teal-400">
+                <IconFileTypePng className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-xs leading-snug font-bold text-foreground">
+                <div className="text-xs font-bold text-foreground sm:text-sm">
                   {t.exportPngCurrent}
                 </div>
-                <div className="mt-0.5 text-[10px] text-muted-foreground">
+                <div className="mt-1 text-[11px] text-muted-foreground">
                   {t.exportPngCurrentFormat}
                 </div>
               </div>
@@ -407,20 +407,20 @@ export function ExportModal({
             {/* Download All Weeks ZIP */}
             <Card
               onClick={!isExporting ? handleExportAllZip : undefined}
-              className={`flex flex-col justify-between rounded-2xl border p-3.5 text-start transition-all ${
+              className={`flex flex-col justify-between rounded-2xl border p-4 text-start transition-all ${
                 isExporting
                   ? "cursor-not-allowed border-border/40 opacity-60"
                   : "group cursor-pointer border-border/60 bg-muted/20 shadow-xs hover:border-amber-500/50 hover:bg-amber-500/5"
               }`}
             >
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 transition-transform group-hover:scale-105 dark:text-amber-400">
-                <IconFileZip className="h-4 w-4" />
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 transition-transform group-hover:scale-105 dark:text-amber-400">
+                <IconFileZip className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-xs leading-snug font-bold text-foreground">
+                <div className="text-xs font-bold text-foreground sm:text-sm">
                   {t.exportZipAll}
                 </div>
-                <div className="mt-0.5 text-[10px] text-muted-foreground">
+                <div className="mt-1 text-[11px] text-muted-foreground">
                   {t.exportZipAllFormat}
                 </div>
               </div>
@@ -429,20 +429,20 @@ export function ExportModal({
             {/* Download Full Plan PDF */}
             <Card
               onClick={!isExporting ? handleExportFullPdf : undefined}
-              className={`flex flex-col justify-between rounded-2xl border p-3.5 text-start transition-all ${
+              className={`flex flex-col justify-between rounded-2xl border p-4 text-start transition-all ${
                 isExporting
                   ? "cursor-not-allowed border-border/40 opacity-60"
                   : "group cursor-pointer border-border/60 bg-muted/20 shadow-xs hover:border-rose-500/50 hover:bg-rose-500/5"
               }`}
             >
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-600 transition-transform group-hover:scale-105 dark:text-rose-400">
-                <IconFileTypePdf className="h-4 w-4" />
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 transition-transform group-hover:scale-105 dark:text-rose-400">
+                <IconFileTypePdf className="h-5 w-5" />
               </div>
               <div>
-                <div className="text-xs leading-snug font-bold text-foreground">
+                <div className="text-xs font-bold text-foreground sm:text-sm">
                   {t.exportPdfAll}
                 </div>
-                <div className="mt-0.5 text-[10px] text-muted-foreground">
+                <div className="mt-1 text-[11px] text-muted-foreground">
                   {t.exportPdfAllFormat}
                 </div>
               </div>
