@@ -49,9 +49,6 @@ export function QuranReaderPreview() {
       <div className="container mx-auto max-w-5xl px-4 sm:px-6">
         {/* Section Heading */}
         <div className="mx-auto mb-10 max-w-2xl text-center">
-          <Badge variant="outline" className="mb-3 border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            {language === "ar" ? "المصحف الإلكتروني والقارئ المدمج" : "Integrated Quran Reader"}
-          </Badge>
           <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl md:text-4xl">
             {t.readerShowcaseTitle}
           </h2>

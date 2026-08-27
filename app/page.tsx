@@ -28,7 +28,6 @@ import { GroupCollaboration } from "@/components/landing/group-collaboration"
 import { ShareExport } from "@/components/landing/share-export"
 import { AddToHomeScreen } from "@/components/landing/add-to-home-screen"
 import { WhyWirddy } from "@/components/landing/why-wirddy"
-import { AccountCta } from "@/components/landing/account-cta"
 import { FinalCta } from "@/components/landing/final-cta"
 import { RangeSelector } from "@/components/planner/range-selector"
 import { RotationSelector } from "@/components/planner/rotation-selector"
@@ -379,10 +378,7 @@ export default function HomePage() {
               {/* 12. Why Groups Choose Wirddy (6 Summary Points) */}
               <WhyWirddy />
 
-              {/* 13. One Account Value Banner */}
-              <AccountCta />
-
-              {/* 14. Final Khatmah CTA */}
+              {/* 13. Final Khatmah CTA */}
               <FinalCta onCreateGroup={startNewGroup} />
             </motion.div>
           )}

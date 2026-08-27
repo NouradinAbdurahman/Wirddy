@@ -58,12 +58,6 @@ export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
       <div className="pointer-events-none absolute top-1/3 left-1/2 -z-10 h-[500px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/8 blur-3xl" />
 
       <div className="container mx-auto max-w-5xl px-4 text-center sm:px-6">
-        {/* Eyebrow Badge */}
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary backdrop-blur-sm">
-          <IconSparkles className="h-3.5 w-3.5" />
-          <span>{t.heroEyebrow}</span>
-        </div>
-
         {/* Main Headline */}
         <h1
           className={`text-3xl font-extrabold tracking-tight text-foreground sm:text-5xl md:text-6xl ${

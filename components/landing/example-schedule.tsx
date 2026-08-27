@@ -146,9 +146,6 @@ export function ExampleSchedule({ onTryTemplate }: ExampleScheduleProps) {
     <section id="preview" className="py-16 md:py-20">
       <div className="container mx-auto max-w-5xl px-4 sm:px-6">
         <div className="mx-auto mb-10 max-w-2xl text-center">
-          <Badge variant="outline" className="mb-3 border-primary/20 bg-primary/10 text-primary">
-            {t.exampleBadge}
-          </Badge>
           <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl md:text-4xl">
             {t.previewTitle}
           </h2>
