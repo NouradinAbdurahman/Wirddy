@@ -125,7 +125,9 @@ export async function saveScheduleGroup(
   const dailyDivisionEnabled = !!input.group.dailyDivisionEnabled || !!schedule.dailyDivisionEnabled
 
   // 2. Insert Group
-  const { data: groupData, error: groupError } = (await supabase
+  // Try with all new columns first. If migration hasn't been applied yet (PGRST204),
+  // fall back to original columns so the app keeps working while migration is pending.
+  let { data: groupData, error: groupError } = (await supabase
     .from("groups")
     .insert({
       public_id: publicId,
@@ -153,6 +155,32 @@ export async function saveScheduleGroup(
     .single()) as {
     data: { id: string; expires_at: string } | null
     error: any
+  }
+
+  // PGRST204 = column not found in schema cache (migration not yet applied to this DB)
+  if (groupError?.code === "PGRST204") {
+    console.warn("[Wirddy] Advanced columns not found — applying base-only fallback (run migration to enable all features).")
+    const fb = (await supabase
+      .from("groups")
+      .insert({
+        public_id: publicId,
+        edit_token_hash: editTokenHash,
+        name: input.group.name.trim(),
+        language: lang,
+        direction: dir,
+        scheduler_version: "1.2",
+        rotation_style: rotationStyle,
+        range_type: rangeType,
+        start_juz: startJuz,
+        range_start_surah: customRange?.startSurah || null,
+        range_start_ayah: customRange?.startAyah || null,
+        range_end_surah: customRange?.endSurah || null,
+        range_end_ayah: customRange?.endAyah || null,
+      } as any)
+      .select("id, expires_at")
+      .single()) as { data: { id: string; expires_at: string } | null; error: any }
+    groupData = fb.data
+    groupError = fb.error
   }
 
   if (groupError || !groupData) {
@@ -212,7 +240,7 @@ export async function saveScheduleGroup(
   })
 
   // 4. Insert Schedule Plan
-  const { data: planData, error: planError } = (await supabase
+  let { data: planData, error: planError } = (await supabase
     .from("schedule_plans")
     .insert({
       group_id: groupId,
@@ -238,6 +266,30 @@ export async function saveScheduleGroup(
     } as any)
     .select("id")
     .single()) as { data: { id: string } | null; error: any }
+
+  if (planError?.code === "PGRST204") {
+    const fb2 = (await supabase
+      .from("schedule_plans")
+      .insert({
+        group_id: groupId,
+        version_number: 1,
+        weeks_count: input.group.weeksCount,
+        total_juz_per_week: 30,
+        scheduler_version: "1.2",
+        is_active: true,
+        rotation_style: rotationStyle,
+        range_type: rangeType,
+        start_juz: startJuz,
+        range_start_surah: customRange?.startSurah || null,
+        range_start_ayah: customRange?.startAyah || null,
+        range_end_surah: customRange?.endSurah || null,
+        range_end_ayah: customRange?.endAyah || null,
+      } as any)
+      .select("id")
+      .single()) as { data: { id: string } | null; error: any }
+    planData = fb2.data
+    planError = fb2.error
+  }
 
   if (planError || !planData) {
     console.error("Error inserting plan:", planError)
