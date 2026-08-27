@@ -8,6 +8,7 @@ import {
   GeneratedSchedule,
   MemberConfig,
   RangeType,
+  RecurrenceConfig,
   RotationStyle,
   ScheduleInput,
 } from "@/lib/scheduler/types"
@@ -69,6 +70,9 @@ export default function HomePage() {
   const [islamicYear, setIslamicYear] = useState<number>(getCurrentHijriYear())
   const [dailyDivisionEnabled, setDailyDivisionEnabled] =
     useState<boolean>(false)
+  const [recurrence, setRecurrence] = useState<RecurrenceConfig>({
+    frequency: "none",
+  })
   const [members, setMembers] = useState<MemberConfig[]>([])
   const [schedule, setSchedule] = useState<GeneratedSchedule | null>(null)
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
@@ -245,6 +249,7 @@ export default function HomePage() {
       occasionType,
       islamicYear: occasionType === "ramadan" ? islamicYear : undefined,
       dailyDivisionEnabled,
+      recurrence: recurrence.frequency !== "none" ? recurrence : undefined,
     },
     members,
   }
@@ -455,6 +460,8 @@ export default function HomePage() {
                 onIslamicYearChange={setIslamicYear}
                 dailyDivisionEnabled={dailyDivisionEnabled}
                 onDailyDivisionEnabledChange={setDailyDivisionEnabled}
+                recurrence={recurrence}
+                onRecurrenceChange={setRecurrence}
               />
 
               {/* Section 2: Quran Range & Starting Point */}

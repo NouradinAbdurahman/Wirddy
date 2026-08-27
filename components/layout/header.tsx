@@ -4,9 +4,10 @@ import React from "react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
 import {
-  IconBook,
   IconLanguage,
+  IconLayoutDashboard,
   IconLogout,
+  IconMenu2,
   IconMoon,
   IconSun,
   IconUser,
@@ -131,12 +132,12 @@ export function Header({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
-          {/* Language Switcher */}
+          {/* Desktop Only: Language Switcher */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
-            className="h-9 gap-1.5 rounded-lg border-border/70 px-3 text-xs font-bold tracking-wide hover:bg-muted"
+            className="hidden h-9 gap-1.5 rounded-lg border-border/70 px-3 text-xs font-bold tracking-wide hover:bg-muted sm:inline-flex"
             title={
               language === "ar" ? "Switch to English" : "التحويل إلى العربية"
             }
@@ -145,12 +146,12 @@ export function Header({
             <span>{language === "ar" ? "ENG" : "AR"}</span>
           </Button>
 
-          {/* Theme Toggle with White Icon in both modes */}
+          {/* Desktop Only: Theme Toggle */}
           <Button
             variant="outline"
             size="icon"
             onClick={() => setTheme(isDark ? "light" : "dark")}
-            className="h-9 w-9 cursor-pointer rounded-lg border-neutral-800 bg-neutral-900 text-white shadow-sm transition-colors hover:bg-neutral-800 hover:text-white dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700"
+            className="hidden h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-neutral-800 bg-neutral-900 text-white shadow-sm transition-colors hover:bg-neutral-800 hover:text-white sm:inline-flex dark:border-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700"
             aria-label="Toggle theme"
           >
             {mounted ? (
@@ -218,7 +219,7 @@ export function Header({
 
                 <Link href="/dashboard">
                   <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold">
-                    <IconBook className="h-4 w-4 shrink-0 text-primary" />
+                    <IconLayoutDashboard className="h-4 w-4 shrink-0 text-primary" />
                     <span>{t.navDashboard}</span>
                   </DropdownMenuItem>
                 </Link>
@@ -229,6 +230,54 @@ export function Header({
                     <span>{t.settingsTitle}</span>
                   </DropdownMenuItem>
                 </Link>
+
+                {/* Mobile-only Quick Controls: Language & Theme */}
+                <div className="sm:hidden">
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    onClick={() => setLanguage(language === "ar" ? "en" : "ar")}
+                    className="cursor-pointer justify-between rounded-lg px-2.5 py-2 text-xs font-semibold"
+                  >
+                    <div className="flex items-center gap-2">
+                      <IconLanguage className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span>
+                        {language === "ar"
+                          ? "English (الإنجليزية)"
+                          : "العربية (Arabic)"}
+                      </span>
+                    </div>
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                      {language === "ar" ? "ENG" : "AR"}
+                    </span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => setTheme(isDark ? "light" : "dark")}
+                    className="cursor-pointer justify-between rounded-lg px-2.5 py-2 text-xs font-semibold"
+                  >
+                    <div className="flex items-center gap-2">
+                      {mounted && isDark ? (
+                        <IconSun className="h-4 w-4 shrink-0 text-amber-500" />
+                      ) : (
+                        <IconMoon className="h-4 w-4 shrink-0 text-primary" />
+                      )}
+                      <span>
+                        {mounted
+                          ? isDark
+                            ? language === "ar"
+                              ? "الوضع الفاتح"
+                              : "Light Mode"
+                            : language === "ar"
+                              ? "الوضع الداكن"
+                              : "Dark Mode"
+                          : language === "ar"
+                            ? "المظهر"
+                            : "Theme"}
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                </div>
 
                 <DropdownMenuSeparator />
 
@@ -243,16 +292,91 @@ export function Header({
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Link href="/login">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 gap-1.5 rounded-lg border-border/70 px-3 text-xs font-bold hover:bg-muted"
-              >
-                <IconUser className="h-4 w-4" />
-                <span>{t.authSignIn}</span>
-              </Button>
-            </Link>
+            <>
+              {/* Desktop Sign-In Button */}
+              <Link href="/login" className="hidden sm:inline-flex">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 gap-1.5 rounded-lg border-border/70 px-3 text-xs font-bold hover:bg-muted"
+                >
+                  <IconUser className="h-4 w-4" />
+                  <span>{t.authSignIn}</span>
+                </Button>
+              </Link>
+
+              {/* Mobile Guest Hamburger Menu */}
+              <div className="flex sm:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    aria-label={
+                      language === "ar" ? "القائمة الرئيسية" : "Main menu"
+                    }
+                    className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-border/70 bg-card/60 text-foreground transition-all hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <IconMenu2 className="h-5 w-5" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-56 p-2 text-start"
+                  >
+                    <Link href="/login">
+                      <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg bg-primary/10 px-2.5 py-2 text-xs font-bold text-primary focus:bg-primary/20">
+                        <IconUser className="h-4 w-4 shrink-0" />
+                        <span>{t.authSignIn}</span>
+                      </DropdownMenuItem>
+                    </Link>
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem
+                      onClick={() =>
+                        setLanguage(language === "ar" ? "en" : "ar")
+                      }
+                      className="cursor-pointer justify-between rounded-lg px-2.5 py-2 text-xs font-semibold"
+                    >
+                      <div className="flex items-center gap-2">
+                        <IconLanguage className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span>
+                          {language === "ar"
+                            ? "English (الإنجليزية)"
+                            : "العربية (Arabic)"}
+                        </span>
+                      </div>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">
+                        {language === "ar" ? "ENG" : "AR"}
+                      </span>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={() => setTheme(isDark ? "light" : "dark")}
+                      className="cursor-pointer justify-between rounded-lg px-2.5 py-2 text-xs font-semibold"
+                    >
+                      <div className="flex items-center gap-2">
+                        {mounted && isDark ? (
+                          <IconSun className="h-4 w-4 shrink-0 text-amber-500" />
+                        ) : (
+                          <IconMoon className="h-4 w-4 shrink-0 text-primary" />
+                        )}
+                        <span>
+                          {mounted
+                            ? isDark
+                              ? language === "ar"
+                                ? "الوضع الفاتح"
+                                : "Light Mode"
+                              : language === "ar"
+                                ? "الوضع الداكن"
+                                : "Dark Mode"
+                            : language === "ar"
+                              ? "المظهر"
+                              : "Theme"}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </>
           )}
         </div>
       </div>

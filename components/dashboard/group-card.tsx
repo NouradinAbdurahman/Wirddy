@@ -12,6 +12,7 @@ import {
   IconEdit,
   IconEye,
   IconFlame,
+  IconHistory,
   IconMoon,
   IconRefresh,
   IconShare,
@@ -36,6 +37,7 @@ import {
   duplicateGroupAction,
   startNewKhatmahAction,
 } from "@/lib/groups/actions"
+import { VersionHistoryModal } from "@/components/schedule/version-history-modal"
 
 interface GroupCardProps {
   group: UserGroupSummary
@@ -99,6 +101,13 @@ export function GroupCard({
   }
 
   const isRamadan = group.occasionType === "ramadan"
+  const [showHistory, setShowHistory] = useState(false)
+
+  const isOwner = group.isOwner || group.userRole === "owner"
+  const targetUrl =
+    !isOwner && group.memberPublicId
+      ? `/g/${group.publicId}/member/${group.memberPublicId}`
+      : `/g/${group.publicId}`
 
   return (
     <motion.div
@@ -114,6 +123,24 @@ export function GroupCard({
         {/* Header Badges & Actions */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
+            {/* Role Badge: Owner vs Member */}
+            <Badge
+              variant="secondary"
+              className={`text-[10px] font-bold ${
+                isOwner
+                  ? "border border-primary/30 bg-primary/10 text-primary"
+                  : "border border-border bg-muted text-muted-foreground"
+              }`}
+            >
+              {isOwner
+                ? language === "ar"
+                  ? "مالك"
+                  : "Owner"
+                : language === "ar"
+                  ? "عضو"
+                  : "Member"}
+            </Badge>
+
             {isRamadan && (
               <Badge
                 variant="outline"
@@ -157,10 +184,16 @@ export function GroupCard({
               <IconDotsVertical className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 p-1 text-start">
-              <Link href={`/g/${group.publicId}`}>
+              <Link href={targetUrl}>
                 <DropdownMenuItem className="cursor-pointer gap-2 text-xs font-semibold">
                   <IconEye className="h-4 w-4" />
-                  <span>{t.actionOpen}</span>
+                  <span>
+                    {!isOwner && group.memberPublicId
+                      ? language === "ar"
+                        ? "جدولي الشخصي"
+                        : "My Personal Schedule"
+                      : t.actionOpen}
+                  </span>
                 </DropdownMenuItem>
               </Link>
               <DropdownMenuItem
@@ -177,70 +210,86 @@ export function GroupCard({
                 <IconDownload className="h-4 w-4" />
                 <span>{t.actionDownload}</span>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleDuplicate}
-                className="cursor-pointer gap-2 text-xs font-semibold"
-              >
-                <IconCopy className="h-4 w-4" />
-                <span>{t.actionDuplicate}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleNewKhatmah}
-                className="cursor-pointer gap-2 text-xs font-bold font-semibold text-primary"
-              >
-                <IconRefresh className="h-4 w-4" />
-                <span>{t.actionNewKhatmah}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleToggleArchive}
-                className="cursor-pointer gap-2 text-xs font-semibold"
-              >
-                {group.isArchived ? (
-                  <>
-                    <IconArrowBackUp className="h-4 w-4" />
-                    <span>{t.actionRestore}</span>
-                  </>
-                ) : (
-                  <>
-                    <IconArchive className="h-4 w-4" />
-                    <span>{t.actionArchive}</span>
-                  </>
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleDelete}
-                className="cursor-pointer gap-2 text-xs font-semibold text-destructive focus:bg-destructive/10 focus:text-destructive"
-              >
-                <IconTrash className="h-4 w-4" />
-                <span>{t.actionDelete}</span>
-              </DropdownMenuItem>
+
+              {/* Organizer-only actions */}
+              {isOwner && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setShowHistory(true)}
+                    className="cursor-pointer gap-2 text-xs font-semibold"
+                  >
+                    <IconHistory className="h-4 w-4" />
+                    <span>
+                      {language === "ar" ? "سجل التعديلات" : "Version History"}
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleDuplicate}
+                    className="cursor-pointer gap-2 text-xs font-semibold"
+                  >
+                    <IconCopy className="h-4 w-4" />
+                    <span>{t.actionDuplicate}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleNewKhatmah}
+                    className="cursor-pointer gap-2 text-xs font-bold text-primary"
+                  >
+                    <IconRefresh className="h-4 w-4" />
+                    <span>{t.actionNewKhatmah}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleToggleArchive}
+                    className="cursor-pointer gap-2 text-xs font-semibold"
+                  >
+                    {group.isArchived ? (
+                      <>
+                        <IconArrowBackUp className="h-4 w-4" />
+                        <span>{t.actionRestore}</span>
+                      </>
+                    ) : (
+                      <>
+                        <IconArchive className="h-4 w-4" />
+                        <span>{t.actionArchive}</span>
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    className="cursor-pointer gap-2 text-xs font-semibold text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  >
+                    <IconTrash className="h-4 w-4" />
+                    <span>{t.actionDelete}</span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        {/* Title & Description */}
-        <div className="mt-3">
-          <Link
-            href={`/g/${group.publicId}`}
-            className="hover:underline focus-visible:outline-none"
-          >
-            <h3 className="line-clamp-1 text-base font-extrabold text-foreground sm:text-lg">
-              {group.groupName}
-            </h3>
-          </Link>
+        {/* Group Name & Description */}
+        <Link href={targetUrl} className="mt-3.5 block group-hover:underline">
+          <h3 className="truncate text-lg font-extrabold text-foreground">
+            {group.groupName}
+          </h3>
           {group.title && (
-            <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-primary">
+            <p className="mt-0.5 truncate text-xs font-medium text-muted-foreground">
               {group.title}
             </p>
           )}
-          {group.description && (
-            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-              {group.description}
-            </p>
-          )}
-        </div>
+        </Link>
+        <VersionHistoryModal
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          groupPublicId={group.publicId}
+          onVersionRestored={onRefresh}
+        />
+        {group.description && (
+          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+            {group.description}
+          </p>
+        )}
 
         {/* Metadata stats */}
         <div className="mt-4 flex items-center gap-4 text-xs font-medium text-muted-foreground">

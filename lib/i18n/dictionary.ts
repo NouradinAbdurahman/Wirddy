@@ -808,8 +808,8 @@ export const translations: Record<Language, Translations> = {
       "في متصفح Safari، اضغط على زر المشاركة ثم اختر 'إضافة إلى الشاشة الرئيسية'.",
     pwaAndroidStep:
       "في متصفح Chrome، اضغط على خيارات المتصفح (⋮) ثم اختر 'تثبيت التطبيق' أو 'إضافة إلى الشاشة الرئيسية'.",
-    pwaIosTab: "أجهزة آيفون (iOS)",
-    pwaAndroidTab: "أجهزة أندرويد (Android)",
+    pwaIosTab: "iPhone (iOS)",
+    pwaAndroidTab: "Android",
     pwaIphoneTab: "iPhone (iOS)",
     pwaIphoneTitle: "إضافة وِردي إلى شاشة الآيفون",
     pwaAndroidTitle: "تثبيت وِردي على أندرويد",

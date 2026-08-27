@@ -12,6 +12,7 @@ import {
   IconCircleCheck,
   IconCopy,
   IconDownload,
+  IconHistory,
   IconLayoutGrid,
   IconLoader2,
   IconMoon,
@@ -44,6 +45,7 @@ import { RegenerateDialog } from "./regenerate-dialog"
 import { ExportModal } from "./export-modal"
 import { SaveShareDialog } from "./save-share-dialog"
 import { PrintableSchedule } from "./printable-schedule"
+import { VersionHistoryModal } from "./version-history-modal"
 import { toArabicNumerals } from "@/lib/dates/calendar"
 import { renderMemberPersonalSchedulePngBlob } from "@/lib/export/render-week"
 import { exportMemberScheduleAsPdf } from "@/lib/export/render-pdf"
@@ -88,6 +90,7 @@ export function ScheduleView({
     useState<boolean>(false)
   const [showExportModal, setShowExportModal] = useState<boolean>(false)
   const [showSaveShareDialog, setShowSaveShareDialog] = useState<boolean>(false)
+  const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false)
   const [isDuplicating, setIsDuplicating] = useState<boolean>(false)
 
   const BackArrowIcon = dir === "rtl" ? IconArrowRight : IconArrowLeft
@@ -241,6 +244,20 @@ export function ScheduleView({
                 <span>
                   {isRegenerating ? t.btnGenerating : t.btnRegenerate}
                 </span>
+              </Button>
+            )}
+
+            {/* Version History Button (Only for editors/saved groups) */}
+            {!isViewOnly && savedData?.publicId && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowHistoryModal(true)}
+                className="h-8.5 gap-1.5 rounded-xl border-border/70 px-3 text-xs font-semibold hover:bg-muted"
+              >
+                <IconHistory className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>{language === "ar" ? "سجل التعديلات" : "History"}</span>
               </Button>
             )}
 
@@ -581,6 +598,17 @@ export function ScheduleView({
         savedData={savedData}
         onSaveSuccess={onSaveSuccess}
       />
+
+      {savedData?.publicId && (
+        <VersionHistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          groupPublicId={savedData.publicId}
+          onVersionRestored={() => {
+            window.location.reload()
+          }}
+        />
+      )}
     </>
   )
 }

@@ -142,3 +142,51 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(request))
   );
 });
+
+// 4. Web Push Notification Listener
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  try {
+    const data = event.data.json();
+    const title = data.title || 'وِردي | Wirddy';
+    const options = {
+      body: data.body || 'حان وقت قراءة وردك اليومي من القرآن الكريم.',
+      icon: data.icon || '/icon-192.png',
+      badge: data.badge || '/icon-192.png',
+      data: {
+        url: data.url || '/dashboard',
+      },
+      dir: data.dir || 'rtl',
+      lang: data.lang || 'ar',
+      tag: data.tag || 'wirddy-daily-reminder',
+      renotify: true,
+    };
+
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (err) {
+    console.error('Error showing push notification:', err);
+  }
+});
+
+// 5. Notification Click Listener: Open target URL
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/dashboard';
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if (client.url.includes(targetUrl) && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
+  );
+});
+

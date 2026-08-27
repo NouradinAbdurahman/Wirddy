@@ -6,7 +6,7 @@ import { JuzBoundary, QuranLocation, SurahInfo } from "./types"
  * Operates offline-first using validated dataset derived from AlQuran Cloud API (OpenAPI spec),
  * ensuring instantaneous deterministic scheduling with zero network latency.
  */
-class QuranDataService {
+export class QuranDataService {
   private readonly juzBoundaries: JuzBoundary[]
   private readonly surahs: SurahInfo[]
   private readonly surahToJuzMap: Record<number, number>

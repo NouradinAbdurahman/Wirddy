@@ -19,6 +19,7 @@ import {
   fetchAnnouncements,
   fetchGroupReadingProgress,
   fetchNotificationPreferences,
+  fetchScheduleHistory,
   fetchUserBookmarks,
   fetchUserGroups,
   getGroupByPublicId,
@@ -26,11 +27,14 @@ import {
   linkMemberAccount,
   LoadedPublicGroup,
   LoadedPublicMemberSchedule,
+  processRecurringCycle,
+  restoreScheduleVersion,
   SavedGroupResult,
   saveBookmark,
   saveNotificationPreferences,
   saveReadingProgress,
   saveScheduleGroup,
+  ScheduleHistoryRecord,
   startNewKhatmah,
   updateGroupAndRegenerate,
   UserGroupSummary,
@@ -702,6 +706,144 @@ export async function deleteAccountAction(): Promise<ActionResponse<boolean>> {
     return {
       success: false,
       error: err?.message || "Failed to delete account.",
+    }
+  }
+}
+
+/**
+ * Server Action: Fetches schedule version history (Authorized by Owner or Edit Token).
+ */
+export async function fetchScheduleHistoryAction(
+  groupPublicId: string,
+  rawEditToken?: string
+): Promise<ActionResponse<ScheduleHistoryRecord[]>> {
+  try {
+    const userId = (await getAuthenticatedUserId()) || undefined
+    const history = await fetchScheduleHistory(
+      groupPublicId,
+      userId,
+      rawEditToken
+    )
+    return {
+      success: true,
+      data: history,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to fetch schedule history.",
+    }
+  }
+}
+
+/**
+ * Server Action: Restores a past schedule version snapshot.
+ */
+export async function restoreScheduleVersionAction(
+  historyId: string,
+  groupPublicId: string,
+  rawEditToken?: string,
+  lang: "ar" | "en" = "ar"
+): Promise<ActionResponse<LoadedPublicGroup>> {
+  try {
+    const userId = (await getAuthenticatedUserId()) || undefined
+    const restored = await restoreScheduleVersion(
+      historyId,
+      groupPublicId,
+      userId,
+      rawEditToken,
+      lang
+    )
+    return {
+      success: true,
+      data: restored,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to restore version.",
+    }
+  }
+}
+
+/**
+ * Server Action: Processes recurring schedule cycles (Weekly, Monthly, Ramadan).
+ */
+export async function processRecurringCycleAction(
+  groupPublicId: string,
+  rawEditToken?: string,
+  lang: "ar" | "en" = "ar"
+): Promise<ActionResponse<SavedGroupResult>> {
+  try {
+    const userId = (await getAuthenticatedUserId()) || undefined
+    const cycle = await processRecurringCycle(
+      groupPublicId,
+      userId,
+      rawEditToken,
+      lang
+    )
+    return {
+      success: true,
+      data: cycle,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to process recurring cycle.",
+    }
+  }
+}
+
+/**
+ * Server Action: Saves browser push subscription.
+ */
+export async function savePushSubscriptionAction(sub: {
+  endpoint: string
+  keys: { p256dh: string; auth: string }
+}): Promise<ActionResponse<boolean>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: false, error: "Authentication required." }
+
+    const { savePushSubscription } = await import("../notifications/service")
+    const res = await savePushSubscription(userId, sub)
+    return {
+      success: res,
+      data: res,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to save push subscription.",
+    }
+  }
+}
+
+/**
+ * Server Action: Sends a test push notification to the current user.
+ */
+export async function sendTestNotificationAction(): Promise<
+  ActionResponse<{ sent: number; failed: number }>
+> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    if (!userId) return { success: false, error: "Authentication required." }
+
+    const { sendPushNotification } = await import("../notifications/service")
+    const res = await sendPushNotification(userId, {
+      title: "وِردي | Wirddy",
+      body: "تم تفعيل التنبيهات بنجاح! سنقوم بتذكيرك بوردك اليومي بإذن الله.",
+      url: "/dashboard",
+    })
+
+    return {
+      success: true,
+      data: res,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to send test notification.",
     }
   }
 }

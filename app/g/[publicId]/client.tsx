@@ -23,6 +23,7 @@ import {
   MemberConfig,
   OccasionType,
   RangeType,
+  RecurrenceConfig,
   RotationStyle,
   ScheduleInput,
 } from "@/lib/scheduler/types"
@@ -105,6 +106,9 @@ export function PublicScheduleClient({
   )
   const [dailyDivisionEnabled, setDailyDivisionEnabled] = useState<boolean>(
     initialData?.dailyDivisionEnabled || false
+  )
+  const [recurrence, setRecurrence] = useState<RecurrenceConfig>(
+    initialData?.recurrence || { frequency: "none" }
   )
   const [members, setMembers] = useState<MemberConfig[]>(
     initialData?.membersConfig || []
@@ -259,6 +263,7 @@ export function PublicScheduleClient({
       occasionType,
       islamicYear: occasionType === "ramadan" ? islamicYear : undefined,
       dailyDivisionEnabled,
+      recurrence: recurrence.frequency !== "none" ? recurrence : undefined,
     },
     members,
   }
@@ -400,6 +405,8 @@ export function PublicScheduleClient({
               onIslamicYearChange={setIslamicYear}
               dailyDivisionEnabled={dailyDivisionEnabled}
               onDailyDivisionEnabledChange={setDailyDivisionEnabled}
+              recurrence={recurrence}
+              onRecurrenceChange={setRecurrence}
             />
 
             {/* Section 2: Quran Range & Starting Point */}

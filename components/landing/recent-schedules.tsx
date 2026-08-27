@@ -99,8 +99,10 @@ export function RecentSchedules({ onOpenLocal }: RecentSchedulesProps) {
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <AnimatePresence mode="popLayout">
-          {items.map((item) => {
-            const identifier = item.publicId || item.groupName
+          {items.map((item, idx) => {
+            const identifier = item.publicId
+              ? `recent-pub-${item.publicId}`
+              : `recent-item-${idx}-${item.groupName}`
             const targetUrl = item.publicId
               ? item.editToken
                 ? `/g/${item.publicId}?edit=${item.editToken}`

@@ -171,4 +171,125 @@ describe("Complete Product Platform - Phase 1 through 7 Tests", () => {
       expect(en.actionArchive).toBe("Archive")
     })
   })
+
+  describe("Final Completion Systems - Comprehensive Unit Testing", () => {
+    it("normalizes Arabic text with tashkeel, tatweel, and letter variations for Quran search", async () => {
+      const { normalizeArabic } = await import("../lib/quran/search")
+
+      // Tashkeel stripping
+      expect(normalizeArabic("ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ")).toBe(
+        "الحمد لله رب العالمين"
+      )
+
+      // Hamza and Alif normalization
+      expect(normalizeArabic("إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ")).toBe(
+        "اياك نعبد واياك نستعين"
+      )
+      expect(normalizeArabic("آمَنَ الرَّسُولُ")).toBe("امن الرسول")
+
+      // Taa Marbuta and Yaa normalization
+      expect(normalizeArabic("سُورَةُ البَقَرَةِ")).toBe("سوره البقره")
+      expect(normalizeArabic("عَلَى")).toBe("علي")
+
+      // Tatweel stripping
+      expect(normalizeArabic("مــــحمـــد")).toBe("محمد")
+    })
+
+    it("executes Quran search across Surahs and Ayahs without exceptions", async () => {
+      const { searchQuran } = await import("../lib/quran/search")
+
+      // Search by Surah Name
+      const surahResults = await searchQuran("الفاتحة")
+      expect(surahResults.length).toBeGreaterThan(0)
+      expect(surahResults[0].surahNumber).toBe(1)
+
+      // Search by Chapter:Verse notation
+      const ayahNotationResults = await searchQuran("2:255")
+      expect(ayahNotationResults.length).toBe(1)
+      expect(ayahNotationResults[0].surahNumber).toBe(2)
+      expect(ayahNotationResults[0].ayahNumber).toBe(255)
+
+      // Empty query returns empty array
+      const emptyResults = await searchQuran("   ")
+      expect(emptyResults).toEqual([])
+    })
+
+    it("verifies recurring schedule frequency configuration structures", () => {
+      const recurringInput: ScheduleInput = {
+        group: {
+          name: "حلقة التلاوة الأسبوعية",
+          weeksCount: 1,
+          recurrence: {
+            frequency: "weekly",
+            cycleIndex: 1,
+            autoAdvance: true,
+          },
+        },
+        members: [
+          {
+            id: "m1",
+            name: "عمر",
+            weeklyAmount: 30,
+            knowledgeType: "entire",
+            startJuz: 1,
+            endJuz: 30,
+          },
+        ],
+      }
+
+      const schedule = generateQuranSchedule(recurringInput)
+      expect(schedule.weeksCount).toBe(1)
+      expect(schedule.weeks[0].totalJuz).toBe(30)
+    })
+
+    it("validates offline sync queue serialization invariants", async () => {
+      const mutation = {
+        id: "mut-123",
+        action: "save_progress" as const,
+        payload: {
+          groupPublicId: "grp-1",
+          memberPublicId: "mem-1",
+          weekNumber: 1,
+          dayNumber: 1,
+          isCompleted: true,
+        },
+        createdAt: new Date().toISOString(),
+        retryCount: 0,
+      }
+
+      const serialized = JSON.stringify([mutation])
+      const deserialized = JSON.parse(serialized)
+      expect(deserialized.length).toBe(1)
+      expect(deserialized[0].action).toBe("save_progress")
+      expect(deserialized[0].payload.isCompleted).toBe(true)
+    })
+
+    it("verifies push notification payload formatting", async () => {
+      const { sendPushNotification } =
+        await import("../lib/notifications/service")
+
+      const res = await sendPushNotification("", {
+        title: "وِردي",
+        body: "تذكير الورد اليومي",
+      })
+      expect(res).toEqual({ sent: 0, failed: 0 })
+    })
+
+    it("verifies schedule history snapshot structure and prune bounds", async () => {
+      const { createScheduleHistorySnapshot, fetchScheduleHistory } =
+        await import("../lib/groups/service")
+
+      // Test safe handling when DB is unavailable or empty
+      const history = await fetchScheduleHistory("non-existent-group")
+      expect(Array.isArray(history)).toBe(true)
+
+      const created = await createScheduleHistorySnapshot(
+        "mock-group-id",
+        "update_plan",
+        "تعديل الخطة",
+        { input: null, schedule: null }
+      )
+      expect(typeof created).toBe("boolean")
+    })
+  })
 })

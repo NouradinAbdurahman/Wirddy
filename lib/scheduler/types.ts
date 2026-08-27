@@ -6,6 +6,13 @@ export type KnowledgeType = "entire" | "juz_range" | "surah_range"
 export type RotationStyle = "large" | "medium" | "small" | "random"
 export type RangeType = "full" | "custom"
 export type OccasionType = "normal" | "ramadan"
+export type RecurrenceFrequency = "none" | "weekly" | "monthly" | "ramadan"
+
+export interface RecurrenceConfig {
+  frequency: RecurrenceFrequency
+  autoAdvance?: boolean
+  cycleIndex?: number
+}
 
 export interface CustomQuranRange {
   startSurah: number
@@ -42,6 +49,7 @@ export interface GroupConfig {
   occasionType?: OccasionType
   islamicYear?: number
   dailyDivisionEnabled?: boolean
+  recurrence?: RecurrenceConfig
 }
 
 export interface ScheduleInput {

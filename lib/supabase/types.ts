@@ -90,6 +90,10 @@ export type Database = {
           range_start_surah: number | null
           range_type: string
           recurrence: Json | null
+          recurring_source_group_id: string | null
+          cycle_index: number
+          last_cycle_generated_at: string | null
+          next_cycle_due_at: string | null
           rotation_style: string
           scheduler_version: string
           start_date: string | null
@@ -120,6 +124,10 @@ export type Database = {
           range_start_surah?: number | null
           range_type?: string
           recurrence?: Json | null
+          recurring_source_group_id?: string | null
+          cycle_index?: number
+          last_cycle_generated_at?: string | null
+          next_cycle_due_at?: string | null
           rotation_style?: string
           scheduler_version?: string
           start_date?: string | null
@@ -150,6 +158,10 @@ export type Database = {
           range_start_surah?: number | null
           range_type?: string
           recurrence?: Json | null
+          recurring_source_group_id?: string | null
+          cycle_index?: number
+          last_cycle_generated_at?: string | null
+          next_cycle_due_at?: string | null
           rotation_style?: string
           scheduler_version?: string
           start_date?: string | null
@@ -289,6 +301,7 @@ export type Database = {
           group_id: string
           action_type: string
           description: string
+          snapshot: Json | null
           created_by: string | null
           created_at: string
         }
@@ -297,6 +310,7 @@ export type Database = {
           group_id: string
           action_type: string
           description: string
+          snapshot?: Json | null
           created_by?: string | null
           created_at?: string
         }
@@ -305,6 +319,7 @@ export type Database = {
           group_id?: string
           action_type?: string
           description?: string
+          snapshot?: Json | null
           created_by?: string | null
           created_at?: string
         }

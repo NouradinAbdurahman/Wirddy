@@ -53,7 +53,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<string>("active")
   const [searchQuery, setSearchQuery] = useState<string>("")
 
-  const loadData = async (userId: string) => {
+  const loadData = async (_userId?: string) => {
     setIsLoading(true)
     try {
       const [groupsRes, bookmarksRes] = await Promise.all([
@@ -188,8 +188,8 @@ export default function DashboardPage() {
         {/* Welcome Section */}
         <div className="flex flex-col justify-between gap-4 border-b border-border/60 pb-6 sm:flex-row sm:items-center">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">📖</span>
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl sm:text-3xl">👋</span>
               <h1 className="text-2xl font-extrabold tracking-tight text-foreground sm:text-3xl">
                 {welcomeMessage}
               </h1>
@@ -334,11 +334,11 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredGroups.map((g) => (
+              {filteredGroups.map((g, idx) => (
                 <GroupCard
-                  key={g.publicId}
+                  key={g.publicId ? `grp-${g.publicId}` : `grp-idx-${idx}`}
                   group={g}
-                  onRefresh={() => user && loadData(user.email)}
+                  onRefresh={() => loadData()}
                 />
               ))}
             </div>
@@ -355,10 +355,14 @@ export default function DashboardPage() {
               </h3>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {recentSchedules.slice(0, 4).map((r) => (
+              {recentSchedules.slice(0, 4).map((r, idx) => (
                 <Link
-                  key={r.publicId}
-                  href={`/g/${r.publicId}`}
+                  key={
+                    r.publicId
+                      ? `recent-pub-${r.publicId}`
+                      : `recent-idx-${idx}-${r.groupName}`
+                  }
+                  href={r.publicId ? `/g/${r.publicId}` : `/`}
                   className="rounded-xl border border-border/70 bg-card p-3.5 transition-colors hover:border-primary/40"
                 >
                   <p className="truncate text-xs font-extrabold text-foreground">

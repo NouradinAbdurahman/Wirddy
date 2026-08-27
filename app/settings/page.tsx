@@ -96,10 +96,20 @@ export default function SettingsPage() {
   }
 
   const handleRequestPush = async () => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      const permission = await Notification.requestPermission()
-      setPushStatus(permission as any)
-    }
+    const { registerPushNotifications } =
+      await import("@/lib/notifications/client")
+    const res = await registerPushNotifications()
+    setPushStatus(res.permission as any)
+  }
+
+  const handleTestNotification = async () => {
+    const { sendTestNotificationAction } = await import("@/lib/groups/actions")
+    await sendTestNotificationAction()
+    alert(
+      language === "ar"
+        ? "تم إرسال التنبيه التجريبي بنجاح!"
+        : "Test notification sent successfully!"
+    )
   }
 
   const handleExportData = async () => {
@@ -320,7 +330,22 @@ export default function SettingsPage() {
               </label>
             </div>
 
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+              {pushStatus === "granted" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestNotification}
+                  className="h-8 rounded-xl text-xs font-bold"
+                >
+                  <IconBell className="me-1 h-3.5 w-3.5" />
+                  <span>
+                    {language === "ar"
+                      ? "إرسال تنبيه تجريبي"
+                      : "Send Test Push"}
+                  </span>
+                </Button>
+              )}
               {saveSuccess && (
                 <span className="text-xs font-bold text-emerald-600">
                   تم حفظ التفضيلات

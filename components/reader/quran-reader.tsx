@@ -10,6 +10,7 @@ import {
   IconChevronRight,
   IconMinus,
   IconPlus,
+  IconSearch,
   IconX,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { fetchSurah } from "@/lib/quran/api"
 import { quranService } from "@/lib/quran/service"
 import { saveBookmarkAction } from "@/lib/groups/actions"
+import { QuranSearchModal } from "./quran-search-modal"
 
 interface QuranReaderProps {
   initialSurahNumber?: number
@@ -51,6 +53,7 @@ export function QuranReader({
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false)
   const [bookmarkToast, setBookmarkToast] = useState<boolean>(false)
+  const [showSearch, setShowSearch] = useState<boolean>(false)
 
   const surahInfo = quranService.getSurah(currentSurah)
 
@@ -184,6 +187,16 @@ export function QuranReader({
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 rounded-lg"
+                onClick={() => setShowSearch(true)}
+                title={language === "ar" ? "بحث في المصحف" : "Search Quran"}
+              >
+                <IconSearch className="h-4 w-4 text-foreground" />
+              </Button>
+
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-lg"
                 onClick={handleBookmark}
                 title={t.readerBookmarkSaved}
               >
@@ -205,6 +218,16 @@ export function QuranReader({
               </Button>
             </div>
           </div>
+
+          <QuranSearchModal
+            isOpen={showSearch}
+            onClose={() => setShowSearch(false)}
+            onSelectAyah={(sNum, aNum) => {
+              setCurrentSurah(sNum)
+              setCurrentAyah(aNum)
+              setShowSearch(false)
+            }}
+          />
 
           {/* Bookmark Toast Alert */}
           {bookmarkToast && (

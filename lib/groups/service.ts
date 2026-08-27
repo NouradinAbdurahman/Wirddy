@@ -7,6 +7,7 @@ import {
   MemberConfig,
   OccasionType,
   RangeType,
+  RecurrenceConfig,
   RotationStyle,
   ScheduleInput,
   WeekSchedule,
@@ -50,6 +51,7 @@ export interface LoadedPublicGroup {
   occasionType?: OccasionType
   islamicYear?: number
   dailyDivisionEnabled?: boolean
+  recurrence?: RecurrenceConfig
 }
 
 export interface LoadedPublicMemberSchedule {
@@ -381,6 +383,15 @@ export async function saveScheduleGroup(
     }
   }
 
+  // Record initial history snapshot
+  await createScheduleHistorySnapshot(
+    groupId,
+    "create_group",
+    lang === "ar" ? "تم إنشاء الجدول" : "Schedule created",
+    { input, schedule },
+    ownerUserId || undefined
+  )
+
   return {
     publicId,
     editToken,
@@ -709,6 +720,7 @@ export async function getGroupByPublicId(
     occasionType: effectiveOccasion,
     islamicYear: effectiveIslamicYear,
     dailyDivisionEnabled: effectiveDaily,
+    recurrence: (group as any).recurrence || undefined,
   }
 }
 
@@ -848,9 +860,12 @@ export async function updateGroupAndRegenerate(
   // 1. Fetch group
   const { data: group, error: fetchError } = (await supabase
     .from("groups")
-    .select("id")
+    .select("id, owner_user_id")
     .eq("public_id", publicId.trim())
-    .single()) as { data: { id: string } | null; error: any }
+    .single()) as {
+    data: { id: string; owner_user_id: string | null } | null
+    error: any
+  }
 
   if (fetchError || !group) {
     throw new Error("Group not found.")
@@ -1026,6 +1041,15 @@ export async function updateGroupAndRegenerate(
 
     await supabase.from("schedule_assignments").insert(assignmentInserts as any)
   }
+
+  // Create history snapshot
+  await createScheduleHistorySnapshot(
+    group.id,
+    "update_schedule",
+    lang === "ar" ? "تم تعديل خطة الجدول" : "Schedule plan updated",
+    { input, schedule: newSchedule },
+    group.owner_user_id || undefined
+  )
 
   const loaded = await getGroupByPublicId(publicId)
   if (!loaded) {
@@ -1254,6 +1278,10 @@ export interface UserGroupSummary {
   updatedAt: string
   createdAt: string
   isOwner: boolean
+  userRole: "owner" | "member"
+  memberPublicId?: string
+  memberName?: string
+  recurrence?: RecurrenceConfig | null
 }
 
 /**
@@ -1269,6 +1297,7 @@ export async function fetchUserGroups(
   const supabase = getSupabaseServerClient()
   if (!supabase) return []
 
+  // 1. Fetch groups owned by the user
   let query = supabase
     .from("groups")
     .select(
@@ -1283,11 +1312,12 @@ export async function fetchUserGroups(
       occasion_type,
       islamic_year,
       daily_division_enabled,
+      recurrence,
       start_date,
       created_at,
       updated_at,
       owner_user_id,
-      group_members (id, name, public_id),
+      group_members (id, name, public_id, linked_user_id),
       schedule_plans (id, weeks_count, is_active)
     `
     )
@@ -1304,42 +1334,207 @@ export async function fetchUserGroups(
     query = query.eq("occasion_type", "ramadan")
   }
 
-  const { data: groups, error } = await query
-  if (error || !groups) {
-    console.error("fetchUserGroups error:", error)
-    return []
+  let ownedGroups: any[] | null = null
+  const { data: initialOwned, error: ownedError } = await query
+  if (initialOwned) {
+    ownedGroups = initialOwned as any[]
   }
 
-  return groups.map((g: any) => {
-    const activePlan = Array.isArray(g.schedule_plans)
-      ? g.schedule_plans.find((p: any) => p.is_active) || g.schedule_plans[0]
-      : null
+  if (ownedError) {
+    if (
+      ownedError.code === "42703" ||
+      ownedError.message?.includes("linked_user_id")
+    ) {
+      // Fallback query for schemas where linked_user_id migration has not yet been applied
+      let fallbackQuery = supabase
+        .from("groups")
+        .select(
+          `
+          id,
+          public_id,
+          name,
+          title,
+          description,
+          status,
+          is_archived,
+          occasion_type,
+          islamic_year,
+          daily_division_enabled,
+          recurrence,
+          start_date,
+          created_at,
+          updated_at,
+          owner_user_id,
+          group_members (id, name, public_id),
+          schedule_plans (id, weeks_count, is_active)
+        `
+        )
+        .eq("owner_user_id", userId)
+        .order("updated_at", { ascending: false })
 
-    const weeksCount = activePlan?.weeks_count || 1
-    const membersCount = Array.isArray(g.group_members)
-      ? g.group_members.length
-      : 0
+      if (filter === "active") {
+        fallbackQuery = fallbackQuery
+          .eq("is_archived", false)
+          .eq("status", "active")
+      } else if (filter === "archived") {
+        fallbackQuery = fallbackQuery.eq("is_archived", true)
+      } else if (filter === "completed") {
+        fallbackQuery = fallbackQuery.eq("status", "completed")
+      } else if (filter === "ramadan") {
+        fallbackQuery = fallbackQuery.eq("occasion_type", "ramadan")
+      }
 
-    return {
-      publicId: g.public_id,
-      groupName: g.name,
-      title: g.title,
-      description: g.description,
-      membersCount,
-      weeksCount,
-      startDate: g.start_date,
-      currentWeek: 1, // dynamically derived in dashboard
-      progressPercentage: 0,
-      status: (g.status || "active") as any,
-      isArchived: !!g.is_archived,
-      occasionType: g.occasion_type || "normal",
-      islamicYear: g.islamic_year,
-      dailyDivisionEnabled: !!g.daily_division_enabled,
-      updatedAt: g.updated_at,
-      createdAt: g.created_at,
-      isOwner: g.owner_user_id === userId,
+      const fb = await fallbackQuery
+      ownedGroups = (fb.data as any[]) || null
+    } else {
+      console.error("fetchUserGroups owned error:", ownedError)
     }
-  })
+  }
+
+  // 2. Fetch groups where user is a linked member (safely handled if linked_user_id column is absent)
+  let linkedMembers: any[] | null = null
+  try {
+    const { data: membersData, error: memberError } = await supabase
+      .from("group_members")
+      .select(
+        `
+        id,
+        name,
+        public_id,
+        group_id,
+        groups (
+          id,
+          public_id,
+          name,
+          title,
+          description,
+          status,
+          is_archived,
+          occasion_type,
+          islamic_year,
+          daily_division_enabled,
+          recurrence,
+          start_date,
+          created_at,
+          updated_at,
+          owner_user_id,
+          group_members (id, name, public_id),
+          schedule_plans (id, weeks_count, is_active)
+        )
+      `
+      )
+      .eq("linked_user_id", userId)
+
+    if (!memberError && membersData) {
+      linkedMembers = membersData
+    } else if (
+      memberError &&
+      memberError.code !== "42703" &&
+      !memberError.message?.includes("linked_user_id")
+    ) {
+      console.error("fetchUserGroups member error:", memberError)
+    }
+  } catch {
+    // Ignore schema absence
+  }
+
+  const resultMap = new Map<string, UserGroupSummary>()
+
+  // Process owned groups
+  if (ownedGroups) {
+    for (const g of ownedGroups as any[]) {
+      const activePlan = Array.isArray(g.schedule_plans)
+        ? g.schedule_plans.find((p: any) => p.is_active) || g.schedule_plans[0]
+        : null
+      const weeksCount = activePlan?.weeks_count || 1
+      const membersCount = Array.isArray(g.group_members)
+        ? g.group_members.length
+        : 0
+
+      // Find user's own member link if exists
+      const ownMember = Array.isArray(g.group_members)
+        ? g.group_members.find((m: any) => m.linked_user_id === userId)
+        : null
+
+      resultMap.set(g.public_id, {
+        publicId: g.public_id,
+        groupName: g.name,
+        title: g.title,
+        description: g.description,
+        membersCount,
+        weeksCount,
+        startDate: g.start_date,
+        currentWeek: 1,
+        progressPercentage: 0,
+        status: (g.status || "active") as any,
+        isArchived: !!g.is_archived,
+        occasionType: g.occasion_type || "normal",
+        islamicYear: g.islamic_year,
+        dailyDivisionEnabled: !!g.daily_division_enabled,
+        recurrence: g.recurrence || null,
+        updatedAt: g.updated_at,
+        createdAt: g.created_at,
+        isOwner: true,
+        userRole: "owner",
+        memberPublicId: ownMember?.public_id,
+        memberName: ownMember?.name,
+      })
+    }
+  }
+
+  // Process linked member groups
+  if (linkedMembers) {
+    for (const lm of linkedMembers as any[]) {
+      const g = lm.groups
+      if (!g || resultMap.has(g.public_id)) continue
+
+      // Apply filters to member groups as well
+      if (
+        filter === "active" &&
+        (g.is_archived || (g.status && g.status !== "active"))
+      )
+        continue
+      if (filter === "archived" && !g.is_archived) continue
+      if (filter === "completed" && g.status !== "completed") continue
+      if (filter === "ramadan" && g.occasion_type !== "ramadan") continue
+
+      const activePlan = Array.isArray(g.schedule_plans)
+        ? g.schedule_plans.find((p: any) => p.is_active) || g.schedule_plans[0]
+        : null
+      const weeksCount = activePlan?.weeks_count || 1
+      const membersCount = Array.isArray(g.group_members)
+        ? g.group_members.length
+        : 0
+
+      resultMap.set(g.public_id, {
+        publicId: g.public_id,
+        groupName: g.name,
+        title: g.title,
+        description: g.description,
+        membersCount,
+        weeksCount,
+        startDate: g.start_date,
+        currentWeek: 1,
+        progressPercentage: 0,
+        status: (g.status || "active") as any,
+        isArchived: !!g.is_archived,
+        occasionType: g.occasion_type || "normal",
+        islamicYear: g.islamic_year,
+        dailyDivisionEnabled: !!g.daily_division_enabled,
+        recurrence: g.recurrence || null,
+        updatedAt: g.updated_at,
+        createdAt: g.created_at,
+        isOwner: false,
+        userRole: "member",
+        memberPublicId: lm.public_id,
+        memberName: lm.name,
+      })
+    }
+  }
+
+  return Array.from(resultMap.values()).sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
 }
 
 /**
@@ -1403,9 +1598,7 @@ export async function saveReadingProgress(
 /**
  * Fetches all reading progress entries for a group.
  */
-export async function fetchGroupReadingProgress(
-  groupPublicId: string
-): Promise<
+export async function fetchGroupReadingProgress(groupPublicId: string): Promise<
   Array<{
     memberPublicId: string
     memberName: string
@@ -1485,9 +1678,7 @@ export async function saveBookmark(
 /**
  * Fetches all bookmarks for a user.
  */
-export async function fetchUserBookmarks(
-  userId: string
-): Promise<
+export async function fetchUserBookmarks(userId: string): Promise<
   Array<{
     id: string
     surahNumber: number
@@ -1762,4 +1953,301 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
   await supabase.from("notification_preferences").delete().eq("user_id", userId)
 
   return true
+}
+
+export interface ScheduleHistoryRecord {
+  id: string
+  groupId: string
+  actionType: string
+  description: string
+  snapshot: any
+  createdBy: string | null
+  createdAt: string
+}
+
+/**
+ * Creates a schedule history snapshot and enforces a 20-version retention limit.
+ */
+export async function createScheduleHistorySnapshot(
+  groupId: string,
+  actionType: string,
+  description: string,
+  snapshot: any,
+  userId?: string
+): Promise<boolean> {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return false
+
+  // 1. Insert new snapshot
+  const { error } = await (supabase.from("schedule_history") as any).insert({
+    group_id: groupId,
+    action_type: actionType,
+    description: description.trim(),
+    snapshot: snapshot || null,
+    created_by: userId || null,
+    created_at: new Date().toISOString(),
+  })
+
+  if (error) {
+    console.error("Error creating schedule history snapshot:", error)
+    return false
+  }
+
+  // 2. Enforce retention limit (Keep latest 20 versions)
+  try {
+    const { data: allHistory } = await supabase
+      .from("schedule_history")
+      .select("id, created_at")
+      .eq("group_id", groupId)
+      .order("created_at", { ascending: false })
+
+    if (allHistory && allHistory.length > 20) {
+      const idsToDelete = allHistory.slice(20).map((h: any) => h.id)
+      await supabase.from("schedule_history").delete().in("id", idsToDelete)
+    }
+  } catch (err) {
+    console.warn("History retention prune warning:", err)
+  }
+
+  return true
+}
+
+/**
+ * Fetches all history snapshots for a group (Authorized by Owner or Edit Token).
+ */
+export async function fetchScheduleHistory(
+  groupPublicId: string,
+  userId?: string,
+  rawEditToken?: string
+): Promise<ScheduleHistoryRecord[]> {
+  const { authorized, group } = await checkGroupAuthorization(
+    groupPublicId,
+    rawEditToken,
+    userId
+  )
+  if (!authorized || !group) return []
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from("schedule_history")
+    .select(
+      "id, group_id, action_type, description, snapshot, created_by, created_at"
+    )
+    .eq("group_id", group.id)
+    .order("created_at", { ascending: false })
+    .limit(20)
+
+  if (error || !data) return []
+
+  return data.map((h: any) => ({
+    id: h.id,
+    groupId: h.group_id,
+    actionType: h.action_type,
+    description: h.description,
+    snapshot: h.snapshot,
+    createdBy: h.created_by,
+    createdAt: h.created_at,
+  }))
+}
+
+/**
+ * Restores a past schedule snapshot, creating a new revision without losing audit history.
+ */
+export async function restoreScheduleVersion(
+  historyId: string,
+  groupPublicId: string,
+  userId?: string,
+  rawEditToken?: string,
+  lang: "ar" | "en" = "ar"
+): Promise<LoadedPublicGroup> {
+  const { authorized, group } = await checkGroupAuthorization(
+    groupPublicId,
+    rawEditToken,
+    userId
+  )
+  if (!authorized || !group) {
+    throw new Error(
+      lang === "ar"
+        ? "غير مصرح لك باستعادة هذه النسخة."
+        : "Unauthorized to restore this version."
+    )
+  }
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) {
+    throw new Error("Database service unavailable.")
+  }
+
+  const { data: historyRecord, error: histError } = (await supabase
+    .from("schedule_history")
+    .select("snapshot, description")
+    .eq("id", historyId)
+    .eq("group_id", group.id)
+    .single()) as {
+    data: { snapshot: any; description: string } | null
+    error: any
+  }
+
+  if (histError || !historyRecord?.snapshot?.input) {
+    throw new Error(
+      lang === "ar"
+        ? "تعذر العثور على بيانات النسخة المطلوبة."
+        : "Version snapshot data not found."
+    )
+  }
+
+  const restoredInput: ScheduleInput = historyRecord.snapshot.input
+
+  // Execute schedule update with restored configuration
+  const updatedGroup = await updateGroupAndRegenerate(
+    groupPublicId,
+    rawEditToken || "authorized_session",
+    restoredInput,
+    lang
+  )
+
+  // Record restore event in history
+  await createScheduleHistorySnapshot(
+    group.id,
+    "restore_version",
+    lang === "ar"
+      ? `استعادة نسخة: ${historyRecord.description}`
+      : `Restored version: ${historyRecord.description}`,
+    historyRecord.snapshot,
+    userId
+  )
+
+  return updatedGroup
+}
+
+/**
+ * Processes recurring schedule cycles (Weekly, Monthly, Ramadan) with idempotency protection.
+ */
+export async function processRecurringCycle(
+  groupPublicId: string,
+  userId?: string,
+  rawEditToken?: string,
+  lang: "ar" | "en" = "ar"
+): Promise<SavedGroupResult> {
+  const { authorized, group } = await checkGroupAuthorization(
+    groupPublicId,
+    rawEditToken,
+    userId
+  )
+  if (!authorized || !group) {
+    throw new Error("Unauthorized to renew recurring cycle.")
+  }
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) throw new Error("Service unavailable.")
+
+  const existing = await getGroupByPublicId(groupPublicId)
+  if (!existing) throw new Error("Group not found.")
+
+  const recurrence = (group as any).recurrence
+  const frequency =
+    recurrence?.frequency ||
+    (existing.occasionType === "ramadan" ? "ramadan" : "weekly")
+
+  const nextCycleIndex = ((group as any).cycle_index || 1) + 1
+
+  // Idempotency check: Ensure child cycle doesn't already exist
+  const { data: existingCycle } = await supabase
+    .from("groups")
+    .select("public_id, edit_token_hash, expires_at")
+    .eq("recurring_source_group_id", group.id)
+    .eq("cycle_index", nextCycleIndex)
+    .single()
+
+  if (existingCycle) {
+    return {
+      publicId: existingCycle.public_id,
+      editToken: "",
+      groupName: existing.groupName,
+      expiresAt: existingCycle.expires_at,
+    }
+  }
+
+  // Calculate next start date
+  let nextStartDate = existing.startDate
+  if (existing.startDate && existing.usesDates) {
+    const prevDate = new Date(existing.startDate)
+    if (String(frequency) === "weekly") {
+      prevDate.setDate(prevDate.getDate() + existing.schedule.weeksCount * 7)
+      nextStartDate = prevDate.toISOString().slice(0, 10)
+    } else if (String(frequency) === "monthly") {
+      prevDate.setMonth(prevDate.getMonth() + 1)
+      nextStartDate = prevDate.toISOString().slice(0, 10)
+    }
+  }
+
+  const nextIslamicYear =
+    String(frequency) === "ramadan" || existing.occasionType === "ramadan"
+      ? (existing.islamicYear || 1447) + 1
+      : existing.islamicYear
+
+  const freshMembers: MemberConfig[] = existing.membersConfig.map((m) => ({
+    id: generateMemberPublicId(),
+    name: m.name,
+    publicId: generateMemberPublicId(),
+    knowledgeType: m.knowledgeType,
+    startJuz: m.startJuz,
+    endJuz: m.endJuz,
+    startSurah: m.startSurah,
+    endSurah: m.endSurah,
+    weeklyAmount: m.weeklyAmount,
+  }))
+
+  const cycleTitle =
+    frequency === "ramadan"
+      ? lang === "ar"
+        ? `ختمة رمضان ${nextIslamicYear} هـ`
+        : `Ramadan Khatmah ${nextIslamicYear} AH`
+      : lang === "ar"
+        ? `${existing.groupName} - دورة ${nextCycleIndex}`
+        : `${existing.groupName} - Cycle ${nextCycleIndex}`
+
+  const input: ScheduleInput = {
+    group: {
+      name: existing.groupName,
+      title: cycleTitle,
+      description: existing.description,
+      weeksCount: existing.schedule.weeksCount,
+      rotationStyle: existing.rotationStyle,
+      rangeType: existing.rangeType,
+      startJuz: existing.startJuz,
+      customRange: existing.customRange,
+      startDate: nextStartDate || undefined,
+      usesDates: existing.usesDates,
+      occasionType: frequency === "ramadan" ? "ramadan" : "normal",
+      islamicYear: nextIslamicYear || undefined,
+      dailyDivisionEnabled: existing.dailyDivisionEnabled,
+      recurrence: {
+        frequency: frequency as any,
+        cycleIndex: nextCycleIndex,
+        autoAdvance: true,
+      },
+    },
+    members: freshMembers,
+  }
+
+  const newSchedule = generateQuranSchedule(input)
+  const saved = await saveScheduleGroup(
+    input,
+    newSchedule,
+    lang,
+    group.owner_user_id || undefined
+  )
+
+  // Update parent group recurring pointers
+  await (supabase.from("groups") as any)
+    .update({
+      last_cycle_generated_at: new Date().toISOString(),
+      cycle_index: nextCycleIndex,
+    })
+    .eq("id", group.id)
+
+  return saved
 }

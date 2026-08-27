@@ -1,6 +1,5 @@
 "use client"
 
-import React from "react"
 import {
   IconCalendar,
   IconCalendarEvent,
@@ -8,10 +7,15 @@ import {
   IconMoon,
   IconNotes,
   IconNumber123,
+  IconRepeat,
   IconSparkles,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
-import { OccasionType } from "@/lib/scheduler/types"
+import {
+  OccasionType,
+  RecurrenceConfig,
+  RecurrenceFrequency,
+} from "@/lib/scheduler/types"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,6 +45,8 @@ interface AdvancedOptionsProps {
   onIslamicYearChange: (year: number) => void
   dailyDivisionEnabled: boolean
   onDailyDivisionEnabledChange: (enabled: boolean) => void
+  recurrence?: RecurrenceConfig
+  onRecurrenceChange?: (recurrence: RecurrenceConfig) => void
 }
 
 export function AdvancedOptions({
@@ -58,6 +64,8 @@ export function AdvancedOptions({
   onIslamicYearChange,
   dailyDivisionEnabled,
   onDailyDivisionEnabledChange,
+  recurrence = { frequency: "none" },
+  onRecurrenceChange,
 }: AdvancedOptionsProps) {
   const { language, t } = useI18n()
   const supportedYears = getSupportedIslamicYears()
@@ -224,7 +232,7 @@ export function AdvancedOptions({
                 onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
                 className="h-9 rounded-lg border border-amber-500/40 bg-card px-3 text-xs font-bold text-foreground focus:ring-2 focus:ring-amber-500 focus:outline-none"
               >
-                {supportedYears.map((yr) => (
+                {supportedYears.map((yr: number) => (
                   <option key={yr} value={yr}>
                     {language === "ar"
                       ? `${toArabicNumerals(yr)} هـ`
@@ -372,6 +380,59 @@ export function AdvancedOptions({
             <IconCalendarTime className="h-3.5 w-3.5" />
             <span>{t.withDailyDivision}</span>
           </button>
+        </div>
+      </Card>
+
+      {/* 5. Recurring Schedules (تكرار الجدول) */}
+      <Card className="space-y-4 rounded-2xl border border-border/60 bg-card/80 p-5 shadow-sm sm:p-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <IconRepeat className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground sm:text-base">
+                {language === "ar"
+                  ? "تكرار الختمة تلقائياً"
+                  : "Recurring Khatmah"}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {language === "ar"
+                  ? "تجديد الدورة تلقائياً مع استمرار التدوير العادل للأجزاء"
+                  : "Automatically renew cycles while preserving fair rotation"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/50 p-1 sm:grid-cols-4">
+          {[
+            { id: "none", labelAr: "مرة واحدة", labelEn: "One-time" },
+            { id: "weekly", labelAr: "أسبوعي", labelEn: "Weekly" },
+            { id: "monthly", labelAr: "شهري", labelEn: "Monthly" },
+            { id: "ramadan", labelAr: "رمضان", labelEn: "Ramadan" },
+          ].map((item) => {
+            const isSelected = (recurrence?.frequency || "none") === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() =>
+                  onRecurrenceChange?.({
+                    frequency: item.id as any,
+                    autoAdvance: item.id !== "none",
+                  })
+                }
+                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all ${
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>{language === "ar" ? item.labelAr : item.labelEn}</span>
+              </button>
+            )
+          })}
         </div>
       </Card>
     </div>
