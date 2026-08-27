@@ -6,6 +6,7 @@ import {
   isSupabaseConfigured,
 } from "../lib/supabase/client"
 import { generateEditToken, hashEditToken } from "../lib/groups/crypto"
+import { extractUserProfile } from "../lib/auth/user"
 
 describe("Google Authentication Only & Security Invariants", () => {
   describe("Redirect URL Sanitization (Open-Redirect Prevention)", () => {
@@ -88,6 +89,78 @@ describe("Google Authentication Only & Security Invariants", () => {
     it("exports isSupabaseConfigured and getSupabaseBrowserClient functions", () => {
       expect(typeof isSupabaseConfigured).toBe("function")
       expect(typeof getSupabaseBrowserClient).toBe("function")
+    })
+  })
+
+  describe("User Profile & First Name Extraction", () => {
+    it("extracts first name from multi-word names correctly", () => {
+      const user = {
+        email: "n.aden1208@gmail.com",
+        user_metadata: {
+          full_name: "NOURADDIN ABDURAHMAN ADEN",
+        },
+      }
+      const profile = extractUserProfile(user)
+      expect(profile).not.toBeNull()
+      expect(profile?.firstName).toBe("NOURADDIN")
+      expect(profile?.fullName).toBe("NOURADDIN ABDURAHMAN ADEN")
+      expect(profile?.email).toBe("n.aden1208@gmail.com")
+    })
+
+    it("extracts Arabic first names correctly", () => {
+      const user = {
+        email: "mohamed@example.com",
+        user_metadata: {
+          full_name: "محمد أحمد",
+        },
+      }
+      const profile = extractUserProfile(user)
+      expect(profile?.firstName).toBe("محمد")
+      expect(profile?.fullName).toBe("محمد أحمد")
+    })
+
+    it("extracts standard two-word English names", () => {
+      const user = {
+        email: "john@example.com",
+        user_metadata: {
+          full_name: "John Smith",
+        },
+      }
+      const profile = extractUserProfile(user)
+      expect(profile?.firstName).toBe("John")
+      expect(profile?.fullName).toBe("John Smith")
+    })
+
+    it("prioritizes explicit given_name if present in metadata", () => {
+      const user = {
+        email: "tariq@example.com",
+        user_metadata: {
+          given_name: "Tariq",
+          full_name: "Tariq Al-Mansoor",
+          avatar_url: "https://example.com/avatar.jpg",
+        },
+      }
+      const profile = extractUserProfile(user)
+      expect(profile?.firstName).toBe("Tariq")
+      expect(profile?.fullName).toBe("Tariq Al-Mansoor")
+      expect(profile?.avatarUrl).toBe("https://example.com/avatar.jpg")
+    })
+
+    it("handles email fallback when name metadata is missing", () => {
+      const user = {
+        email: "nouradin@test.com",
+        user_metadata: {},
+      }
+      const profile = extractUserProfile(user)
+      expect(profile?.firstName).toBe("nouradin")
+      expect(profile?.fullName).toBe("nouradin")
+      expect(profile?.email).toBe("nouradin@test.com")
+    })
+
+    it("returns null for null or invalid user object", () => {
+      expect(extractUserProfile(null)).toBeNull()
+      expect(extractUserProfile(undefined)).toBeNull()
+      expect(extractUserProfile("invalid" as any)).toBeNull()
     })
   })
 

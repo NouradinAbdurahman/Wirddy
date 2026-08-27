@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { extractUserProfile, UserProfileInfo } from "@/lib/auth/user"
 
 interface HeaderProps {
   onNewGroup?: () => void
@@ -40,11 +41,7 @@ export function Header({
   const { language, setLanguage, t } = useI18n()
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
-  const [user, setUser] = React.useState<{
-    email?: string
-    name?: string
-    avatar?: string
-  } | null>(null)
+  const [user, setUser] = React.useState<UserProfileInfo | null>(null)
 
   React.useEffect(() => {
     setMounted(true)
@@ -52,19 +49,10 @@ export function Header({
     const supabase = getSupabaseBrowserClient()
     if (!supabase) return
 
-    // Initial session & user check
+    // Initial session & user profile check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setUser({
-          email: session.user.email,
-          name:
-            session.user.user_metadata?.full_name ||
-            session.user.user_metadata?.name ||
-            session.user.email?.split("@")[0],
-          avatar:
-            session.user.user_metadata?.avatar_url ||
-            session.user.user_metadata?.picture,
-        })
+        setUser(extractUserProfile(session.user))
       } else {
         setUser(null)
       }
@@ -84,16 +72,7 @@ export function Header({
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser({
-          email: session.user.email,
-          name:
-            session.user.user_metadata?.full_name ||
-            session.user.user_metadata?.name ||
-            session.user.email?.split("@")[0],
-          avatar:
-            session.user.user_metadata?.avatar_url ||
-            session.user.user_metadata?.picture,
-        })
+        setUser(extractUserProfile(session.user))
       } else {
         setUser(null)
       }
@@ -185,44 +164,64 @@ export function Header({
             )}
           </Button>
 
-          {/* Minimal Authentication State Indicator */}
+          {/* Authenticated Profile / Sign-In Button */}
           {user ? (
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-border/70 bg-transparent px-2.5 text-xs font-bold text-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
-                {user.avatar ? (
+              <DropdownMenuTrigger
+                aria-label={
+                  language === "ar" ? "قائمة الحساب" : "Open account menu"
+                }
+                className="inline-flex h-9 max-w-[160px] cursor-pointer items-center gap-2 rounded-xl border border-border/70 bg-card/60 px-2.5 text-xs font-bold text-foreground transition-all hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:max-w-[200px]"
+              >
+                <span className="truncate text-xs font-bold">
+                  {user.firstName}
+                </span>
+                {user.avatarUrl ? (
                   <img
-                    src={user.avatar}
-                    alt={user.name || "User"}
-                    className="h-5 w-5 rounded-full object-cover"
+                    src={user.avatarUrl}
+                    alt={user.fullName}
+                    className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-border/50"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[11px] font-extrabold text-primary">
-                    {(user.name?.[0] || "U").toUpperCase()}
+                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-extrabold text-primary">
+                    {(user.firstName[0] || "U").toUpperCase()}
                   </div>
                 )}
-                <span className="max-w-[100px] truncate text-xs sm:max-w-[130px]">
-                  {user.name || user.email}
-                </span>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-56 p-1.5 text-start"
-              >
-                <div className="px-2 py-1.5">
-                  <p className="text-xs font-bold text-foreground">
-                    {user.name}
-                  </p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {user.email}
-                  </p>
+              <DropdownMenuContent align="end" className="w-64 p-2 text-start">
+                {/* Full Profile Information Header */}
+                <div className="flex items-center gap-3 p-2">
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.fullName}
+                      className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-border/60"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-extrabold text-primary">
+                      {(user.firstName[0] || "U").toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <p className="truncate text-xs font-extrabold text-foreground">
+                      {user.fullName}
+                    </p>
+                    <p className="truncate text-[11px] font-medium text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
                 </div>
+
                 <DropdownMenuSeparator />
+
+                {/* Sign-Out Action */}
                 <DropdownMenuItem
                   onClick={handleSignOut}
-                  className="cursor-pointer gap-2 text-xs font-semibold text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  className="cursor-pointer gap-2 rounded-lg px-2.5 py-2 text-xs font-bold text-destructive focus:bg-destructive/10 focus:text-destructive"
                 >
-                  <IconLogout className="h-4 w-4" />
+                  <IconLogout className="h-4 w-4 shrink-0" />
                   <span>{t.authSignOut}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
