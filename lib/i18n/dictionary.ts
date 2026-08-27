@@ -160,6 +160,7 @@ export interface Translations {
   exportSuccess: string
   exportShareSuccess: string
   exportError: string
+  exportLogoError: string
   exportShareFallbackUnsupported: string
   exportShareFallbackError: string
   preparingExport: string
@@ -342,6 +343,7 @@ export const translations: Record<Language, Translations> = {
     exportSuccess: "تم تنزيل الملف بنجاح.",
     exportShareSuccess: "تمت مشاركة الخطة بنجاح.",
     exportError: "تعذر إنشاء الملف. يرجى المحاولة مرة أخرى.",
+    exportLogoError: "تعذر تحميل شعار وردي. يرجى المحاولة مرة أخرى.",
     exportShareFallbackUnsupported:
       "المشاركة المباشرة غير مدعومة في هذا المتصفح. تم تنزيل ملف PDF ويمكنك مشاركته من جهازك.",
     exportShareFallbackError:
@@ -530,6 +532,7 @@ export const translations: Record<Language, Translations> = {
     exportSuccess: "File downloaded successfully.",
     exportShareSuccess: "Full plan shared successfully.",
     exportError: "Unable to create the file. Please try again.",
+    exportLogoError: "Unable to load the Wirddy logo. Please try again.",
     exportShareFallbackUnsupported:
       "Direct sharing is not supported in this browser. The PDF has been downloaded so you can share it from your device.",
     exportShareFallbackError:

@@ -338,12 +338,12 @@ export function buildStandaloneWeekExportHtml(
   )
 
   return `
-    <div dir="${dir}" style="width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
+    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
       
       <!-- Top Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1 1 auto;">
-          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 40px; width: auto; object-fit: contain;" />
+          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; width: 140px; height: 38px; object-fit: contain; display: block;" />
           <div style="min-width: 0;">
             <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
@@ -421,7 +421,7 @@ export function buildPdfPageHtml(
     ? `
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 18px; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1 1 auto;">
-          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 38px; width: auto; object-fit: contain;" />
+          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; width: 140px; height: 38px; object-fit: contain; display: block;" />
           <div style="min-width: 0;">
             <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
@@ -445,7 +445,7 @@ export function buildPdfPageHtml(
     : `
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 12px; margin-bottom: 18px;">
         <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto;">
-          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 28px; width: auto; object-fit: contain;" />
+          <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; width: 100px; height: 28px; object-fit: contain; display: block;" />
           <span style="min-width: 0; font-size: 13px; font-weight: 800; color: ${textPrimary}; white-space: nowrap;">
             ${schedule.groupName}
           </span>
@@ -457,7 +457,7 @@ export function buildPdfPageHtml(
     `
 
   return `
-    <div dir="${dir}" style="width: 1000px; min-height: 1414px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; position: relative;">
+    <div dir="${dir}" style="width: 1000px; min-width: 1000px; max-width: 1000px; height: 1414px; min-height: 1414px; max-height: 1414px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; position: relative;">
       
       <!-- Page Header -->
       <div>
@@ -494,15 +494,20 @@ export async function renderWeekToPngBlob(
     ensureFontsReady(),
   ])
 
-  // Create isolated off-screen mount container
+  // Create isolated off-screen mount container with strict fixed dimensions
   const container = document.createElement("div")
   container.style.position = "fixed"
-  container.style.left = "-9999px"
+  container.style.left = "-99999px"
   container.style.top = "0"
   container.style.width = "880px"
+  container.style.minWidth = "880px"
+  container.style.maxWidth = "880px"
+  container.style.boxSizing = "border-box"
   container.style.zIndex = "-9999"
   container.style.pointerEvents = "none"
   container.style.opacity = "1"
+  container.style.transform = "none"
+  container.style.overflow = "visible"
 
   container.innerHTML = buildStandaloneWeekExportHtml(
     week,

@@ -145,15 +145,20 @@ export async function renderSchedulePdfBlob(
       onProgress(pageNum, totalPages, msg)
     }
 
-    // Create offscreen container for the complete A4 page
+    // Create offscreen container for the complete A4 page with strict fixed dimensions
     const container = document.createElement("div")
     container.style.position = "fixed"
-    container.style.left = "-9999px"
+    container.style.left = "-99999px"
     container.style.top = "0"
     container.style.width = "1000px"
+    container.style.minWidth = "1000px"
+    container.style.maxWidth = "1000px"
+    container.style.boxSizing = "border-box"
     container.style.zIndex = "-9999"
     container.style.pointerEvents = "none"
     container.style.opacity = "1"
+    container.style.transform = "none"
+    container.style.overflow = "visible"
 
     container.innerHTML = buildPdfPageHtml(
       pageWeeks,
