@@ -19,9 +19,17 @@ import { Footer } from "@/components/layout/footer"
 import { Hero } from "@/components/landing/hero"
 import { RecentSchedules } from "@/components/landing/recent-schedules"
 import { HowItWorks } from "@/components/landing/how-it-works"
+import { DashboardPreview } from "@/components/landing/dashboard-preview"
+import { QuranReaderPreview } from "@/components/landing/quran-reader-preview"
+import { SmartScheduling } from "@/components/landing/smart-scheduling"
 import { ExampleSchedule } from "@/components/landing/example-schedule"
-import { Features } from "@/components/landing/features"
+import { StayOnTrack } from "@/components/landing/stay-on-track"
+import { GroupCollaboration } from "@/components/landing/group-collaboration"
+import { ShareExport } from "@/components/landing/share-export"
 import { AddToHomeScreen } from "@/components/landing/add-to-home-screen"
+import { WhyWirddy } from "@/components/landing/why-wirddy"
+import { AccountCta } from "@/components/landing/account-cta"
+import { FinalCta } from "@/components/landing/final-cta"
 import { RangeSelector } from "@/components/planner/range-selector"
 import { RotationSelector } from "@/components/planner/rotation-selector"
 import { MemberList } from "@/components/planner/member-list"
@@ -315,7 +323,7 @@ export default function HomePage() {
 
       <main className="container mx-auto flex-1 px-4 py-8 sm:px-6 print:m-0 print:w-full print:max-w-none print:p-0">
         <AnimatePresence mode="wait">
-          {/* 1. Landing Page */}
+          {/* 1. Modernized Full-Platform Landing Page */}
           {step === "landing" && (
             <motion.div
               key="landing"
@@ -323,14 +331,15 @@ export default function HomePage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className="space-y-16 sm:space-y-24"
+              className="space-y-12 sm:space-y-20"
             >
+              {/* 1. Hero Section */}
               <Hero
                 onCreateGroup={startNewGroup}
                 onHowItWorks={scrollToHowItWorks}
               />
 
-              {/* Recent Schedules History (No Login Required) */}
+              {/* 2. Recent Local Schedules History */}
               <RecentSchedules
                 onOpenLocal={() => {
                   if (schedule) setStep("schedule")
@@ -338,35 +347,43 @@ export default function HomePage() {
                 }}
               />
 
+              {/* 3. How Wirddy Works (4 Steps Journey) */}
               <div id="how-it-works">
                 <HowItWorks />
               </div>
 
+              {/* 4. Personal Dashboard Showcase */}
+              <DashboardPreview />
+
+              {/* 5. Read Quran Inside Wirddy (Quran Reader Showcase) */}
+              <QuranReaderPreview />
+
+              {/* 6. Smart Quran Scheduling */}
+              <SmartScheduling />
+
+              {/* 7. Weekly Schedule Interactive Preview */}
               <ExampleSchedule onTryTemplate={startNewGroup} />
-              <Features />
+
+              {/* 8. Stay on Track (Progress, Notifications & Reminders) */}
+              <StayOnTrack />
+
+              {/* 9. Group Collaboration & Account Linking */}
+              <GroupCollaboration />
+
+              {/* 10. Unified Multi-Format Export & Sharing */}
+              <ShareExport />
+
+              {/* 11. Use Wirddy Like an App (PWA & Offline) */}
               <AddToHomeScreen />
 
-              {/* Bottom CTA Banner */}
-              <section className="py-6 text-center">
-                <Card className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/15 via-card/80 to-background p-8 shadow-xl backdrop-blur-md sm:p-12">
-                  <div className="mx-auto max-w-xl space-y-3 pb-6">
-                    <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
-                      {t.ctaGetStarted}
-                    </h2>
-                    <p className="text-sm text-muted-foreground sm:text-base">
-                      {t.tagline}
-                    </p>
-                  </div>
-                  <Button
-                    size="lg"
-                    onClick={startNewGroup}
-                    className="mx-auto h-12 gap-2 rounded-xl px-8 text-base font-semibold shadow-md"
-                  >
-                    <span>{t.ctaCreateGroup}</span>
-                    <ArrowIcon className="h-4 w-4" />
-                  </Button>
-                </Card>
-              </section>
+              {/* 12. Why Groups Choose Wirddy (6 Summary Points) */}
+              <WhyWirddy />
+
+              {/* 13. One Account Value Banner */}
+              <AccountCta />
+
+              {/* 14. Final Khatmah CTA */}
+              <FinalCta onCreateGroup={startNewGroup} />
             </motion.div>
           )}
 

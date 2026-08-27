@@ -3,24 +3,46 @@
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import {
+  IconBellRinging,
   IconBrandAndroid,
   IconBrandApple,
   IconBrandChrome,
   IconCheck,
   IconCompass,
+  IconDeviceMobile,
   IconDotsVertical,
   IconShare,
   IconSquarePlus,
+  IconWifiOff,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 type Platform = "iphone" | "android"
 
 export function AddToHomeScreen() {
-  const { language, dir, t } = useI18n()
+  const { language, t } = useI18n()
   const [platform, setPlatform] = useState<Platform>("iphone")
+
+  const benefits = [
+    {
+      icon: IconDeviceMobile,
+      title: t.pwaFeatHomeTitle,
+      desc: t.pwaFeatHomeDesc,
+    },
+    {
+      icon: IconWifiOff,
+      title: t.pwaFeatOfflineTitle,
+      desc: t.pwaFeatOfflineDesc,
+    },
+    {
+      icon: IconBellRinging,
+      title: t.pwaFeatPushTitle,
+      desc: t.pwaFeatPushDesc,
+    },
+  ]
 
   const iphoneSteps = [
     {
@@ -69,24 +91,47 @@ export function AddToHomeScreen() {
   ]
 
   const currentSteps = platform === "iphone" ? iphoneSteps : androidSteps
-  const currentTitle =
-    platform === "iphone" ? t.pwaIphoneTitle : t.pwaAndroidTitle
+  const currentTitle = platform === "iphone" ? t.pwaIphoneTitle : t.pwaAndroidTitle
   const currentNote = platform === "iphone" ? t.pwaIphoneNote : t.pwaAndroidNote
 
   return (
-    <section id="add-to-home-screen" className="overflow-hidden py-14 md:py-20">
+    <section id="install" className="overflow-hidden py-14 md:py-20">
       <div className="container mx-auto max-w-5xl px-4 sm:px-6">
         {/* Section Header */}
-        <div className="mx-auto mb-10 max-w-2xl text-center md:mb-14">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
+        <div className="mx-auto mb-10 max-w-2xl text-center md:mb-12">
+          <Badge variant="outline" className="mb-3 border-primary/20 bg-primary/10 text-primary">
+            {t.pwaSectionBadge}
+          </Badge>
+          <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl md:text-4xl">
             {t.pwaSectionTitle}
           </h2>
-          <p className="mt-3.5 text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
             {t.pwaSectionDesc}
           </p>
         </div>
 
-        {/* Main Grid: 2 Columns on Desktop, Responsive Stack on Mobile */}
+        {/* 3 Key Benefits Top Cards */}
+        <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {benefits.map((b, idx) => {
+            const Icon = b.icon
+            return (
+              <Card
+                key={idx}
+                className="flex items-start gap-3.5 rounded-2xl border border-border/60 bg-card/80 p-4.5 shadow-sm"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-foreground">{b.title}</h3>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{b.desc}</p>
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+
+        {/* Main Platform Grid */}
         <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
           {/* Platform Switcher & Step Instructions */}
           <motion.div
@@ -131,7 +176,6 @@ export function AddToHomeScreen() {
             {/* Platform Instruction Card */}
             <Card className="rounded-3xl border border-border/60 bg-card/60 p-6 shadow-sm backdrop-blur-sm sm:p-7">
               <CardContent className="space-y-6 p-0">
-                {/* Platform Card Header */}
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     {platform === "iphone" ? (
@@ -141,9 +185,7 @@ export function AddToHomeScreen() {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">
-                      {currentTitle}
-                    </h3>
+                    <h3 className="text-lg font-bold text-foreground">{currentTitle}</h3>
                     <p className="text-xs text-muted-foreground">
                       {platform === "iphone" ? "Safari" : "Chrome"}
                     </p>
@@ -191,7 +233,7 @@ export function AddToHomeScreen() {
             </Card>
           </motion.div>
 
-          {/* Visual GIF Demonstration Container - iPhone 14 Pro Frame */}
+          {/* Visual GIF Demonstration Container */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -200,20 +242,9 @@ export function AddToHomeScreen() {
             className="flex justify-center lg:col-span-5"
           >
             <div className="relative w-full max-w-[310px] sm:max-w-[340px]">
-              {/* Subtle ambient glow behind iPhone frame */}
               <div className="absolute -inset-2 -z-10 rounded-[56px] bg-gradient-to-b from-primary/20 via-primary/10 to-transparent blur-2xl" />
-
-              {/* Hardware Button Accents on Side Chassis */}
-              <div className="absolute top-24 -left-[5px] h-6 w-[4px] rounded-l-sm bg-neutral-400 shadow-xs dark:bg-neutral-600" />
-              <div className="absolute top-36 -left-[5px] h-11 w-[4px] rounded-l-sm bg-neutral-400 shadow-xs dark:bg-neutral-600" />
-              <div className="absolute top-50 -left-[5px] h-11 w-[4px] rounded-l-sm bg-neutral-400 shadow-xs dark:bg-neutral-600" />
-              <div className="absolute top-32 -right-[5px] h-16 w-[4px] rounded-r-sm bg-neutral-400 shadow-xs dark:bg-neutral-600" />
-
-              {/* iPhone 14 Pro Outer Chassis */}
               <div className="relative rounded-[48px] border-[5px] border-neutral-300 bg-neutral-900 p-2 shadow-2xl ring-1 ring-black/10 sm:rounded-[52px] sm:border-[6px] dark:border-neutral-700/80 dark:ring-white/10">
-                {/* Inner Screen Bezel */}
                 <div className="relative overflow-hidden rounded-[38px] bg-black sm:rounded-[42px]">
-                  {/* GIF Screen Visual Showcase (native screen recording) */}
                   <img
                     src="/add-to-home-screen.gif"
                     alt={t.pwaGifAlt}

@@ -23,17 +23,21 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://wirddy.vercel.app"),
-  title: "وِردي | Wirddy - Quran Reading Planner for Groups",
+  title: "وِردي | Wirddy — Quran Group Reading & Scheduling",
   description:
-    "طريقة بسيطة لتنظيم ورد القرآن وتقسيمه بين أفراد المجموعة وإكمال القرآن معًا. A simple way for families, friends, and groups to divide the Quran and complete it together.",
+    "أنشئ جدولًا متوازنًا لقراءة القرآن مع مجموعتك، واعرف وردك اليومي، واقرأ في المصحف الإلكتروني، وتابع تقدمك حتى الختام. Organize Quran reading for your group, create rotating schedules, read inside the Quran Reader, track progress, and complete the Quran together.",
   applicationName: "Wirddy - وِردي",
   keywords: [
     "Quran",
     "Wirddy",
     "وِردي",
     "Quran reading planner",
+    "Quran Group Reading",
+    "Quran Reader",
     "ختمة القرآن",
     "توزيع ورد القرآن",
+    "مصحف وِردي",
+    "تتبع قراءة القرآن",
     "Ramadan Quran group",
     "PWA",
   ],
@@ -48,9 +52,9 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: "Wirddy | وِردي — خطة ختم القرآن الكريم",
+    title: "وِردي | Wirddy — Quran Group Reading & Scheduling",
     description:
-      "طريقة بسيطة لتنظيم ورد القرآن وتقسيمه بين أفراد المجموعة. A simple way for families and friends to divide the Quran and complete it together.",
+      "أنشئ جدولًا متوازنًا لقراءة القرآن مع مجموعتك، واعرف وردك اليومي، واقرأ في المصحف الإلكتروني، وتابع تقدمك حتى الختام. Organize Quran reading for your group, create rotating schedules, read inside the Quran Reader, track progress, and complete the Quran together.",
     siteName: "Wirddy",
     locale: "ar_SA",
     type: "website",

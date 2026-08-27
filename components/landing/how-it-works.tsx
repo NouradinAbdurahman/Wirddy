@@ -1,85 +1,86 @@
 "use client"
 
 import React from "react"
-import { motion } from "motion/react"
 import {
-  IconAdjustments,
-  IconCalendarCheck,
-  IconUsersGroup,
+  IconBook,
+  IconCalendarEvent,
+  IconChecklist,
+  IconUsers,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 
 export function HowItWorks() {
-  const { t } = useI18n()
+  const { language, t, formatNumber } = useI18n()
 
   const steps = [
     {
-      icon: IconUsersGroup,
+      number: 1,
+      icon: IconUsers,
       title: t.step1Title,
       desc: t.step1Desc,
     },
     {
-      icon: IconAdjustments,
+      number: 2,
+      icon: IconCalendarEvent,
       title: t.step2Title,
       desc: t.step2Desc,
     },
     {
-      icon: IconCalendarCheck,
+      number: 3,
+      icon: IconBook,
       title: t.step3Title,
       desc: t.step3Desc,
+    },
+    {
+      number: 4,
+      icon: IconChecklist,
+      title: t.step4Title,
+      desc: t.step4Desc,
     },
   ]
 
   return (
-    <section id="how-it-works" className="py-14 md:py-18">
+    <section id="how-it-works" className="py-12 md:py-16">
       <div className="container mx-auto max-w-5xl px-4 sm:px-6">
+        {/* Section Heading */}
         <div className="mx-auto mb-12 max-w-2xl text-center">
-          <h2
-            suppressHydrationWarning
-            className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
-          >
+          <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl md:text-4xl">
             {t.howItWorksTitle}
           </h2>
-          <p
-            suppressHydrationWarning
-            className="mt-3 text-sm text-muted-foreground sm:text-base"
-          >
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
             {t.howItWorksSubtitle}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {steps.map((step, idx) => {
+        {/* 4 Steps Grid */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step) => {
             const Icon = step.icon
             return (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.4, delay: idx * 0.1 }}
+              <Card
+                key={step.number}
+                className="relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm backdrop-blur-sm transition-all hover:border-primary/40 hover:shadow-md"
               >
-                <Card className="h-full rounded-2xl border border-border/50 bg-card/60 p-6 text-start backdrop-blur-sm transition-all hover:border-primary/30 hover:shadow-md">
-                  <CardContent className="space-y-4 p-0">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="h-6 w-6" stroke={1.75} />
-                    </div>
-                    <h3
-                      suppressHydrationWarning
-                      className="text-lg font-bold text-foreground"
-                    >
-                      {step.title}
-                    </h3>
-                    <p
-                      suppressHydrationWarning
-                      className="text-sm leading-relaxed text-muted-foreground"
-                    >
-                      {step.desc}
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                {/* Step Number Badge */}
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <span className="text-2xl font-black tracking-tight text-muted-foreground/30">
+                    {formatNumber(step.number)}
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-base font-extrabold text-foreground">
+                    {step.title}
+                  </h3>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {step.desc}
+                  </p>
+                </div>
+              </Card>
             )
           })}
         </div>

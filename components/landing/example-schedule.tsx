@@ -143,14 +143,17 @@ export function ExampleSchedule({ onTryTemplate }: ExampleScheduleProps) {
     sampleWeeks.find((w) => w.weekNumber === activeWeek) || sampleWeeks[0]
 
   return (
-    <section className="py-16 md:py-20">
+    <section id="preview" className="py-16 md:py-20">
       <div className="container mx-auto max-w-5xl px-4 sm:px-6">
         <div className="mx-auto mb-10 max-w-2xl text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            {t.exampleTitle}
+          <Badge variant="outline" className="mb-3 border-primary/20 bg-primary/10 text-primary">
+            {t.exampleBadge}
+          </Badge>
+          <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl md:text-4xl">
+            {t.previewTitle}
           </h2>
-          <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-            {t.exampleSubtitle}
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
+            {t.previewSubtitle}
           </p>
         </div>
 

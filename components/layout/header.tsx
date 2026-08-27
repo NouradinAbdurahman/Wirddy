@@ -97,8 +97,8 @@ export function Header({
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md print:hidden">
       <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        {/* Brand Logo */}
-        <div className="flex items-center gap-3">
+        {/* Brand Logo & Desktop Navigation */}
+        <div className="flex items-center gap-8">
           <Link
             href="/"
             onClick={(e) => {
@@ -128,6 +128,34 @@ export function Header({
               suppressHydrationWarning
             />
           </Link>
+
+          {/* Desktop Navigation Links */}
+          <nav className="hidden items-center gap-6 text-xs font-bold text-muted-foreground md:flex">
+            <a
+              href="#how-it-works"
+              className="transition-colors hover:text-foreground"
+            >
+              {t.navHowItWorks}
+            </a>
+            <a
+              href="#features"
+              className="transition-colors hover:text-foreground"
+            >
+              {t.navFeatures}
+            </a>
+            <a
+              href="#preview"
+              className="transition-colors hover:text-foreground"
+            >
+              {t.navPreview}
+            </a>
+            <a
+              href="#install"
+              className="transition-colors hover:text-foreground"
+            >
+              {t.navInstall}
+            </a>
+          </nav>
         </div>
 
         {/* Action Controls */}
