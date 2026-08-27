@@ -1,5 +1,5 @@
 -- =============================================================================
--- Wirddy Supabase Database Schema (No-Login Saved Groups)
+-- Wirddy Production Database Schema & Migration (No-Login Saved Groups)
 -- Version: 1.0.0
 -- =============================================================================
 

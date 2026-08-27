@@ -165,6 +165,35 @@ export interface Translations {
   exportShareFallbackError: string
   preparingExport: string
 
+  // Save & Share / Persistence
+  btnSaveAndShare: string
+  saveModalTitle: string
+  saveModalSubtitle: string
+  savingSchedule: string
+  scheduleSavedSuccess: string
+  scheduleSavedDesc: string
+  publicShareLink: string
+  copyPublicLink: string
+  shareGroupLink: string
+  qrCodeTitle: string
+  qrCodeDesc: string
+  btnShowQrCode: string
+  btnHideQrCode: string
+  secretEditLinkTitle: string
+  secretEditLinkDesc: string
+  copyEditLink: string
+  editLinkCopied: string
+  saveOfflineWarning: string
+  viewOnlyBadge: string
+  editorBadge: string
+  scheduleNotFoundTitle: string
+  scheduleNotFoundDesc: string
+  scheduleExpiredTitle: string
+  scheduleExpiredDesc: string
+  btnCreateNewSchedule: string
+  btnDeleteSchedule: string
+  deleteScheduleConfirm: string
+
   // Quick groups suggestions
   suggestionsTitle: string
   suggFamily: string
@@ -348,7 +377,41 @@ export const translations: Record<Language, Translations> = {
       "المشاركة المباشرة غير مدعومة في هذا المتصفح. تم تنزيل ملف PDF ويمكنك مشاركته من جهازك.",
     exportShareFallbackError:
       "تعذرت مشاركة الجدول. تم تنزيل الملف بدلًا من ذلك.",
-    preparingExport: "جارٍ تجهيز الملف...",
+    preparingExport: "جارٍ تجهيز الملف للتحميل...",
+
+    // Save & Share / Persistence
+    btnSaveAndShare: "حفظ ومشاركة",
+    saveModalTitle: "حفظ ومشاركة الجدول",
+    saveModalSubtitle:
+      "احصل على رابط مباشر لمشاركة الجدول مع مجموعتك أو إعادة فتحه في أي وقت دون تسجيل حساب.",
+    savingSchedule: "جارٍ حفظ الجدول على الإنترنت...",
+    scheduleSavedSuccess: "تم حفظ الجدول بنجاح!",
+    scheduleSavedDesc:
+      "يمكنك الآن مشاركة هذا الرابط مع أعضاء المجموعة للاطلاع على الجدول من أي جهاز.",
+    publicShareLink: "رابط المشاهدة للمجموعة",
+    copyPublicLink: "نسخ الرابط",
+    shareGroupLink: "مشاركة الرابط",
+    qrCodeTitle: "رمز الاستجابة السريعة (QR)",
+    qrCodeDesc: "امسح الرمز بكاميرا الهاتف لفتح الجدول فوراً.",
+    btnShowQrCode: "عرض رمز QR",
+    btnHideQrCode: "إخفاء رمز QR",
+    secretEditLinkTitle: "رابط التعديل الخاص بك (سرّي)",
+    secretEditLinkDesc:
+      "احتفظ بهذا الرابط لتتمكن من تعديل أسماء الأعضاء أو إعادة إنشاء الجدول لاحقاً. لا تشاركه إلا مع من يملك صلاحية التعديل.",
+    copyEditLink: "نسخ رابط التعديل",
+    editLinkCopied: "تم نسخ رابط التعديل!",
+    saveOfflineWarning:
+      "تم إنشاء جدولك محلياً، ولكن تعذر حفظه على الإنترنت. يمكنك الاستمرار في استخدامه وتنزيله الآن.",
+    viewOnlyBadge: "للمشاهدة فقط",
+    editorBadge: "وضع التعديل",
+    scheduleNotFoundTitle: "لم يتم العثور على الجدول",
+    scheduleNotFoundDesc:
+      "الرابط الذي تحاول الوصول إليه غير موجود أو تم حذفه. يمكنك إنشاء جدول جديد بكل سهولة.",
+    scheduleExpiredTitle: "الجدول غير متاح",
+    scheduleExpiredDesc: "انتهت صلاحية هذا الجدول ولم يعد متاحاً على الإنترنت.",
+    btnCreateNewSchedule: "إنشاء جدول جديد",
+    btnDeleteSchedule: "حذف الجدول",
+    deleteScheduleConfirm: "هل أنت متأكد من رغبتك في حذف هذا الجدول نهائياً؟",
 
     suggestionsTitle: "أفكار سريعة لأسماء المجموعات:",
     suggFamily: "عائلة الهدى",
@@ -538,6 +601,42 @@ export const translations: Record<Language, Translations> = {
     exportShareFallbackError:
       "Unable to share the schedule. The file has been downloaded instead.",
     preparingExport: "Preparing your export...",
+
+    // Save & Share / Persistence
+    btnSaveAndShare: "Save & Share",
+    saveModalTitle: "Save & Share Schedule",
+    saveModalSubtitle:
+      "Get a direct link to share your schedule with your group or reopen it anytime without creating an account.",
+    savingSchedule: "Saving schedule online...",
+    scheduleSavedSuccess: "Schedule Saved Successfully!",
+    scheduleSavedDesc:
+      "You can now share this link with group members to view the schedule from any device.",
+    publicShareLink: "Group View Link",
+    copyPublicLink: "Copy Link",
+    shareGroupLink: "Share Link",
+    qrCodeTitle: "QR Code",
+    qrCodeDesc: "Scan with your phone camera to open the schedule instantly.",
+    btnShowQrCode: "Show QR Code",
+    btnHideQrCode: "Hide QR Code",
+    secretEditLinkTitle: "Your Secret Edit Link",
+    secretEditLinkDesc:
+      "Keep this link safe to modify member names or regenerate the schedule later. Only share with organizers.",
+    copyEditLink: "Copy Edit Link",
+    editLinkCopied: "Edit link copied!",
+    saveOfflineWarning:
+      "Your schedule was created locally, but could not be saved online. You can still download and use it right now.",
+    viewOnlyBadge: "View Only",
+    editorBadge: "Editor Mode",
+    scheduleNotFoundTitle: "Schedule Not Found",
+    scheduleNotFoundDesc:
+      "The schedule link you are trying to access does not exist or has been deleted. You can create a new one easily.",
+    scheduleExpiredTitle: "Schedule Unavailable",
+    scheduleExpiredDesc:
+      "This schedule has expired and is no longer available online.",
+    btnCreateNewSchedule: "Create New Schedule",
+    btnDeleteSchedule: "Delete Schedule",
+    deleteScheduleConfirm:
+      "Are you sure you want to permanently delete this schedule?",
 
     suggestionsTitle: "Quick name suggestions:",
     suggFamily: "Family",

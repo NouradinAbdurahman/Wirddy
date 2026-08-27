@@ -343,6 +343,10 @@ export default function HomePage() {
             >
               <ScheduleView
                 schedule={schedule}
+                scheduleInput={{
+                  group: { name: groupName, weeksCount },
+                  members,
+                }}
                 onEditPlan={() => {
                   setStep("members")
                   window.scrollTo({ top: 0, behavior: "smooth" })

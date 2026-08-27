@@ -11,6 +11,7 @@ import {
   IconLayoutGrid,
   IconLoader2,
   IconRotate,
+  IconSparkles,
   IconTable,
   IconUsers,
 } from "@tabler/icons-react"
@@ -22,21 +23,32 @@ import { Card } from "@/components/ui/card"
 import { MemberScheduleCard } from "./member-schedule-card"
 import { ScheduleTableView } from "./schedule-table-view"
 import { WeekNav } from "./week-nav"
+import { SavedGroupResult } from "@/lib/groups/service"
+import { ScheduleInput } from "@/lib/scheduler/types"
 import { RegenerateDialog } from "./regenerate-dialog"
 import { ExportModal } from "./export-modal"
+import { SaveShareDialog } from "./save-share-dialog"
 
 interface ScheduleViewProps {
   schedule: GeneratedSchedule
-  onEditPlan: () => void
-  onRegenerate: () => void
+  scheduleInput?: ScheduleInput
+  onEditPlan?: () => void
+  onRegenerate?: () => void
   isRegenerating?: boolean
+  isViewOnly?: boolean
+  savedData?: SavedGroupResult | null
+  onSaveSuccess?: (data: SavedGroupResult) => void
 }
 
 export function ScheduleView({
   schedule,
+  scheduleInput,
   onEditPlan,
   onRegenerate,
   isRegenerating,
+  isViewOnly = false,
+  savedData,
+  onSaveSuccess,
 }: ScheduleViewProps) {
   const { language, dir, t, formatNumber } = useI18n()
   const [activeWeekNum, setActiveWeekNum] = useState<number>(1)
@@ -44,6 +56,7 @@ export function ScheduleView({
   const [showRegenerateDialog, setShowRegenerateDialog] =
     useState<boolean>(false)
   const [showExportModal, setShowExportModal] = useState<boolean>(false)
+  const [showSaveShareDialog, setShowSaveShareDialog] = useState<boolean>(false)
 
   const BackArrowIcon = dir === "rtl" ? IconArrowRight : IconArrowLeft
 
@@ -56,16 +69,23 @@ export function ScheduleView({
       {/* Top Navigation & Action Bar */}
       <div className="flex flex-col justify-between gap-3 border-b border-border/40 pb-3.5 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onEditPlan}
-            className="h-8.5 gap-1.5 rounded-xl px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
-          >
-            <BackArrowIcon className="h-4 w-4" />
-            <span>{t.btnEditPlan}</span>
-          </Button>
+          {!isViewOnly && onEditPlan && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onEditPlan}
+              className="h-8.5 gap-1.5 rounded-xl px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
+            >
+              <BackArrowIcon className="h-4 w-4" />
+              <span>{t.btnEditPlan}</span>
+            </Button>
+          )}
+          {isViewOnly && (
+            <div className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-muted/50 px-3 py-1 text-xs font-semibold text-muted-foreground">
+              <span>{t.viewOnlyBadge}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -97,21 +117,35 @@ export function ScheduleView({
             </button>
           </div>
 
-          {/* Regenerate Button */}
+          {/* Regenerate Button (Only for editors/creators) */}
+          {!isViewOnly && onRegenerate && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isRegenerating}
+              onClick={() => setShowRegenerateDialog(true)}
+              className="h-8.5 gap-1.5 rounded-xl border-border/70 px-3 text-xs font-semibold hover:bg-muted"
+            >
+              {isRegenerating ? (
+                <IconLoader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <IconRotate className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+              <span>{isRegenerating ? t.btnGenerating : t.btnRegenerate}</span>
+            </Button>
+          )}
+
+          {/* Save & Share Button */}
           <Button
             type="button"
             variant="outline"
             size="sm"
-            disabled={isRegenerating}
-            onClick={() => setShowRegenerateDialog(true)}
-            className="h-8.5 gap-1.5 rounded-xl border-border/70 px-3 text-xs font-semibold hover:bg-muted"
+            onClick={() => setShowSaveShareDialog(true)}
+            className="h-8.5 gap-1.5 rounded-xl border-primary/40 bg-primary/5 px-3.5 text-xs font-bold text-primary hover:bg-primary/10 hover:text-primary dark:bg-primary/10"
           >
-            {isRegenerating ? (
-              <IconLoader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <IconRotate className="h-3.5 w-3.5 text-muted-foreground" />
-            )}
-            <span>{isRegenerating ? t.btnGenerating : t.btnRegenerate}</span>
+            <IconSparkles className="h-3.5 w-3.5" />
+            <span>{t.btnSaveAndShare}</span>
           </Button>
 
           {/* Export / Download Button */}
@@ -251,12 +285,13 @@ export function ScheduleView({
         </AnimatePresence>
       </div>
 
-      {/* Confirmation and Export Dialogs */}
-      <RegenerateDialog
-        open={showRegenerateDialog}
-        onOpenChange={setShowRegenerateDialog}
-        onConfirm={onRegenerate}
-      />
+      {onRegenerate && (
+        <RegenerateDialog
+          open={showRegenerateDialog}
+          onOpenChange={setShowRegenerateDialog}
+          onConfirm={onRegenerate}
+        />
+      )}
 
       <ExportModal
         open={showExportModal}
@@ -264,6 +299,15 @@ export function ScheduleView({
         schedule={schedule}
         activeWeek={activeWeekNum}
         viewMode={viewMode}
+      />
+
+      <SaveShareDialog
+        isOpen={showSaveShareDialog}
+        onClose={() => setShowSaveShareDialog(false)}
+        schedule={schedule}
+        scheduleInput={scheduleInput}
+        savedData={savedData}
+        onSaveSuccess={onSaveSuccess}
       />
     </div>
   )
