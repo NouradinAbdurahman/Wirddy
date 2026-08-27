@@ -1,4 +1,8 @@
-import { GeneratedSchedule, MemberAssignment, WeekSchedule } from '@/lib/scheduler/types';
+import {
+  GeneratedSchedule,
+  MemberAssignment,
+  WeekSchedule,
+} from "@/lib/scheduler/types"
 import {
   ExportDirection,
   ExportLanguage,
@@ -7,7 +11,7 @@ import {
   ExportTheme,
   ExportViewMode,
   ExportWeek,
-} from './types';
+} from "./types"
 
 export function normalizeMemberAssignment(
   assignment: MemberAssignment,
@@ -30,7 +34,7 @@ export function normalizeMemberAssignment(
       surahNameEnglish: assignment.endAyah.surahNameEn,
       ayahNumber: assignment.endAyah.ayahNumber,
     },
-  };
+  }
 }
 
 export function normalizeWeekSchedule(
@@ -38,10 +42,10 @@ export function normalizeWeekSchedule(
   totalWeeks: number,
   groupName: string,
   language: ExportLanguage,
-  theme: ExportTheme = 'dark',
-  view: ExportViewMode = 'cards'
+  theme: ExportTheme = "dark",
+  view: ExportViewMode = "cards"
 ): ExportWeek {
-  const direction: ExportDirection = language === 'ar' ? 'rtl' : 'ltr';
+  const direction: ExportDirection = language === "ar" ? "rtl" : "ltr"
 
   return {
     weekNumber: week.weekNumber,
@@ -51,17 +55,19 @@ export function normalizeWeekSchedule(
     direction,
     theme,
     view,
-    members: week.assignments.map((assignment) => normalizeMemberAssignment(assignment, language)),
-  };
+    members: week.assignments.map((assignment) =>
+      normalizeMemberAssignment(assignment, language)
+    ),
+  }
 }
 
 export function normalizeScheduleToExport(
   schedule: GeneratedSchedule,
   language: ExportLanguage,
-  theme: ExportTheme = 'dark',
-  view: ExportViewMode = 'cards'
+  theme: ExportTheme = "dark",
+  view: ExportViewMode = "cards"
 ): ExportSchedule {
-  const direction: ExportDirection = language === 'ar' ? 'rtl' : 'ltr';
+  const direction: ExportDirection = language === "ar" ? "rtl" : "ltr"
 
   return {
     groupName: schedule.groupName,
@@ -71,7 +77,14 @@ export function normalizeScheduleToExport(
     theme,
     view,
     weeks: schedule.weeks.map((week) =>
-      normalizeWeekSchedule(week, schedule.weeksCount, schedule.groupName, language, theme, view)
+      normalizeWeekSchedule(
+        week,
+        schedule.weeksCount,
+        schedule.groupName,
+        language,
+        theme,
+        view
+      )
     ),
-  };
+  }
 }

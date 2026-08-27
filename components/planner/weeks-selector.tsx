@@ -1,48 +1,48 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { IconCalendar, IconMinus, IconPlus } from '@tabler/icons-react';
-import { useI18n } from '@/lib/i18n/context';
-import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import React from "react"
+import { IconCalendar, IconMinus, IconPlus } from "@tabler/icons-react"
+import { useI18n } from "@/lib/i18n/context"
+import { Card, CardContent } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 
 interface WeeksSelectorProps {
-  weeksCount: number;
-  onChange: (count: number) => void;
+  weeksCount: number
+  onChange: (count: number) => void
 }
 
-const PRESET_WEEKS = [1, 2, 4, 5, 10, 20, 30];
+const PRESET_WEEKS = [1, 2, 4, 5, 10, 20, 30]
 
 export function WeeksSelector({ weeksCount, onChange }: WeeksSelectorProps) {
-  const { t, formatNumber } = useI18n();
+  const { t, formatNumber } = useI18n()
 
   const updateWeeks = (delta: number) => {
-    const next = Math.max(1, Math.min(52, weeksCount + delta));
-    onChange(next);
-  };
+    const next = Math.max(1, Math.min(52, weeksCount + delta))
+    onChange(next)
+  }
 
   return (
-    <Card className="border border-border/60 bg-card/70 rounded-2xl shadow-sm text-start">
-      <CardContent className="p-5 sm:p-6 space-y-4">
+    <Card className="rounded-2xl border border-border/60 bg-card/70 text-start shadow-sm">
+      <CardContent className="space-y-4 p-5 sm:p-6">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <IconCalendar className="h-4 w-4" />
           </div>
           <div>
-            <Label className="text-base font-bold text-foreground block">
+            <Label className="block text-base font-bold text-foreground">
               {t.weeksTitle}
             </Label>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {t.weeksSubtitle}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-border/40">
+        <div className="flex flex-col justify-between gap-4 border-t border-border/40 pt-2 sm:flex-row sm:items-center">
           {/* Direct Stepper */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center border border-border/70 rounded-xl bg-background p-1 shadow-xs">
+            <div className="flex items-center rounded-xl border border-border/70 bg-background p-1 shadow-xs">
               <Button
                 type="button"
                 variant="ghost"
@@ -82,10 +82,10 @@ export function WeeksSelector({ weeksCount, onChange }: WeeksSelectorProps) {
                 key={preset}
                 type="button"
                 onClick={() => onChange(preset)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all active:scale-95 ${
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all active:scale-95 ${
                   weeksCount === preset
-                    ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                    : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/50'
+                    ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                    : "border-border/50 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
                 {formatNumber(preset)}
@@ -95,5 +95,5 @@ export function WeeksSelector({ weeksCount, onChange }: WeeksSelectorProps) {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

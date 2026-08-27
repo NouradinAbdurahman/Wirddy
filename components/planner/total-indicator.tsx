@@ -1,71 +1,71 @@
-'use client';
+"use client"
 
-import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { useI18n } from '@/lib/i18n/context';
-import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import React from "react"
+import { motion, AnimatePresence } from "motion/react"
+import { useI18n } from "@/lib/i18n/context"
+import { Card } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 
 interface TotalIndicatorProps {
-  currentTotal: number;
+  currentTotal: number
 }
 
 export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
-  const { language, t, formatNumber } = useI18n();
-  const isExact = currentTotal === 30;
-  const isLess = currentTotal < 30;
-  const isMore = currentTotal > 30;
+  const { language, t, formatNumber } = useI18n()
+  const isExact = currentTotal === 30
+  const isLess = currentTotal < 30
+  const isMore = currentTotal > 30
 
-  const percentage = Math.min(100, Math.round((currentTotal / 30) * 100));
+  const percentage = Math.min(100, Math.round((currentTotal / 30) * 100))
 
   return (
     <div className="w-full">
       <Card
-        className={`p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 shadow-sm backdrop-blur-md ${
+        className={`rounded-2xl border p-3.5 shadow-sm backdrop-blur-md transition-all duration-300 sm:p-4 ${
           isExact
-            ? 'border-emerald-500/40 bg-card/95 dark:bg-card/90 shadow-emerald-500/5'
+            ? "border-emerald-500/40 bg-card/95 shadow-emerald-500/5 dark:bg-card/90"
             : isMore
-            ? 'border-destructive/40 bg-card/95 dark:bg-card/90 shadow-destructive/5'
-            : 'border-border/60 bg-card/95 dark:bg-card/90'
+              ? "border-destructive/40 bg-card/95 shadow-destructive/5 dark:bg-card/90"
+              : "border-border/60 bg-card/95 dark:bg-card/90"
         }`}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-start">
+        <div className="flex flex-col justify-between gap-3 text-start sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
             <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl overflow-hidden transition-colors ${
+              className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-colors ${
                 isExact
-                  ? 'bg-emerald-500/20'
+                  ? "bg-emerald-500/20"
                   : isMore
-                  ? 'bg-destructive/20'
-                  : 'bg-muted/40 border border-border/40'
+                    ? "bg-destructive/20"
+                    : "border border-border/40 bg-muted/40"
               }`}
             >
               <img
                 src="/logo-black.png"
                 alt="Wirddy"
-                className="h-7 w-7 object-contain block dark:hidden"
+                className="block h-7 w-7 object-contain dark:hidden"
                 suppressHydrationWarning
               />
               <img
                 src="/logo-white.png"
                 alt="Wirddy"
-                className="h-7 w-7 object-contain hidden dark:block"
+                className="hidden h-7 w-7 object-contain dark:block"
                 suppressHydrationWarning
               />
             </div>
 
             <div>
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                 {t.totalLabel}
               </div>
-              <div className="flex items-baseline gap-2 mt-0.5">
+              <div className="mt-0.5 flex items-baseline gap-2">
                 <span
                   className={`text-2xl font-bold tracking-tight ${
                     isExact
-                      ? 'text-emerald-600 dark:text-emerald-400'
+                      ? "text-emerald-600 dark:text-emerald-400"
                       : isMore
-                      ? 'text-destructive'
-                      : 'text-foreground'
+                        ? "text-destructive"
+                        : "text-foreground"
                   }`}
                 >
                   {formatNumber(currentTotal)}
@@ -100,7 +100,7 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
                   exit={{ opacity: 0 }}
                   className="text-xs font-medium text-muted-foreground"
                 >
-                  {language === 'ar'
+                  {language === "ar"
                     ? `مجموع القراءة هو ${formatNumber(currentTotal)} جزءًا. يتبقى ${formatNumber(30 - currentTotal)} جزءًا ليكتمل الورد.`
                     : `Current total is ${currentTotal} Juz. Add ${30 - currentTotal} more Juz to reach 30.`}
                 </motion.div>
@@ -114,7 +114,7 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
                   exit={{ opacity: 0 }}
                   className="text-xs font-medium text-destructive"
                 >
-                  {language === 'ar'
+                  {language === "ar"
                     ? `مجموع القراءة هو ${formatNumber(currentTotal)} جزءًا. يتجاوز الـ ٣٠ بمقدار ${formatNumber(currentTotal - 30)} جزءًا.`
                     : `Current total is ${currentTotal} Juz. Exceeds 30 by ${currentTotal - 30} Juz.`}
                 </motion.div>
@@ -129,14 +129,14 @@ export function TotalIndicator({ currentTotal }: TotalIndicatorProps) {
             value={percentage}
             className={`h-2 rounded-full ${
               isExact
-                ? '[&>div]:bg-emerald-500'
+                ? "[&>div]:bg-emerald-500"
                 : isMore
-                ? '[&>div]:bg-destructive'
-                : '[&>div]:bg-primary'
+                  ? "[&>div]:bg-destructive"
+                  : "[&>div]:bg-primary"
             }`}
           />
         </div>
       </Card>
     </div>
-  );
+  )
 }

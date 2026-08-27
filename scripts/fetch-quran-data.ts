@@ -5,33 +5,36 @@
  * Usage: npx tsx scripts/fetch-quran-data.ts
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs"
+import * as path from "path"
 
-const API_BASE = 'https://api.alquran.cloud/v1';
+const API_BASE = "https://api.alquran.cloud/v1"
 
 async function fetchJson(url: string) {
-  const res = await fetch(url);
+  const res = await fetch(url)
   if (!res.ok) {
-    throw new Error(`Failed to fetch ${url}: ${res.statusText}`);
+    throw new Error(`Failed to fetch ${url}: ${res.statusText}`)
   }
-  const json = await res.json();
-  if (json.code !== 200 || json.status !== 'OK') {
-    throw new Error(`API error from ${url}: ${json.status}`);
+  const json = await res.json()
+  if (json.code !== 200 || json.status !== "OK") {
+    throw new Error(`API error from ${url}: ${json.status}`)
   }
-  return json.data;
+  return json.data
 }
 
 function cleanSurahNameAr(name: string): string {
-  return name.replace(/^سُورَةُ\s+/i, '').replace(/^سورة\s+/i, '').trim();
+  return name
+    .replace(/^سُورَةُ\s+/i, "")
+    .replace(/^سورة\s+/i, "")
+    .trim()
 }
 
 async function main() {
-  console.log('🕌 Fetching Quran Metadata from AlQuran Cloud API...');
+  console.log("🕌 Fetching Quran Metadata from AlQuran Cloud API...")
 
   // 1. Fetch Surahs
-  const surahsData = await fetchJson(`${API_BASE}/surah`);
-  console.log(`✓ Fetched ${surahsData.length} Surahs`);
+  const surahsData = await fetchJson(`${API_BASE}/surah`)
+  console.log(`✓ Fetched ${surahsData.length} Surahs`)
 
   const surahs = surahsData.map((s: any) => ({
     number: s.number,
@@ -40,37 +43,37 @@ async function main() {
     transliteration: s.englishName,
     totalAyahs: s.numberOfAyahs,
     revelationType: s.revelationType,
-  }));
+  }))
 
   // Create lookup map for surah names
-  const surahMap = new Map<number, { nameAr: string; nameEn: string }>();
+  const surahMap = new Map<number, { nameAr: string; nameEn: string }>()
   for (const s of surahs) {
-    surahMap.set(s.number, { nameAr: s.nameAr, nameEn: s.transliteration });
+    surahMap.set(s.number, { nameAr: s.nameAr, nameEn: s.transliteration })
   }
 
   // 2. Fetch All 30 Juz
-  console.log('📖 Fetching all 30 Juz boundaries...');
-  const juzBoundaries = [];
+  console.log("📖 Fetching all 30 Juz boundaries...")
+  const juzBoundaries = []
 
   for (let j = 1; j <= 30; j++) {
-    process.stdout.write(`  Fetching Juz ${j}/30... `);
-    const juzData = await fetchJson(`${API_BASE}/juz/${j}`);
-    const ayahs = juzData.ayahs;
+    process.stdout.write(`  Fetching Juz ${j}/30... `)
+    const juzData = await fetchJson(`${API_BASE}/juz/${j}`)
+    const ayahs = juzData.ayahs
     if (!ayahs || ayahs.length === 0) {
-      throw new Error(`Juz ${j} returned empty ayahs!`);
+      throw new Error(`Juz ${j} returned empty ayahs!`)
     }
 
-    const first = ayahs[0];
-    const last = ayahs[ayahs.length - 1];
+    const first = ayahs[0]
+    const last = ayahs[ayahs.length - 1]
 
     const startSurahInfo = surahMap.get(first.surah.number) || {
       nameAr: cleanSurahNameAr(first.surah.name),
       nameEn: first.surah.englishName,
-    };
+    }
     const endSurahInfo = surahMap.get(last.surah.number) || {
       nameAr: cleanSurahNameAr(last.surah.name),
       nameEn: last.surah.englishName,
-    };
+    }
 
     const boundary = {
       juzNumber: j,
@@ -95,41 +98,45 @@ async function main() {
         hizbQuarter: last.hizbQuarter,
       },
       totalAyahs: ayahs.length,
-    };
+    }
 
-    juzBoundaries.push(boundary);
+    juzBoundaries.push(boundary)
     console.log(
       `✓ Start: ${boundary.start.surahNameArabic} ${boundary.start.ayahNumber} | End: ${boundary.end.surahNameArabic} ${boundary.end.ayahNumber}`
-    );
+    )
   }
 
   // 3. Mathematical & Continuity Validation
-  console.log('\n🔍 Validating all 30 Juz boundaries...');
+  console.log("\n🔍 Validating all 30 Juz boundaries...")
   if (juzBoundaries.length !== 30) {
-    throw new Error(`Expected 30 Juz, got ${juzBoundaries.length}`);
+    throw new Error(`Expected 30 Juz, got ${juzBoundaries.length}`)
   }
 
   if (juzBoundaries[0].start.globalAyahNumber !== 1) {
-    throw new Error(`Juz 1 does not start at Ayah 1!`);
+    throw new Error(`Juz 1 does not start at Ayah 1!`)
   }
 
   if (juzBoundaries[29].end.globalAyahNumber !== 6236) {
-    throw new Error(`Juz 30 does not end at Ayah 6236! (got ${juzBoundaries[29].end.globalAyahNumber})`);
+    throw new Error(
+      `Juz 30 does not end at Ayah 6236! (got ${juzBoundaries[29].end.globalAyahNumber})`
+    )
   }
 
   for (let i = 1; i < 30; i++) {
-    const prev = juzBoundaries[i - 1];
-    const curr = juzBoundaries[i];
+    const prev = juzBoundaries[i - 1]
+    const curr = juzBoundaries[i]
     if (curr.start.globalAyahNumber !== prev.end.globalAyahNumber + 1) {
       throw new Error(
         `Discontinuity between Juz ${i} (ends ${prev.end.globalAyahNumber}) and Juz ${i + 1} (starts ${curr.start.globalAyahNumber})`
-      );
+      )
     }
   }
-  console.log('✅ Validation SUCCESS: 30 Juz verified with zero gaps and zero overlaps across 6,236 Ayahs.\n');
+  console.log(
+    "✅ Validation SUCCESS: 30 Juz verified with zero gaps and zero overlaps across 6,236 Ayahs.\n"
+  )
 
   // 4. Generate data.ts
-  const outputPath = path.join(process.cwd(), 'lib', 'quran', 'data.ts');
+  const outputPath = path.join(process.cwd(), "lib", "quran", "data.ts")
   const fileContent = `/**
  * Authoritative Quran dataset derived directly from AlQuran Cloud API (https://api.alquran.cloud/v1)
  * OpenAPI Specification: yaml.yml
@@ -156,13 +163,13 @@ export const SURAH_TO_JUZ_MAP: Record<number, number> = {
   101: 30, 102: 30, 103: 30, 104: 30, 105: 30, 106: 30, 107: 30, 108: 30, 109: 30, 110: 30,
   111: 30, 112: 30, 113: 30, 114: 30
 };
-`;
+`
 
-  fs.writeFileSync(outputPath, fileContent, 'utf-8');
-  console.log(`💾 Saved updated dataset to ${outputPath}`);
+  fs.writeFileSync(outputPath, fileContent, "utf-8")
+  console.log(`💾 Saved updated dataset to ${outputPath}`)
 }
 
 main().catch((err) => {
-  console.error('Error executing fetch-quran-data:', err);
-  process.exit(1);
-});
+  console.error("Error executing fetch-quran-data:", err)
+  process.exit(1)
+})

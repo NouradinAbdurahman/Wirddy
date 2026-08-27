@@ -1,71 +1,75 @@
 /**
  * Cache for preloaded base64 assets to guarantee deterministic, zero-network exports
  */
-const assetCache = new Map<string, string>();
+const assetCache = new Map<string, string>()
 
 /**
  * Loads an image path and converts it into a base64 Data URL.
  */
 export async function preloadImageAsBase64(src: string): Promise<string> {
   if (assetCache.has(src)) {
-    return assetCache.get(src)!;
+    return assetCache.get(src)!
   }
 
   try {
-    const response = await fetch(src);
+    const response = await fetch(src)
     if (!response.ok) {
-      throw new Error(`Failed to fetch image asset: ${src} (status: ${response.status})`);
+      throw new Error(
+        `Failed to fetch image asset: ${src} (status: ${response.status})`
+      )
     }
-    const blob = await response.blob();
+    const blob = await response.blob()
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+      const reader = new FileReader()
       reader.onloadend = () => {
-        const base64 = reader.result as string;
-        assetCache.set(src, base64);
-        resolve(base64);
-      };
-      reader.onerror = () => reject(new Error(`Failed to convert ${src} to base64.`));
-      reader.readAsDataURL(blob);
-    });
+        const base64 = reader.result as string
+        assetCache.set(src, base64)
+        resolve(base64)
+      }
+      reader.onerror = () =>
+        reject(new Error(`Failed to convert ${src} to base64.`))
+      reader.readAsDataURL(blob)
+    })
   } catch (err) {
-    console.warn(`Asset preload warning for ${src}:`, err);
-    return src; // fallback to original path if fetch fails in non-standard environments
+    console.warn(`Asset preload warning for ${src}:`, err)
+    return src // fallback to original path if fetch fails in non-standard environments
   }
 }
 
 export interface ExportAssets {
-  wirddyLogoBlack: string;
-  wirddyLogoWhite: string;
-  logoBlack: string;
-  logoWhite: string;
+  wirddyLogoBlack: string
+  wirddyLogoWhite: string
+  logoBlack: string
+  logoWhite: string
 }
 
 /**
  * Preloads all essential Wirddy brand assets as base64 data URLs.
  */
 export async function preloadExportAssets(): Promise<ExportAssets> {
-  const [wirddyLogoBlack, wirddyLogoWhite, logoBlack, logoWhite] = await Promise.all([
-    preloadImageAsBase64('/wirddy-logo-black.png'),
-    preloadImageAsBase64('/wirddy-logo-white.png'),
-    preloadImageAsBase64('/logo-black.png'),
-    preloadImageAsBase64('/logo-white.png'),
-  ]);
+  const [wirddyLogoBlack, wirddyLogoWhite, logoBlack, logoWhite] =
+    await Promise.all([
+      preloadImageAsBase64("/wirddy-logo-black.png"),
+      preloadImageAsBase64("/wirddy-logo-white.png"),
+      preloadImageAsBase64("/logo-black.png"),
+      preloadImageAsBase64("/logo-white.png"),
+    ])
 
   return {
     wirddyLogoBlack,
     wirddyLogoWhite,
     logoBlack,
     logoWhite,
-  };
+  }
 }
 
 /**
  * Ensures browser document fonts are loaded before rendering.
  */
 export async function ensureFontsReady(): Promise<void> {
-  if (typeof document !== 'undefined' && 'fonts' in document) {
+  if (typeof document !== "undefined" && "fonts" in document) {
     try {
-      await document.fonts.ready;
+      await document.fonts.ready
     } catch {
       // Ignore if document.fonts is unsupported
     }
@@ -81,29 +85,34 @@ export async function ensureFontsReady(): Promise<void> {
  * back to resolving after `timeoutMs` so a single stuck image can't hang the
  * export indefinitely.
  */
-export function waitForImagesToLoad(container: HTMLElement, timeoutMs = 4000): Promise<void> {
-  const images = Array.from(container.querySelectorAll('img'));
+export function waitForImagesToLoad(
+  container: HTMLElement,
+  timeoutMs = 4000
+): Promise<void> {
+  const images = Array.from(container.querySelectorAll("img"))
   if (images.length === 0) {
-    return Promise.resolve();
+    return Promise.resolve()
   }
 
   const imageReady = (img: HTMLImageElement) =>
     new Promise<void>((resolve) => {
       if (img.complete) {
-        resolve();
-        return;
+        resolve()
+        return
       }
       const onSettle = () => {
-        img.removeEventListener('load', onSettle);
-        img.removeEventListener('error', onSettle);
-        resolve();
-      };
-      img.addEventListener('load', onSettle);
-      img.addEventListener('error', onSettle);
-    });
+        img.removeEventListener("load", onSettle)
+        img.removeEventListener("error", onSettle)
+        resolve()
+      }
+      img.addEventListener("load", onSettle)
+      img.addEventListener("error", onSettle)
+    })
 
-  const allImagesReady = Promise.all(images.map(imageReady)).then(() => undefined);
-  const timeout = new Promise<void>((resolve) => setTimeout(resolve, timeoutMs));
+  const allImagesReady = Promise.all(images.map(imageReady)).then(
+    () => undefined
+  )
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, timeoutMs))
 
-  return Promise.race([allImagesReady, timeout]);
+  return Promise.race([allImagesReady, timeout])
 }

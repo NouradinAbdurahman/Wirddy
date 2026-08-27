@@ -1,7 +1,17 @@
-import { toBlob } from 'html-to-image';
-import { ensureFontsReady, preloadExportAssets, waitForImagesToLoad } from './assets';
-import { formatArabicNumeral } from './filenames';
-import { ExportMember, ExportRenderOptions, ExportSchedule, ExportViewMode, ExportWeek } from './types';
+import { toBlob } from "html-to-image"
+import {
+  ensureFontsReady,
+  preloadExportAssets,
+  waitForImagesToLoad,
+} from "./assets"
+import { formatArabicNumeral } from "./filenames"
+import {
+  ExportMember,
+  ExportRenderOptions,
+  ExportSchedule,
+  ExportViewMode,
+  ExportWeek,
+} from "./types"
 
 /**
  * Builds clean, unclipped HTML for an individual member assignment card.
@@ -13,27 +23,43 @@ export function buildMemberCardHtml(
   isDark: boolean
 ): string {
   const amountStr = isArabic
-    ? `${formatArabicNumeral(member.amountInJuz)} ${member.amountInJuz === 1 ? 'جزء' : member.amountInJuz === 2 ? 'جزآن' : member.amountInJuz <= 10 ? 'أجزاء' : 'جزء'}`
-    : `${member.amountInJuz} Juz`;
+    ? `${formatArabicNumeral(member.amountInJuz)} ${member.amountInJuz === 1 ? "جزء" : member.amountInJuz === 2 ? "جزآن" : member.amountInJuz <= 10 ? "أجزاء" : "جزء"}`
+    : `${member.amountInJuz} Juz`
 
-  const startJuzStr = isArabic ? `الجزء ${formatArabicNumeral(member.start.juzNumber)}` : `Juz ${member.start.juzNumber}`;
-  const endJuzStr = isArabic ? `الجزء ${formatArabicNumeral(member.end.juzNumber)}` : `Juz ${member.end.juzNumber}`;
-  const startSurahStr = isArabic ? `سورة ${member.start.surahNameArabic}` : member.start.surahNameEnglish;
-  const endSurahStr = isArabic ? `سورة ${member.end.surahNameArabic}` : member.end.surahNameEnglish;
-  const startAyahStr = isArabic ? `الآية ${formatArabicNumeral(member.start.ayahNumber)}` : `Ayah ${member.start.ayahNumber}`;
-  const endAyahStr = isArabic ? `الآية ${formatArabicNumeral(member.end.ayahNumber)}` : `Ayah ${member.end.ayahNumber}`;
-  const startLabel = isArabic ? 'البداية' : 'START';
-  const endLabel = isArabic ? 'النهاية' : 'END';
+  const startJuzStr = isArabic
+    ? `الجزء ${formatArabicNumeral(member.start.juzNumber)}`
+    : `Juz ${member.start.juzNumber}`
+  const endJuzStr = isArabic
+    ? `الجزء ${formatArabicNumeral(member.end.juzNumber)}`
+    : `Juz ${member.end.juzNumber}`
+  const startSurahStr = isArabic
+    ? `سورة ${member.start.surahNameArabic}`
+    : member.start.surahNameEnglish
+  const endSurahStr = isArabic
+    ? `سورة ${member.end.surahNameArabic}`
+    : member.end.surahNameEnglish
+  const startAyahStr = isArabic
+    ? `الآية ${formatArabicNumeral(member.start.ayahNumber)}`
+    : `Ayah ${member.start.ayahNumber}`
+  const endAyahStr = isArabic
+    ? `الآية ${formatArabicNumeral(member.end.ayahNumber)}`
+    : `Ayah ${member.end.ayahNumber}`
+  const startLabel = isArabic ? "البداية" : "START"
+  const endLabel = isArabic ? "النهاية" : "END"
 
-  const cardBg = isDark ? '#0f172a' : '#ffffff';
-  const cardBorder = isDark ? 'rgba(51, 65, 85, 0.7)' : 'rgba(226, 232, 240, 0.9)';
-  const dividerColor = isDark ? 'rgba(51, 65, 85, 0.5)' : 'rgba(241, 245, 249, 0.9)';
-  const primaryText = isDark ? '#f8fafc' : '#0f172a';
-  const secondaryText = isDark ? '#94a3b8' : '#64748b';
-  const accentColor = '#0d9488'; // teal-600
+  const cardBg = isDark ? "#0f172a" : "#ffffff"
+  const cardBorder = isDark
+    ? "rgba(51, 65, 85, 0.7)"
+    : "rgba(226, 232, 240, 0.9)"
+  const dividerColor = isDark
+    ? "rgba(51, 65, 85, 0.5)"
+    : "rgba(241, 245, 249, 0.9)"
+  const primaryText = isDark ? "#f8fafc" : "#0f172a"
+  const secondaryText = isDark ? "#94a3b8" : "#64748b"
+  const accentColor = "#0d9488" // teal-600
 
   // Single-line, un-truncated: names stay whole and never break mid-word onto a new line.
-  const noWrapLine = 'white-space: nowrap;';
+  const noWrapLine = "white-space: nowrap;"
 
   return `
     <div style="background-color: ${cardBg}; border: 1px solid ${cardBorder}; border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 2px rgba(0,0,0,0.05); box-sizing: border-box;">
@@ -42,7 +68,7 @@ export function buildMemberCardHtml(
         <div style="flex: 1 1 auto; min-width: 0; font-weight: 800; font-size: 14px; line-height: 1.3; color: ${primaryText}; ${noWrapLine}">
           ${member.name}
         </div>
-        <div style="flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? '#1e293b' : '#f1f5f9'}; color: ${secondaryText}; border: 1px solid ${isDark ? '#334155' : '#e2e8f0'}; white-space: nowrap;">
+        <div style="flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? "#1e293b" : "#f1f5f9"}; color: ${secondaryText}; border: 1px solid ${isDark ? "#334155" : "#e2e8f0"}; white-space: nowrap;">
           ${amountStr}
         </div>
       </div>
@@ -82,7 +108,7 @@ export function buildMemberCardHtml(
         </div>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -93,21 +119,23 @@ export function buildWeeklyCardsSectionHtml(
   isArabic: boolean,
   isDark: boolean
 ): string {
-  const primaryText = isDark ? '#f8fafc' : '#0f172a';
-  const borderPrimary = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.8)';
+  const primaryText = isDark ? "#f8fafc" : "#0f172a"
+  const borderPrimary = isDark
+    ? "rgba(51, 65, 85, 0.6)"
+    : "rgba(226, 232, 240, 0.8)"
 
   const weekLabelStr = isArabic
     ? `الأسبوع ${formatArabicNumeral(week.weekNumber)} من ${formatArabicNumeral(week.totalWeeks)}`
-    : `Week ${week.weekNumber} of ${week.totalWeeks}`;
+    : `Week ${week.weekNumber} of ${week.totalWeeks}`
   const completionText = isArabic
     ? `${formatArabicNumeral(30)} / ${formatArabicNumeral(30)} جزء • اكتمال الختمة`
-    : `30 / 30 Juz • Full Completion`;
+    : `30 / 30 Juz • Full Completion`
 
   const memberCardsHtml = week.members
     .map((member) => buildMemberCardHtml(member, isArabic, isDark))
-    .join('');
+    .join("")
 
-  const gridColumns = week.members.length <= 2 ? '1fr' : '1fr 1fr';
+  const gridColumns = week.members.length <= 2 ? "1fr" : "1fr 1fr"
 
   return `
     <div style="margin-bottom: 24px; box-sizing: border-box;">
@@ -127,7 +155,7 @@ export function buildWeeklyCardsSectionHtml(
         ${memberCardsHtml}
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -138,36 +166,52 @@ export function buildWeeklyTableSectionHtml(
   isArabic: boolean,
   isDark: boolean
 ): string {
-  const primaryText = isDark ? '#f8fafc' : '#0f172a';
-  const secondaryText = isDark ? '#94a3b8' : '#64748b';
-  const borderPrimary = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.8)';
-  const rowDivider = isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(241, 245, 249, 0.9)';
-  const headerBg = isDark ? 'rgba(30, 41, 59, 0.7)' : '#f1f5f9';
-  const cardBg = isDark ? '#0f172a' : '#ffffff';
-  const accentColor = '#0d9488';
+  const primaryText = isDark ? "#f8fafc" : "#0f172a"
+  const secondaryText = isDark ? "#94a3b8" : "#64748b"
+  const borderPrimary = isDark
+    ? "rgba(51, 65, 85, 0.6)"
+    : "rgba(226, 232, 240, 0.8)"
+  const rowDivider = isDark
+    ? "rgba(51, 65, 85, 0.4)"
+    : "rgba(241, 245, 249, 0.9)"
+  const headerBg = isDark ? "rgba(30, 41, 59, 0.7)" : "#f1f5f9"
+  const cardBg = isDark ? "#0f172a" : "#ffffff"
+  const accentColor = "#0d9488"
 
   const weekLabelStr = isArabic
     ? `الأسبوع ${formatArabicNumeral(week.weekNumber)} من ${formatArabicNumeral(week.totalWeeks)}`
-    : `Week ${week.weekNumber} of ${week.totalWeeks}`;
+    : `Week ${week.weekNumber} of ${week.totalWeeks}`
   const completionText = isArabic
     ? `${formatArabicNumeral(30)} / ${formatArabicNumeral(30)} جزء • اكتمال الختمة`
-    : `30 / 30 Juz • Full Completion`;
+    : `30 / 30 Juz • Full Completion`
 
-  const headerMember = isArabic ? 'العضو' : 'MEMBER';
-  const headerAmount = isArabic ? 'الورد' : 'JUZ';
-  const headerStart = isArabic ? 'البداية' : 'START';
-  const headerEnd = isArabic ? 'النهاية' : 'END';
+  const headerMember = isArabic ? "العضو" : "MEMBER"
+  const headerAmount = isArabic ? "الورد" : "JUZ"
+  const headerStart = isArabic ? "البداية" : "START"
+  const headerEnd = isArabic ? "النهاية" : "END"
 
   const rowsHtml = week.members
     .map((member) => {
-      const startJuzStr = isArabic ? `الجزء ${formatArabicNumeral(member.start.juzNumber)}` : `Juz ${member.start.juzNumber}`;
-      const endJuzStr = isArabic ? `الجزء ${formatArabicNumeral(member.end.juzNumber)}` : `Juz ${member.end.juzNumber}`;
-      const startSurahStr = isArabic ? `سورة ${member.start.surahNameArabic}` : member.start.surahNameEnglish;
-      const endSurahStr = isArabic ? `سورة ${member.end.surahNameArabic}` : member.end.surahNameEnglish;
-      const startAyahStr = isArabic ? `الآية ${formatArabicNumeral(member.start.ayahNumber)}` : `Ayah ${member.start.ayahNumber}`;
-      const endAyahStr = isArabic ? `الآية ${formatArabicNumeral(member.end.ayahNumber)}` : `Ayah ${member.end.ayahNumber}`;
+      const startJuzStr = isArabic
+        ? `الجزء ${formatArabicNumeral(member.start.juzNumber)}`
+        : `Juz ${member.start.juzNumber}`
+      const endJuzStr = isArabic
+        ? `الجزء ${formatArabicNumeral(member.end.juzNumber)}`
+        : `Juz ${member.end.juzNumber}`
+      const startSurahStr = isArabic
+        ? `سورة ${member.start.surahNameArabic}`
+        : member.start.surahNameEnglish
+      const endSurahStr = isArabic
+        ? `سورة ${member.end.surahNameArabic}`
+        : member.end.surahNameEnglish
+      const startAyahStr = isArabic
+        ? `الآية ${formatArabicNumeral(member.start.ayahNumber)}`
+        : `Ayah ${member.start.ayahNumber}`
+      const endAyahStr = isArabic
+        ? `الآية ${formatArabicNumeral(member.end.ayahNumber)}`
+        : `Ayah ${member.end.ayahNumber}`
 
-      const cellNoWrap = 'white-space: nowrap;';
+      const cellNoWrap = "white-space: nowrap;"
 
       return `
         <tr style="border-bottom: 1px solid ${rowDivider};">
@@ -177,7 +221,7 @@ export function buildWeeklyTableSectionHtml(
             </div>
           </td>
           <td style="padding: 9px 10px; vertical-align: middle; text-align: center;">
-            <span style="display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? '#1e293b' : '#f1f5f9'}; color: ${secondaryText}; border: 1px solid ${isDark ? '#334155' : '#e2e8f0'}; white-space: nowrap;">
+            <span style="display: inline-block; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background-color: ${isDark ? "#1e293b" : "#f1f5f9"}; color: ${secondaryText}; border: 1px solid ${isDark ? "#334155" : "#e2e8f0"}; white-space: nowrap;">
               ${formatArabicNumeral(member.amountInJuz)}
             </span>
           </td>
@@ -204,9 +248,9 @@ export function buildWeeklyTableSectionHtml(
             </div>
           </td>
         </tr>
-      `;
+      `
     })
-    .join('');
+    .join("")
 
   return `
     <div style="margin-bottom: 24px; box-sizing: border-box;">
@@ -223,13 +267,13 @@ export function buildWeeklyTableSectionHtml(
 
       <!-- Table Container -->
       <div style="background-color: ${cardBg}; border: 1px solid ${borderPrimary}; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; text-align: ${isArabic ? 'right' : 'left'};">
+        <table style="width: 100%; table-layout: fixed; border-collapse: collapse; text-align: ${isArabic ? "right" : "left"};">
           <thead>
             <tr style="background-color: ${headerBg}; border-bottom: 1px solid ${borderPrimary}; font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px; color: ${secondaryText}; text-transform: uppercase;">
-              <th style="padding: 9px 14px; text-align: ${isArabic ? 'right' : 'left'}; width: 28%; white-space: nowrap;">${headerMember}</th>
+              <th style="padding: 9px 14px; text-align: ${isArabic ? "right" : "left"}; width: 28%; white-space: nowrap;">${headerMember}</th>
               <th style="padding: 9px 10px; text-align: center; width: 12%; white-space: nowrap;">${headerAmount}</th>
-              <th style="padding: 9px 14px; text-align: ${isArabic ? 'right' : 'left'}; width: 30%; color: ${accentColor}; white-space: nowrap;">${headerStart}</th>
-              <th style="padding: 9px 14px; text-align: ${isArabic ? 'right' : 'left'}; width: 30%; color: ${accentColor}; white-space: nowrap;">${headerEnd}</th>
+              <th style="padding: 9px 14px; text-align: ${isArabic ? "right" : "left"}; width: 30%; color: ${accentColor}; white-space: nowrap;">${headerStart}</th>
+              <th style="padding: 9px 14px; text-align: ${isArabic ? "right" : "left"}; width: 30%; color: ${accentColor}; white-space: nowrap;">${headerEnd}</th>
             </tr>
           </thead>
           <tbody>
@@ -238,7 +282,7 @@ export function buildWeeklyTableSectionHtml(
         </table>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -248,12 +292,12 @@ export function buildWeeklySectionHtml(
   week: ExportWeek,
   isArabic: boolean,
   isDark: boolean,
-  viewMode: ExportViewMode = 'cards'
+  viewMode: ExportViewMode = "cards"
 ): string {
-  if (viewMode === 'table' || week.view === 'table') {
-    return buildWeeklyTableSectionHtml(week, isArabic, isDark);
+  if (viewMode === "table" || week.view === "table") {
+    return buildWeeklyTableSectionHtml(week, isArabic, isDark)
   }
-  return buildWeeklyCardsSectionHtml(week, isArabic, isDark);
+  return buildWeeklyCardsSectionHtml(week, isArabic, isDark)
 }
 
 /**
@@ -261,25 +305,37 @@ export function buildWeeklySectionHtml(
  */
 export function buildStandaloneWeekExportHtml(
   week: ExportWeek,
-  assets: { wirddyLogoBlack: string; wirddyLogoWhite: string; logoBlack: string; logoWhite: string },
-  theme: 'light' | 'dark',
-  viewMode: ExportViewMode = 'cards'
+  assets: {
+    wirddyLogoBlack: string
+    wirddyLogoWhite: string
+    logoBlack: string
+    logoWhite: string
+  },
+  theme: "light" | "dark",
+  viewMode: ExportViewMode = "cards"
 ): string {
-  const isArabic = week.language === 'ar';
-  const isDark = theme === 'dark';
-  const dir = isArabic ? 'rtl' : 'ltr';
+  const isArabic = week.language === "ar"
+  const isDark = theme === "dark"
+  const dir = isArabic ? "rtl" : "ltr"
 
-  const logoSrc = isDark ? assets.wirddyLogoWhite : assets.wirddyLogoBlack;
-  const bg = isDark ? '#020617' : '#f8fafc';
-  const textPrimary = isDark ? '#f8fafc' : '#0f172a';
-  const textSecondary = isDark ? '#94a3b8' : '#475569';
-  const borderPrimary = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.8)';
-  const planTag = isArabic ? 'خطة ختم القرآن الكريم' : 'Quran Completion Plan';
+  const logoSrc = isDark ? assets.wirddyLogoWhite : assets.wirddyLogoBlack
+  const bg = isDark ? "#020617" : "#f8fafc"
+  const textPrimary = isDark ? "#f8fafc" : "#0f172a"
+  const textSecondary = isDark ? "#94a3b8" : "#475569"
+  const borderPrimary = isDark
+    ? "rgba(51, 65, 85, 0.6)"
+    : "rgba(226, 232, 240, 0.8)"
+  const planTag = isArabic ? "خطة ختم القرآن الكريم" : "Quran Completion Plan"
   const footerText = isArabic
-    ? 'تم إنشاء هذا الجدول عبر تطبيق وِردي — تنظيم قراءة القرآن في مجموعات'
-    : 'Generated with Wirddy — Quran Reading Planner for Groups';
+    ? "تم إنشاء هذا الجدول عبر تطبيق وِردي — تنظيم قراءة القرآن في مجموعات"
+    : "Generated with Wirddy — Quran Reading Planner for Groups"
 
-  const weeklyContentHtml = buildWeeklySectionHtml(week, isArabic, isDark, viewMode);
+  const weeklyContentHtml = buildWeeklySectionHtml(
+    week,
+    isArabic,
+    isDark,
+    viewMode
+  )
 
   return `
     <div dir="${dir}" style="width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
@@ -289,7 +345,7 @@ export function buildStandaloneWeekExportHtml(
         <div style="display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1 1 auto;">
           <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 40px; width: auto; object-fit: contain;" />
           <div style="min-width: 0;">
-            <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
+            <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
             </div>
             <div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">
@@ -298,8 +354,8 @@ export function buildStandaloneWeekExportHtml(
           </div>
         </div>
 
-        <div style="flex-shrink: 0; text-align: ${isArabic ? 'left' : 'right'};">
-          <div style="font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 10px; background-color: ${isDark ? '#0f172a' : '#ffffff'}; border: 1px solid ${borderPrimary}; color: ${textPrimary}; display: inline-block; white-space: nowrap;">
+        <div style="flex-shrink: 0; text-align: ${isArabic ? "left" : "right"};">
+          <div style="font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 10px; background-color: ${isDark ? "#0f172a" : "#ffffff"}; border: 1px solid ${borderPrimary}; color: ${textPrimary}; display: inline-block; white-space: nowrap;">
             ${isArabic ? `الأسبوع ${formatArabicNumeral(week.weekNumber)} من ${formatArabicNumeral(week.totalWeeks)}` : `Week ${week.weekNumber} of ${week.totalWeeks}`}
           </div>
         </div>
@@ -315,7 +371,7 @@ export function buildStandaloneWeekExportHtml(
         <span style="white-space: nowrap;">${footerText}</span>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -327,31 +383,38 @@ export function buildPdfPageHtml(
   pageNumber: number,
   totalPages: number,
   isFirstPage: boolean,
-  assets: { wirddyLogoBlack: string; wirddyLogoWhite: string; logoBlack: string; logoWhite: string },
-  theme: 'light' | 'dark',
-  viewMode: ExportViewMode = 'cards'
+  assets: {
+    wirddyLogoBlack: string
+    wirddyLogoWhite: string
+    logoBlack: string
+    logoWhite: string
+  },
+  theme: "light" | "dark",
+  viewMode: ExportViewMode = "cards"
 ): string {
-  const isArabic = schedule.language === 'ar';
-  const isDark = theme === 'dark';
-  const dir = isArabic ? 'rtl' : 'ltr';
+  const isArabic = schedule.language === "ar"
+  const isDark = theme === "dark"
+  const dir = isArabic ? "rtl" : "ltr"
 
-  const logoSrc = isDark ? assets.wirddyLogoWhite : assets.wirddyLogoBlack;
-  const bg = isDark ? '#020617' : '#f8fafc';
-  const textPrimary = isDark ? '#f8fafc' : '#0f172a';
-  const textSecondary = isDark ? '#94a3b8' : '#475569';
-  const borderPrimary = isDark ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.8)';
-  const planTag = isArabic ? 'خطة ختم القرآن الكريم' : 'Quran Completion Plan';
+  const logoSrc = isDark ? assets.wirddyLogoWhite : assets.wirddyLogoBlack
+  const bg = isDark ? "#020617" : "#f8fafc"
+  const textPrimary = isDark ? "#f8fafc" : "#0f172a"
+  const textSecondary = isDark ? "#94a3b8" : "#475569"
+  const borderPrimary = isDark
+    ? "rgba(51, 65, 85, 0.6)"
+    : "rgba(226, 232, 240, 0.8)"
+  const planTag = isArabic ? "خطة ختم القرآن الكريم" : "Quran Completion Plan"
   const footerText = isArabic
-    ? 'تم إنشاء هذا الجدول عبر تطبيق وِردي — تنظيم قراءة القرآن في مجموعات'
-    : 'Generated with Wirddy — Quran Reading Planner for Groups';
+    ? "تم إنشاء هذا الجدول عبر تطبيق وِردي — تنظيم قراءة القرآن في مجموعات"
+    : "Generated with Wirddy — Quran Reading Planner for Groups"
 
   const pageLabelStr = isArabic
     ? `صفحة ${formatArabicNumeral(pageNumber)} من ${formatArabicNumeral(totalPages)}`
-    : `Page ${pageNumber} of ${totalPages}`;
+    : `Page ${pageNumber} of ${totalPages}`
 
   const weeksHtml = pageWeeks
     .map((week) => buildWeeklySectionHtml(week, isArabic, isDark, viewMode))
-    .join('');
+    .join("")
 
   // Page Header (Full header for page 1, compact continuation header for subsequent pages)
   const headerHtml = isFirstPage
@@ -360,7 +423,7 @@ export function buildPdfPageHtml(
         <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1 1 auto;">
           <img src="${logoSrc}" alt="Wirddy" style="flex-shrink: 0; height: 38px; width: auto; object-fit: contain;" />
           <div style="min-width: 0;">
-            <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? 'rgba(13, 148, 136, 0.15)' : 'rgba(13, 148, 136, 0.1)'}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
+            <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
             </div>
             <div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">
@@ -369,12 +432,12 @@ export function buildPdfPageHtml(
           </div>
         </div>
 
-        <div style="flex-shrink: 0; text-align: ${isArabic ? 'left' : 'right'}; display: flex; flex-direction: column; align-items: ${isArabic ? 'flex-start' : 'flex-end'}; gap: 4px;">
-          <div style="font-size: 11.5px; font-weight: 800; padding: 4px 12px; border-radius: 8px; background-color: ${isDark ? '#0f172a' : '#ffffff'}; border: 1px solid ${borderPrimary}; color: ${textPrimary}; white-space: nowrap;">
+        <div style="flex-shrink: 0; text-align: ${isArabic ? "left" : "right"}; display: flex; flex-direction: column; align-items: ${isArabic ? "flex-start" : "flex-end"}; gap: 4px;">
+          <div style="font-size: 11.5px; font-weight: 800; padding: 4px 12px; border-radius: 8px; background-color: ${isDark ? "#0f172a" : "#ffffff"}; border: 1px solid ${borderPrimary}; color: ${textPrimary}; white-space: nowrap;">
             ${isArabic ? `${formatArabicNumeral(schedule.totalWeeks)} أسابيع` : `${schedule.totalWeeks} Weeks Plan`}
           </div>
           <div style="font-size: 10.5px; font-weight: 700; color: #10b981; white-space: nowrap;">
-            ${isArabic ? '٣٠ جزءًا أسبوعيًا' : '30 Juz / Week'}
+            ${isArabic ? "٣٠ جزءًا أسبوعيًا" : "30 Juz / Week"}
           </div>
         </div>
       </div>
@@ -391,7 +454,7 @@ export function buildPdfPageHtml(
           ${pageLabelStr}
         </div>
       </div>
-    `;
+    `
 
   return `
     <div dir="${dir}" style="width: 1000px; min-height: 1414px; background-color: ${bg}; color: ${textPrimary}; font-family: var(--font-arabic), var(--font-sans), system-ui, -apple-system, sans-serif; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; position: relative;">
@@ -411,7 +474,7 @@ export function buildPdfPageHtml(
         <span style="flex-shrink: 0; font-weight: 600; white-space: nowrap;">${pageLabelStr}</span>
       </div>
     </div>
-  `;
+  `
 }
 
 /**
@@ -421,51 +484,59 @@ export async function renderWeekToPngBlob(
   week: ExportWeek,
   options?: ExportRenderOptions
 ): Promise<Blob> {
-  const theme = options?.theme || week.theme || 'dark';
-  const viewMode = options?.view || week.view || 'cards';
-  const pixelRatio = options?.pixelRatio || 2.2;
+  const theme = options?.theme || week.theme || "dark"
+  const viewMode = options?.view || week.view || "cards"
+  const pixelRatio = options?.pixelRatio || 2.2
 
   // Preload assets & wait for font readiness
-  const [assets] = await Promise.all([preloadExportAssets(), ensureFontsReady()]);
+  const [assets] = await Promise.all([
+    preloadExportAssets(),
+    ensureFontsReady(),
+  ])
 
   // Create isolated off-screen mount container
-  const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  container.style.width = '880px';
-  container.style.zIndex = '-9999';
-  container.style.pointerEvents = 'none';
-  container.style.opacity = '1';
+  const container = document.createElement("div")
+  container.style.position = "fixed"
+  container.style.left = "-9999px"
+  container.style.top = "0"
+  container.style.width = "880px"
+  container.style.zIndex = "-9999"
+  container.style.pointerEvents = "none"
+  container.style.opacity = "1"
 
-  container.innerHTML = buildStandaloneWeekExportHtml(week, assets, theme, viewMode);
-  document.body.appendChild(container);
+  container.innerHTML = buildStandaloneWeekExportHtml(
+    week,
+    assets,
+    theme,
+    viewMode
+  )
+  document.body.appendChild(container)
 
   try {
-    const targetElement = container.firstElementChild as HTMLElement;
+    const targetElement = container.firstElementChild as HTMLElement
     if (!targetElement) {
-      throw new Error('Failed to create export DOM element.');
+      throw new Error("Failed to create export DOM element.")
     }
 
-    await waitForImagesToLoad(targetElement);
-    await new Promise((r) => setTimeout(r, 40));
+    await waitForImagesToLoad(targetElement)
+    await new Promise((r) => setTimeout(r, 40))
 
     const blob = await toBlob(targetElement, {
       quality: 0.98,
       pixelRatio,
       skipFonts: true,
       cacheBust: false,
-    });
+    })
 
     if (!blob) {
-      throw new Error('toBlob returned null or empty result.');
+      throw new Error("toBlob returned null or empty result.")
     }
 
-    return blob;
+    return blob
   } finally {
     try {
       if (document.body.contains(container)) {
-        document.body.removeChild(container);
+        document.body.removeChild(container)
       }
     } catch {
       // ignore
