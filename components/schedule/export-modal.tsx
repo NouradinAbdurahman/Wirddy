@@ -11,7 +11,6 @@ import {
   IconInfoCircle,
   IconLoader2,
   IconSettings,
-  IconShare,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { GeneratedSchedule } from "@/lib/scheduler/types"
@@ -24,7 +23,6 @@ import {
   exportWeekAsPng,
   normalizeScheduleToExport,
   normalizeWeekSchedule,
-  shareScheduleAsPdf,
 } from "@/lib/export"
 import {
   Dialog,
@@ -174,6 +172,7 @@ export function ExportModal({
         viewMode,
         branding
       )
+
       await exportScheduleAsPdf(
         exportSchedule,
         { theme: activeExportTheme, view: viewMode, branding },
@@ -189,54 +188,6 @@ export function ExportModal({
       }, 1400)
     } catch (err) {
       console.error("Full plan PDF export failed:", err)
-      setErrorMessage(t.exportError)
-    } finally {
-      setIsExporting(false)
-      setExportProgress(null)
-    }
-  }
-
-  // 4. Share Full Plan (PDF File)
-  const handleShareFullPdf = async () => {
-    if (isExporting) return
-    setIsExporting(true)
-    resetStatus()
-    setExportProgress(t.exportLoadingShare)
-
-    try {
-      const exportSchedule = normalizeScheduleToExport(
-        schedule,
-        language,
-        activeExportTheme,
-        viewMode,
-        branding
-      )
-
-      const result = await shareScheduleAsPdf(
-        exportSchedule,
-        { theme: activeExportTheme, view: viewMode, branding },
-        (_curr, _total, msg) => {
-          setExportProgress(msg)
-        }
-      )
-
-      if (result.method === "native-share") {
-        setSuccessMessage(t.exportShareSuccess)
-        setTimeout(() => {
-          onOpenChange(false)
-          setSuccessMessage(null)
-        }, 1400)
-      } else if (result.method === "canceled") {
-        resetStatus()
-      } else if (result.method === "fallback-download") {
-        if (result.error) {
-          setInfoMessage(t.exportShareFallbackError)
-        } else {
-          setInfoMessage(t.exportShareFallbackUnsupported)
-        }
-      }
-    } catch (err) {
-      console.error("Share PDF failed:", err)
       setErrorMessage(t.exportError)
     } finally {
       setIsExporting(false)
@@ -346,37 +297,7 @@ export function ExportModal({
           </div>
         </div>
 
-        {/* 1. Direct Share Actions Section (Single Full Plan PDF Share) */}
-        <div className="space-y-2.5 pt-1">
-          <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-            {t.exportShareSection}
-          </div>
-          <div>
-            {/* Share Full Plan PDF */}
-            <Card
-              onClick={!isExporting ? handleShareFullPdf : undefined}
-              className={`flex items-center gap-4 rounded-2xl border p-4 text-start transition-all ${
-                isExporting
-                  ? "cursor-not-allowed border-border/40 opacity-60"
-                  : "group cursor-pointer border-border/70 bg-card/90 shadow-xs hover:border-primary/50 hover:bg-primary/5 hover:shadow-sm"
-              }`}
-            >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-105">
-                <IconShare className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-bold text-foreground">
-                  {t.exportSharePdfAll}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {t.exportPdfAllFormat}
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-
-        {/* 2. Download Files Actions Section */}
+        {/* Download Files Actions Section */}
         <div className="space-y-2.5 border-t border-border/40 pt-4">
           <div className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
             {t.exportDownloadSection}
