@@ -10,12 +10,14 @@ interface WeekNavProps {
   weeksCount: number
   activeWeek: number
   onSelectWeek: (week: number) => void
+  align?: "start" | "center"
 }
 
 export function WeekNav({
   weeksCount,
   activeWeek,
   onSelectWeek,
+  align = "start",
 }: WeekNavProps) {
   const { dir, t, formatNumber } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -46,11 +48,13 @@ export function WeekNav({
     }
   }
 
+  const justifyClass = align === "center" ? "justify-center" : "justify-start"
+
   return (
-    <div className="w-full py-1">
+    <div className="w-auto py-1">
       {weeksCount <= 6 ? (
         /* Compact layout for 1-6 weeks */
-        <div className="flex items-center justify-center">
+        <div className={`flex items-center ${justifyClass}`}>
           <div className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border/50 bg-muted/50 p-1">
             {Array.from({ length: weeksCount }, (_, i) => i + 1).map(
               (weekNum) => {
@@ -88,7 +92,7 @@ export function WeekNav({
         </div>
       ) : (
         /* Scalable scrollable layout with Prev/Next controls for large week counts */
-        <div className="flex max-w-full items-center justify-center gap-2">
+        <div className={`flex max-w-full items-center ${justifyClass} gap-2`}>
           <Button
             type="button"
             variant="outline"

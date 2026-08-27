@@ -89,34 +89,6 @@ export function ScheduleView({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* View Switcher: Cards vs Table */}
-          <div className="flex items-center rounded-xl border border-border/50 bg-muted/60 p-0.5 dark:bg-muted/40">
-            <button
-              type="button"
-              onClick={() => setViewMode("cards")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
-                viewMode === "cards"
-                  ? "border border-border/60 bg-card text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <IconLayoutGrid className="h-3.5 w-3.5" />
-              <span>{t.viewCards}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("table")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
-                viewMode === "table"
-                  ? "border border-border/60 bg-card text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <IconTable className="h-3.5 w-3.5" />
-              <span>{t.viewTable}</span>
-            </button>
-          </div>
-
           {/* Regenerate Button (Only for editors/creators) */}
           {!isViewOnly && onRegenerate && (
             <Button
@@ -226,16 +198,54 @@ export function ScheduleView({
         </div>
       </Card>
 
-      {/* Week Navigation */}
-      {schedule.weeksCount > 1 && (
-        <div className="pt-1">
-          <WeekNav
-            weeksCount={schedule.weeksCount}
-            activeWeek={activeWeekNum}
-            onSelectWeek={setActiveWeekNum}
-          />
+      {/* Week Navigation & View Switcher (Same Line: Weeks on Left, Cards/Table on Right) */}
+      <div className="flex flex-col justify-between gap-3 pt-1 sm:flex-row sm:items-center">
+        {/* Left side: Weeks selector */}
+        <div className="flex items-center">
+          {schedule.weeksCount > 1 ? (
+            <WeekNav
+              weeksCount={schedule.weeksCount}
+              activeWeek={activeWeekNum}
+              onSelectWeek={setActiveWeekNum}
+              align="start"
+            />
+          ) : (
+            <div className="inline-flex items-center rounded-2xl border border-border/50 bg-muted/50 px-3.5 py-1.5 text-xs font-bold text-foreground">
+              {t.weekLabel} {formatNumber(1)}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Right side: Cards / Table view switcher */}
+        <div className="flex items-center self-end sm:self-auto">
+          <div className="flex items-center rounded-xl border border-border/50 bg-muted/60 p-0.5 dark:bg-muted/40">
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                viewMode === "cards"
+                  ? "border border-border/60 bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <IconLayoutGrid className="h-3.5 w-3.5" />
+              <span>{t.viewCards}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                viewMode === "table"
+                  ? "border border-border/60 bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <IconTable className="h-3.5 w-3.5" />
+              <span>{t.viewTable}</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Member Assignments Display for Active Week (Cards vs Table) */}
       <div className="space-y-3 text-start">
