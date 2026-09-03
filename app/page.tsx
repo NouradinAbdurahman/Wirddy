@@ -17,7 +17,6 @@ import { validateScheduleInput } from "@/lib/scheduler/validator"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { Hero } from "@/components/landing/hero"
-import { RecentSchedules } from "@/components/landing/recent-schedules"
 import { HowItWorks } from "@/components/landing/how-it-works"
 import { DashboardPreview } from "@/components/landing/dashboard-preview"
 import { QuranReaderPreview } from "@/components/landing/quran-reader-preview"
@@ -355,15 +354,7 @@ export default function HomePage() {
                 onHowItWorks={scrollToHowItWorks}
               />
 
-              {/* 2. Recent Local Schedules History */}
-              <RecentSchedules
-                onOpenLocal={() => {
-                  if (schedule) setStep("schedule")
-                  else setStep("planner")
-                }}
-              />
-
-              {/* 3. How Wirddy Works (4 Steps Journey) */}
+              {/* 2. How Wirddy Works (4 Steps Journey) */}
               <div id="how-it-works">
                 <HowItWorks />
               </div>
