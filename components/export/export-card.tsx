@@ -31,7 +31,7 @@ export function ExportCard({
       style={{
         fontFamily:
           language === "ar"
-            ? "var(--font-arabic), system-ui, sans-serif"
+            ? "var(--font-arabic), var(--font-quran), system-ui, sans-serif"
             : "var(--font-sans), system-ui, sans-serif",
       }}
     >
@@ -114,7 +114,7 @@ export function ExportCard({
                     {t.juzLabel} {formatNumber(assignment.startJuz)}
                   </span>
                 </div>
-                <div className="pt-0.5 text-[11px] font-semibold break-words text-slate-200">
+                <div className="pt-0.5 text-[11px] font-semibold break-words text-slate-200 font-quran text-xs">
                   {language === "ar"
                     ? `سورة ${assignment.startAyah.surahNameAr}`
                     : `${assignment.startAyah.surahNameEn}`}
@@ -134,7 +134,7 @@ export function ExportCard({
                     {t.juzLabel} {formatNumber(assignment.endJuz)}
                   </span>
                 </div>
-                <div className="pt-0.5 text-[11px] font-semibold break-words text-slate-200">
+                <div className="pt-0.5 text-[11px] font-semibold break-words text-slate-200 font-quran text-xs">
                   {language === "ar"
                     ? `سورة ${assignment.endAyah.surahNameAr}`
                     : `${assignment.endAyah.surahNameEn}`}

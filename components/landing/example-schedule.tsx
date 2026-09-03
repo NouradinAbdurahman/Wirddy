@@ -12,6 +12,7 @@ import { useI18n } from "@/lib/i18n/context"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 type PreviewViewMode = "cards" | "table"
 
@@ -266,13 +267,18 @@ export function ExampleSchedule({ onTryTemplate }: ExampleScheduleProps) {
                       <div className="grid grid-cols-2 gap-3">
                         {/* Start */}
                         <div className="flex flex-col space-y-0.5">
-                          <span className="text-[10px] font-extrabold tracking-wider text-primary uppercase">
+                          <span className="text-[10px] font-bold text-primary uppercase">
                             {t.startLabel}
                           </span>
                           <span className="text-xs font-bold text-muted-foreground">
                             {t.juzLabel} {formatNumber(item.startJuz)}
                           </span>
-                          <span className="pt-0.5 text-sm font-extrabold break-words text-foreground">
+                          <span
+                            className={cn(
+                              "pt-0.5 text-sm font-bold break-words text-foreground",
+                              language === "ar" && "font-quran text-base"
+                            )}
+                          >
                             {language === "ar"
                               ? `سورة ${item.startAyah}`
                               : item.startAyah}
@@ -281,13 +287,18 @@ export function ExampleSchedule({ onTryTemplate }: ExampleScheduleProps) {
 
                         {/* End */}
                         <div className="flex flex-col space-y-0.5">
-                          <span className="text-[10px] font-extrabold tracking-wider text-primary uppercase">
+                          <span className="text-[10px] font-bold text-primary uppercase">
                             {t.endLabel}
                           </span>
                           <span className="text-xs font-bold text-muted-foreground">
                             {t.juzLabel} {formatNumber(item.endJuz)}
                           </span>
-                          <span className="pt-0.5 text-sm font-extrabold break-words text-foreground">
+                          <span
+                            className={cn(
+                              "pt-0.5 text-sm font-bold break-words text-foreground",
+                              language === "ar" && "font-quran text-base"
+                            )}
+                          >
                             {language === "ar"
                               ? `سورة ${item.endAyah}`
                               : item.endAyah}
@@ -349,7 +360,12 @@ export function ExampleSchedule({ onTryTemplate }: ExampleScheduleProps) {
                                 <span className="text-[11px] font-bold text-muted-foreground">
                                   {t.juzLabel} {formatNumber(item.startJuz)}
                                 </span>
-                                <span className="text-sm leading-tight font-extrabold break-words text-foreground">
+                                <span
+                                  className={cn(
+                                    "text-sm leading-tight font-bold break-words text-foreground",
+                                    language === "ar" && "font-quran text-base"
+                                  )}
+                                >
                                   {language === "ar"
                                     ? `سورة ${item.startAyah}`
                                     : item.startAyah}
@@ -361,7 +377,12 @@ export function ExampleSchedule({ onTryTemplate }: ExampleScheduleProps) {
                                 <span className="text-[11px] font-bold text-muted-foreground">
                                   {t.juzLabel} {formatNumber(item.endJuz)}
                                 </span>
-                                <span className="text-sm leading-tight font-extrabold break-words text-foreground">
+                                <span
+                                  className={cn(
+                                    "text-sm leading-tight font-bold break-words text-foreground",
+                                    language === "ar" && "font-quran text-base"
+                                  )}
+                                >
                                   {language === "ar"
                                     ? `سورة ${item.endAyah}`
                                     : item.endAyah}

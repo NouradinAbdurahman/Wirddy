@@ -211,18 +211,60 @@ export async function preloadExportAssets(
  * Ensures browser document fonts are loaded before rendering.
  * Also explicitly loads Cairo + Inter since Chrome needs them available
  * before html-to-image captures the off-canvas element.
+ *
+ * Cairo supports weights 300-700 only. Requesting 800/900 silently falls
+ * back to the OS default which cannot render Arabic glyphs correctly.
+ * We therefore load every valid Cairo weight and use weight 700 (bold)
+ * for all "heavy" text in the export HTML.
  */
 export async function ensureFontsReady(): Promise<void> {
   if (typeof document === "undefined" || !("fonts" in document)) return
   try {
-    // Force Cairo (Arabic) and Inter (Latin) to load in Chrome
+    // Cairo supports weights 300–700; Inter supports 100–900.
+    // Load all needed weights explicitly so Chrome has them in the
+    // font cache before html-to-image snaps the off-canvas element.
     await Promise.all([
+      document.fonts.load("300 16px Cairo"),
       document.fonts.load("400 16px Cairo"),
+      document.fonts.load("500 16px Cairo"),
+      document.fonts.load("600 16px Cairo"),
       document.fonts.load("700 16px Cairo"),
+      document.fonts.load("700 24px Cairo"),
+      document.fonts.load("400 24px Cairo"),
       document.fonts.load("400 16px Inter"),
       document.fonts.load("700 16px Inter"),
+      document.fonts.load("400 16px Amiri"),
+      document.fonts.load("700 16px Amiri"),
+      document.fonts.load("400 24px Amiri"),
+      document.fonts.load("700 24px Amiri"),
+      document.fonts.load("400 16px 'Amiri Quran'"),
       document.fonts.ready,
     ])
+
+    // Warm up Arabic shaping: inject a tiny off-screen element with Arabic
+    // text so the browser fully shapes and rasterizes the glyphs before
+    // html-to-image captures the SVG foreignObject.
+    const warmup = document.createElement("span")
+    warmup.setAttribute("aria-hidden", "true")
+    warmup.style.cssText = [
+      "position:absolute",
+      "left:-9999px",
+      "top:0",
+      "font-family:Amiri, Cairo, sans-serif",
+      "font-size:16px",
+      "visibility:visible",
+      "pointer-events:none",
+      "direction:rtl",
+      "unicode-bidi:embed",
+    ].join(";")
+    // Covers Arabic letters, tashkeel, and Quranic characters (alef wasla, quranic jazm)
+    warmup.textContent = "سورة ٱلْفَاتِحَةِ سورة النَّمۡلِ سورة الأَحۡزَابِ ختمة وِردي"
+    document.body.appendChild(warmup)
+
+    // Wait one rAF so the browser can layout + rasterize the warmup text
+    await new Promise<void>((r) => requestAnimationFrame(() => r()))
+
+    document.body.removeChild(warmup)
   } catch {
     // Non-fatal: fall back to system fonts if loading fails
   }

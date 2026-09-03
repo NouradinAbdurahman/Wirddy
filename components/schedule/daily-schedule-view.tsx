@@ -7,6 +7,7 @@ import { DailyPortion, MemberAssignment } from "@/lib/scheduler/types"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toArabicNumerals } from "@/lib/dates/calendar"
+import { cn } from "@/lib/utils"
 
 interface DailyScheduleViewProps {
   assignments: MemberAssignment[]
@@ -108,7 +109,7 @@ export function DailyScheduleView({
 
                       {/* Portion Text */}
                       <div className="my-2 space-y-1 text-start">
-                        <p className="text-xs leading-relaxed font-semibold text-foreground">
+                        <p className={cn("text-xs leading-relaxed font-semibold text-foreground", language === "ar" && "font-quran text-sm")}>
                           {portionRangeText}
                         </p>
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

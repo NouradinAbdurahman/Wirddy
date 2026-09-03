@@ -148,7 +148,8 @@ function DashboardContent() {
         setGroups(groupsRes.data)
         if (groupsRes.data.length > 0) {
           const firstGrp = groupsRes.data[0].publicId
-          if (!selectedProgressGroup) setSelectedProgressGroup(firstGrp)
+          const firstOwned = groupsRes.data.find((g) => g.isOwner)?.publicId || ""
+          if (!selectedProgressGroup && firstOwned) setSelectedProgressGroup(firstOwned)
           if (!selectedAnnounceGroup) setSelectedAnnounceGroup(firstGrp)
           if (!selectedHistoryGroup) setSelectedHistoryGroup(firstGrp)
         }
@@ -210,6 +211,17 @@ function DashboardContent() {
       subscription.unsubscribe()
     }
   }, [])
+
+  // Automatically ensure selectedProgressGroup is an owned group for progress tracking
+  useEffect(() => {
+    const owned = groups.filter((g) => g.isOwner)
+    if (
+      owned.length > 0 &&
+      (!selectedProgressGroup || !owned.some((g) => g.publicId === selectedProgressGroup))
+    ) {
+      setSelectedProgressGroup(owned[0].publicId)
+    }
+  }, [groups, selectedProgressGroup])
 
   // Load Group Progress when selected group changes
   useEffect(() => {
@@ -635,36 +647,67 @@ function DashboardContent() {
           )}
 
           {/* VIEW B: GROUP PROGRESS TAB */}
-          {currentTab === "progress" && (
-            <div className="space-y-6">
-              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2">
-                  <IconChartBar className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-black text-foreground sm:text-xl">
-                    {t.navGroupProgress}
-                  </h2>
+          {currentTab === "progress" && (() => {
+            const ownedGroups = groups.filter((g) => g.isOwner)
+            return (
+              <div className="space-y-6">
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-2">
+                    <IconChartBar className="h-5 w-5 text-primary" />
+                    <h2 className="text-lg font-black text-foreground sm:text-xl">
+                      {t.navGroupProgress}
+                    </h2>
+                  </div>
+
+                  {ownedGroups.length > 0 && (
+                    <select
+                      value={selectedProgressGroup}
+                      onChange={(e) => setSelectedProgressGroup(e.target.value)}
+                      className="h-9 rounded-xl border border-border/80 bg-card px-3 text-xs font-bold text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                    >
+                      {ownedGroups.map((g) => (
+                        <option key={g.publicId} value={g.publicId}>
+                          {g.groupName} ({g.membersCount} {language === "ar" ? "أعضاء" : "members"})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
-                {groups.length > 0 && (
-                  <select
-                    value={selectedProgressGroup}
-                    onChange={(e) => setSelectedProgressGroup(e.target.value)}
-                    className="h-9 rounded-xl border border-border/80 bg-card px-3 text-xs font-bold text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
-                  >
-                    {groups.map((g) => (
-                      <option key={g.publicId} value={g.publicId}>
-                        {g.groupName} ({g.membersCount} {language === "ar" ? "أعضاء" : "members"})
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {isLoadingProgress ? (
-                <div className="flex h-60 items-center justify-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                </div>
-              ) : groupProgressSummary ? (
+                {ownedGroups.length === 0 ? (
+                  <Card className="rounded-2xl border border-dashed border-border/80 p-10 text-center space-y-3">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <IconUsers className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-base font-extrabold text-foreground">
+                      {language === "ar"
+                        ? "متابعة تقدم المجموعة مخصصة لمنشئ الختمة"
+                        : "Group Progress is reserved for Group Creators"}
+                    </h3>
+                    <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
+                      {language === "ar"
+                        ? "هذا القسم يتيح لمسؤول المجموعة متابعة قراءة جميع الأعضاء، وحالة انضمام كل عضو، ومستوى إنجاز الختمة الأسبوعية. يمكنك متابعة وردك اليومي الشخصي مباشرة من الصفحة الرئيسية للوحة التحكم."
+                        : "This section allows group creators to track all members' reading, join status, and weekly completion. You can track your personal daily reading directly from the overview tab."}
+                    </p>
+                    <div className="pt-2 flex flex-wrap justify-center gap-2.5">
+                      <Link href="/dashboard">
+                        <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold">
+                          {language === "ar" ? "العودة للرئيسية (ورد اليوم)" : "Go to Overview"}
+                        </Button>
+                      </Link>
+                      <Link href="/">
+                        <Button size="sm" className="rounded-xl text-xs font-extrabold gap-1.5">
+                          <IconPlus className="h-4 w-4" />
+                          <span>{language === "ar" ? "إنشاء ختمة جديدة كمسؤول" : "Create New Khatmah as Owner"}</span>
+                        </Button>
+                      </Link>
+                    </div>
+                  </Card>
+                ) : isLoadingProgress ? (
+                  <div className="flex h-60 items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                ) : groupProgressSummary ? (
                 <Card className="space-y-6 rounded-2xl border border-border/70 bg-card/80 p-4 sm:p-6 shadow-xs">
                   <div className="flex flex-col justify-between gap-4 border-b border-border/60 pb-4 sm:flex-row sm:items-center">
                     <div>
@@ -837,7 +880,8 @@ function DashboardContent() {
                 </div>
               )}
             </div>
-          )}
+          )
+        })()}
 
           {/* VIEW C: ANNOUNCEMENTS TAB */}
           {currentTab === "announcements" && (

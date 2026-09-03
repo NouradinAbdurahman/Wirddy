@@ -11,6 +11,7 @@ import {
 import { useI18n } from "@/lib/i18n/context"
 import { MemberAssignment } from "@/lib/scheduler/types"
 import { Card, CardContent } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 interface MemberScheduleCardProps {
   assignment: MemberAssignment
@@ -60,7 +61,7 @@ export function MemberScheduleCard({
                   suppressHydrationWarning
                 />
               </div>
-              <h4 className="text-base font-extrabold tracking-tight break-words text-foreground sm:text-lg">
+              <h4 className="text-base font-bold break-words text-foreground sm:text-lg">
                 {assignment.memberName}
               </h4>
             </div>
@@ -74,13 +75,18 @@ export function MemberScheduleCard({
           <div className="grid grid-cols-2 gap-3 pt-1">
             {/* START SECTION */}
             <div className="flex flex-col space-y-0.5">
-              <span className="text-[10px] font-extrabold tracking-wider text-primary uppercase">
+              <span className="text-[10px] font-bold text-primary uppercase">
                 {t.startLabel}
               </span>
               <span className="text-xs font-bold text-muted-foreground">
                 {t.juzLabel} {formatNumber(assignment.startJuz)}
               </span>
-              <span className="pt-0.5 text-sm font-extrabold break-words text-foreground">
+              <span
+                className={cn(
+                  "pt-0.5 text-sm font-bold break-words text-foreground",
+                  language === "ar" && "font-quran text-base"
+                )}
+              >
                 {language === "ar"
                   ? `سورة ${assignment.startAyah.surahNameAr}`
                   : `${assignment.startAyah.surahNameEn}`}
@@ -92,13 +98,18 @@ export function MemberScheduleCard({
 
             {/* END SECTION */}
             <div className="flex flex-col space-y-0.5">
-              <span className="text-[10px] font-extrabold tracking-wider text-primary uppercase">
+              <span className="text-[10px] font-bold text-primary uppercase">
                 {t.endLabel}
               </span>
               <span className="text-xs font-bold text-muted-foreground">
                 {t.juzLabel} {formatNumber(assignment.endJuz)}
               </span>
-              <span className="pt-0.5 text-sm font-extrabold break-words text-foreground">
+              <span
+                className={cn(
+                  "pt-0.5 text-sm font-bold break-words text-foreground",
+                  language === "ar" && "font-quran text-base"
+                )}
+              >
                 {language === "ar"
                   ? `سورة ${assignment.endAyah.surahNameAr}`
                   : `${assignment.endAyah.surahNameEn}`}

@@ -48,10 +48,10 @@ export function ContinueReadingWidget({ data }: ContinueReadingWidgetProps) {
               <IconBookmark className="h-4 w-4" />
             </div>
             <div>
-              <span className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase">
                 {t.dashboardContinueReading}
               </span>
-              <h4 className="font-serif text-base font-bold text-foreground">
+              <h4 className="font-quran text-base font-bold text-foreground">
                 {language === "ar"
                   ? `سورة ${data.surahNameAr} • الآية ${data.ayahNumber}`
                   : `Surah ${data.surahNameEn} • Ayah ${data.ayahNumber}`}

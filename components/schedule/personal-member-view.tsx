@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
+import Link from "next/link"
 import QRCode from "qrcode"
 import {
   IconArrowLeft,
@@ -20,6 +21,8 @@ import {
   IconSparkles,
   IconUserCheck,
   IconUsersGroup,
+  IconLayoutDashboard,
+  IconAlertCircle,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import {
@@ -37,10 +40,12 @@ import { Badge } from "@/components/ui/badge"
 import { toArabicNumerals } from "@/lib/dates/calendar"
 import { QuranReader } from "@/components/reader/quran-reader"
 import {
+  getMemberLinkStatusAction,
   linkMemberAccountAction,
   saveReadingProgressAction,
 } from "@/lib/groups/actions"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
 
 interface PersonalMemberViewProps {
   groupPublicId?: string
@@ -80,9 +85,22 @@ export function PersonalMemberView({
   const [completedDays, setCompletedDays] = useState<Record<string, boolean>>(
     {}
   )
-  const [isLinked, setIsLinked] = useState(false)
+  const [linkStatus, setLinkStatus] = useState<{
+    isLinked: boolean
+    isLinkedToCurrentUser: boolean
+    isOwner: boolean
+    currentUserId: string | null
+    isLoading: boolean
+  }>({
+    isLinked: member.isLinked || false,
+    isLinkedToCurrentUser: false,
+    isOwner: false,
+    currentUserId: null,
+    isLoading: true,
+  })
   const [isLinking, setIsLinking] = useState(false)
   const [linkToast, setLinkToast] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
 
   const BackArrowIcon = dir === "rtl" ? IconArrowRight : IconArrowLeft
 
@@ -95,30 +113,90 @@ export function PersonalMemberView({
     ? `${origin}/g/${groupPublicId}/member/${memberPublicId}`
     : ""
 
+  const checkLinkStatus = async () => {
+    if (!groupPublicId) return
+    try {
+      const res = await getMemberLinkStatusAction(groupPublicId, memberPublicId)
+      if (res.success && res.data) {
+        const data = res.data
+        setLinkStatus({
+          isLinked: data.isLinked,
+          isLinkedToCurrentUser: data.isLinkedToCurrentUser,
+          isOwner: data.isOwner,
+          currentUserId: data.currentUserId,
+          isLoading: false,
+        })
+
+        // Auto-link if redirected from login with autolink param
+        if (
+          typeof window !== "undefined" &&
+          window.location.search.includes("autolink=true") &&
+          data.currentUserId &&
+          !data.isLinked
+        ) {
+          window.history.replaceState({}, document.title, window.location.pathname)
+          executeLink()
+        }
+      } else {
+        setLinkStatus((prev) => ({ ...prev, isLoading: false }))
+      }
+    } catch {
+      setLinkStatus((prev) => ({ ...prev, isLoading: false }))
+    }
+  }
+
   useEffect(() => {
+    checkLinkStatus()
     const supabase = getSupabaseBrowserClient()
     if (supabase) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          setIsLinked(true)
-        }
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(() => {
+        checkLinkStatus()
       })
+      return () => {
+        subscription.unsubscribe()
+      }
     }
-  }, [])
+  }, [groupPublicId, memberPublicId])
 
-  const handleLinkAccount = async () => {
+  const executeLink = async () => {
     if (!groupPublicId || isLinking) return
     setIsLinking(true)
+    setLinkError(null)
     try {
       const res = await linkMemberAccountAction(groupPublicId, memberPublicId)
       if (res.success) {
-        setIsLinked(true)
+        setLinkStatus((prev) => ({
+          ...prev,
+          isLinked: true,
+          isLinkedToCurrentUser: true,
+        }))
         setLinkToast(true)
-        setTimeout(() => setLinkToast(false), 3000)
+        setTimeout(() => setLinkToast(false), 5000)
+      } else {
+        setLinkError(
+          res.error ||
+            (language === "ar"
+              ? "تعذر ربط الحساب. يرجى المحاولة مرة أخرى."
+              : "Failed to link account. Please try again.")
+        )
       }
+    } catch (err: any) {
+      setLinkError(err?.message || "Failed to link account.")
     } finally {
       setIsLinking(false)
     }
+  }
+
+  const handleLinkAccount = () => {
+    if (!linkStatus.currentUserId) {
+      // Prompt / redirect unauthenticated user to login with autolink return URL
+      const nextUrl = `${window.location.pathname}?autolink=true`
+      window.location.href = `/login?next=${encodeURIComponent(nextUrl)}`
+      return
+    }
+    executeLink()
   }
 
   const handleToggleDayComplete = async (
@@ -379,46 +457,118 @@ export function PersonalMemberView({
 
       {/* Account Linking / Join Banner */}
       {groupPublicId && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <IconUserCheck className="h-5 w-5" />
+        <div className="space-y-3">
+          {/* Success Celebration Toast Banner */}
+          {linkToast && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-emerald-950 dark:text-emerald-100 shadow-sm animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white font-bold">
+                  <IconCheck className="h-5 w-5" />
+                </div>
+                <p className="text-xs font-bold leading-relaxed">
+                  {language === "ar"
+                    ? "🎉 تم انضمامك وربط الورد بحسابك بنجاح! يمكنك الآن متابعة قراءتك اليومية مباشرة من لوحة التحكم."
+                    : "🎉 Successfully joined and linked! You can now track your daily reading directly on your dashboard."}
+                </p>
+              </div>
+              <Link href="/dashboard" className="shrink-0">
+                <Button size="sm" className="h-8 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold gap-1.5 px-3">
+                  <IconLayoutDashboard className="h-3.5 w-3.5" />
+                  <span>{language === "ar" ? "الانتقال إلى لوحة التحكم" : "Go to Dashboard"}</span>
+                </Button>
+              </Link>
             </div>
-            <div className="text-start">
-              <p className="text-xs font-bold text-foreground">
-                {language === "ar"
-                  ? `هل هذا وردك الخاص يا ${member.name}؟`
-                  : `Is this your reading assignment, ${member.name}?`}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {language === "ar"
-                  ? "اربط هذا الجدول بحسابك لتظهر قراءتك اليومية مباشرة في لوحة التحكم الخاصة بك وتتابع إنجازك."
-                  : "Link this schedule to your account to track your daily reading directly on your dashboard."}
-              </p>
-            </div>
-          </div>
+          )}
 
-          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-            {isLinked ? (
-              <Badge className="bg-emerald-500/15 text-xs font-bold text-emerald-600 dark:text-emerald-400 py-1.5 px-3">
-                <IconCheck className="h-3.5 w-3.5 me-1" />
-                <span>{language === "ar" ? "مرتبط بحسابك" : "Linked to Account"}</span>
-              </Badge>
-            ) : (
-              <Button
-                size="sm"
-                onClick={handleLinkAccount}
-                disabled={isLinking}
-                className="h-8.5 rounded-xl px-3.5 text-xs font-extrabold shadow-sm"
+          {/* Error Message */}
+          {linkError && (
+            <div className="flex items-center gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-xs font-semibold text-destructive">
+              <IconAlertCircle className="h-4 w-4 shrink-0" />
+              <span>{linkError}</span>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold",
+                  linkStatus.isLinkedToCurrentUser
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : "bg-primary/10 text-primary"
+                )}
               >
-                <IconUserCheck className="h-4 w-4 me-1.5" />
-                <span>
-                  {isLinking
-                    ? (language === "ar" ? "جاري الانضمام..." : "Linking...")
-                    : (language === "ar" ? "انضمام وربط بحسابي" : "Join & Link to My Dashboard")}
-                </span>
-              </Button>
-            )}
+                {linkStatus.isLinkedToCurrentUser ? (
+                  <IconCheck className="h-5 w-5" />
+                ) : (
+                  <IconUserCheck className="h-5 w-5" />
+                )}
+              </div>
+              <div className="text-start">
+                <p className="text-xs font-bold text-foreground">
+                  {linkStatus.isLinkedToCurrentUser
+                    ? (language === "ar"
+                        ? `مرحباً بك يا ${member.name} (وردك مرتبط بحسابك)`
+                        : `Welcome back, ${member.name} (Linked to your account)`)
+                    : linkStatus.isLinked
+                    ? (language === "ar"
+                        ? `ورد العضو: ${member.name}`
+                        : `Reading Assignment: ${member.name}`)
+                    : (language === "ar"
+                        ? `هل هذا وردك الخاص يا ${member.name}؟`
+                        : `Is this your reading assignment, ${member.name}?`)}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {linkStatus.isLinkedToCurrentUser
+                    ? (language === "ar"
+                        ? "يمكنك متابعة قراءتك اليومية ومصادقة إنجازك مباشرة من لوحة التحكم الخاصة بك."
+                        : "You can track your daily reading and confirm progress directly on your dashboard.")
+                    : linkStatus.isLinked
+                    ? (language === "ar"
+                        ? "هذا الورد تم ربطه بعضو منضم في المجموعة ويتابع إنجازه عبر حسابه."
+                        : "This reading assignment is claimed by a joined member.")
+                    : (language === "ar"
+                        ? "اربط هذا الجدول بحسابك لتظهر قراءتك اليومية مباشرة في لوحة التحكم الخاصة بك وتتابع إنجازك."
+                        : "Link this schedule to your account to track your daily reading directly on your dashboard.")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              {linkStatus.isLinkedToCurrentUser ? (
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-emerald-500/15 text-xs font-bold text-emerald-600 dark:text-emerald-400 py-1.5 px-3">
+                    <IconCheck className="h-3.5 w-3.5 me-1" />
+                    <span>{language === "ar" ? "مرتبط بحسابك" : "Linked to Account"}</span>
+                  </Badge>
+                  <Link href="/dashboard">
+                    <Button size="sm" variant="outline" className="h-8.5 rounded-xl px-3 text-xs font-extrabold gap-1 hover:bg-primary/10">
+                      <IconLayoutDashboard className="h-3.5 w-3.5 text-primary" />
+                      <span>{language === "ar" ? "لوحة التحكم" : "Dashboard"}</span>
+                    </Button>
+                  </Link>
+                </div>
+              ) : linkStatus.isLinked ? (
+                <Badge variant="secondary" className="text-xs font-bold py-1.5 px-3">
+                  <IconUserCheck className="h-3.5 w-3.5 me-1 text-emerald-500" />
+                  <span>{language === "ar" ? "عضو منضم" : "Member Joined"}</span>
+                </Badge>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={handleLinkAccount}
+                  disabled={isLinking}
+                  className="h-8.5 rounded-xl px-3.5 text-xs font-extrabold shadow-sm"
+                >
+                  <IconUserCheck className="h-4 w-4 me-1.5" />
+                  <span>
+                    {isLinking
+                      ? (language === "ar" ? "جاري الانضمام..." : "Linking...")
+                      : (language === "ar" ? "انضمام وربط بحسابي" : "Join & Link to My Dashboard")}
+                  </span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -499,7 +649,7 @@ export function PersonalMemberView({
                         )}
                       </div>
 
-                      <p className="text-xs font-semibold text-primary">
+                      <p className={cn("text-xs font-semibold text-primary", language === "ar" && "font-quran text-sm font-bold")}>
                         {rangeText}
                       </p>
                     </div>
@@ -576,7 +726,7 @@ export function PersonalMemberView({
                             </div>
 
                             <div className="my-1.5 text-start">
-                              <p className="text-xs leading-tight font-semibold text-foreground">
+                              <p className={cn("text-xs leading-tight font-semibold text-foreground", language === "ar" && "font-quran text-sm")}>
                                 {dailyRange}
                               </p>
                               <p className="text-[10px] text-muted-foreground">

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { searchQuran, QuranSearchResult } from "@/lib/quran/search"
+import { cn } from "@/lib/utils"
 
 interface QuranSearchModalProps {
   isOpen: boolean
@@ -139,7 +140,7 @@ export function QuranSearchModal({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-extrabold text-foreground">
+                      <span className={cn("text-xs font-bold text-foreground", language === "ar" && "font-quran text-sm")}>
                         {language === "ar"
                           ? `سورة ${res.surahNameAr}`
                           : res.surahNameEn}
@@ -161,7 +162,7 @@ export function QuranSearchModal({
                     </span>
                   </div>
 
-                  <p className="line-clamp-2 font-serif text-sm leading-relaxed text-foreground/90">
+                  <p className="line-clamp-2 font-quran text-base leading-relaxed text-foreground/90">
                     {res.text}
                   </p>
                 </div>

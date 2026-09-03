@@ -5,6 +5,7 @@ import QRCode from "qrcode"
 import { useI18n } from "@/lib/i18n/context"
 import { GeneratedSchedule, MemberAssignment } from "@/lib/scheduler/types"
 import { ExportViewMode } from "@/lib/export"
+import { cn } from "@/lib/utils"
 
 interface PrintableScheduleProps {
   schedule: GeneratedSchedule
@@ -183,7 +184,7 @@ export function PrintableSchedule({
                               {t.juzUnit}
                             </td>
                             <td className="px-3 py-2.5">
-                              <span className="font-bold text-slate-900">
+                              <span className={cn("font-bold text-slate-900", isArabic && "font-quran text-sm")}>
                                 {startSurah}{" "}
                                 {formatNumber(assignment.startAyah.ayahNumber)}
                               </span>
@@ -193,7 +194,7 @@ export function PrintableSchedule({
                               </span>
                             </td>
                             <td className="px-3 py-2.5">
-                              <span className="font-bold text-slate-900">
+                              <span className={cn("font-bold text-slate-900", isArabic && "font-quran text-sm")}>
                                 {endSurah}{" "}
                                 {formatNumber(assignment.endAyah.ayahNumber)}
                               </span>
@@ -235,26 +236,26 @@ export function PrintableSchedule({
 
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div className="space-y-0.5">
-                            <div className="text-[9px] font-extrabold tracking-wider text-teal-700 uppercase">
+                            <div className="text-[9px] font-bold text-teal-700 uppercase">
                               {t.startLabel}
                             </div>
                             <div className="text-[11px] font-bold text-slate-500">
                               {t.juzLabel} {formatNumber(assignment.startJuz)}
                             </div>
-                            <div className="text-xs font-bold text-slate-900">
+                            <div className={cn("text-xs font-bold text-slate-900", isArabic && "font-quran text-sm")}>
                               {startSurah}{" "}
                               {formatNumber(assignment.startAyah.ayahNumber)}
                             </div>
                           </div>
 
                           <div className="space-y-0.5">
-                            <div className="text-[9px] font-extrabold tracking-wider text-teal-700 uppercase">
+                            <div className="text-[9px] font-bold text-teal-700 uppercase">
                               {t.endLabel}
                             </div>
                             <div className="text-[11px] font-bold text-slate-500">
                               {t.juzLabel} {formatNumber(assignment.endJuz)}
                             </div>
-                            <div className="text-xs font-bold text-slate-900">
+                            <div className={cn("text-xs font-bold text-slate-900", isArabic && "font-quran text-sm")}>
                               {endSurah}{" "}
                               {formatNumber(assignment.endAyah.ayahNumber)}
                             </div>

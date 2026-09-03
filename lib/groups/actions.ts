@@ -26,6 +26,8 @@ import {
   fetchUserTodaysReading,
   getGroupByPublicId,
   getMemberScheduleByPublicId,
+  getMemberLinkStatus,
+  MemberLinkStatusResult,
   GroupProgressSummary,
   linkMemberAccount,
   LoadedPublicGroup,
@@ -627,6 +629,29 @@ export async function linkMemberAccountAction(
 }
 
 /**
+ * Server Action: Retrieves link and ownership status for a specific member slot.
+ */
+export async function getMemberLinkStatusAction(
+  groupPublicId: string,
+  memberPublicId: string
+): Promise<ActionResponse<MemberLinkStatusResult | null>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    const status = await getMemberLinkStatus(groupPublicId, memberPublicId, userId)
+    return {
+      success: true,
+      data: status,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || "Failed to fetch member link status.",
+      data: null,
+    }
+  }
+}
+
+/**
  * Server Action: Saves notification preferences.
  */
 export async function saveNotificationPreferencesAction(
@@ -889,7 +914,16 @@ export async function getGroupProgressSummaryAction(
       return { success: false, error: "Group ID required.", data: null }
     }
 
-    const summary = await fetchGroupProgressSummary(groupPublicId)
+    const userId = await getAuthenticatedUserId()
+    const summary = await fetchGroupProgressSummary(groupPublicId, userId)
+    if (!summary) {
+      return {
+        success: false,
+        error: "Unauthorized or group not found.",
+        data: null,
+      }
+    }
+
     return {
       success: true,
       data: summary,

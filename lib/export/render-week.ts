@@ -75,7 +75,7 @@ export function buildMemberCardHtml(
         return `
           <div style="padding: 4px 6px; border-radius: 6px; background-color: ${isDark ? "#1e293b" : "#f8fafc"}; border: 1px solid ${dividerColor}; text-align: center; min-width: 0;">
             <div style="font-size: 7.5px; font-weight: 800; color: ${accentColor}; ${noWrapLine}">${dDay}</div>
-            <div style="font-size: 8px; font-weight: 700; color: ${primaryText}; margin-top: 1px; ${noWrapLine}">${dSurah}</div>
+            <div style="font-size: ${isArabic ? "9.5px" : "8px"}; font-weight: 700; ${isArabic ? "font-family: Amiri, 'Amiri Quran', serif; font-feature-settings: 'liga' 1, 'calt' 1, 'locl' 1, 'mkmk' 1, 'mark' 1;" : ""} color: ${primaryText}; margin-top: 1px; ${noWrapLine}">${dSurah}</div>
             <div style="font-size: 7.5px; color: ${secondaryText}; ${noWrapLine}">${dAyahRange}</div>
           </div>
         `
@@ -107,13 +107,13 @@ export function buildMemberCardHtml(
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 9px; border-top: 1px solid ${dividerColor};">
         <!-- START Column -->
         <div style="display: flex; flex-direction: column; min-width: 0;">
-          <div style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: ${accentColor}; letter-spacing: 0.5px; margin-bottom: 2px; ${noWrapLine}">
+          <div style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: ${accentColor}; letter-spacing: ${isArabic ? "normal" : "0.5px"}; margin-bottom: 2px; ${noWrapLine}">
             ${startLabel}
           </div>
           <div style="font-size: 10px; font-weight: 700; color: ${secondaryText}; ${noWrapLine}">
             ${startJuzStr}
           </div>
-          <div style="font-size: 12px; font-weight: 800; color: ${primaryText}; margin-top: 1px; ${noWrapLine}">
+          <div style="font-size: ${isArabic ? "13.5px" : "12px"}; font-weight: 700; ${isArabic ? "font-family: Amiri, 'Amiri Quran', serif; font-feature-settings: 'liga' 1, 'calt' 1, 'locl' 1, 'mkmk' 1, 'mark' 1;" : ""} color: ${primaryText}; margin-top: 1px; ${noWrapLine}">
             ${startSurahStr}
           </div>
           <div style="font-size: 10px; color: ${secondaryText}; margin-top: 1px; ${noWrapLine}">
@@ -123,13 +123,13 @@ export function buildMemberCardHtml(
 
         <!-- END Column -->
         <div style="display: flex; flex-direction: column; min-width: 0;">
-          <div style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: ${accentColor}; letter-spacing: 0.5px; margin-bottom: 2px; ${noWrapLine}">
+          <div style="font-size: 8.5px; font-weight: 800; text-transform: uppercase; color: ${accentColor}; letter-spacing: ${isArabic ? "normal" : "0.5px"}; margin-bottom: 2px; ${noWrapLine}">
             ${endLabel}
           </div>
           <div style="font-size: 10px; font-weight: 700; color: ${secondaryText}; ${noWrapLine}">
             ${endJuzStr}
           </div>
-          <div style="font-size: 12px; font-weight: 800; color: ${primaryText}; margin-top: 1px; ${noWrapLine}">
+          <div style="font-size: ${isArabic ? "13.5px" : "12px"}; font-weight: 700; ${isArabic ? "font-family: Amiri, 'Amiri Quran', serif; font-feature-settings: 'liga' 1, 'calt' 1, 'locl' 1, 'mkmk' 1, 'mark' 1;" : ""} color: ${primaryText}; margin-top: 1px; ${noWrapLine}">
             ${endSurahStr}
           </div>
           <div style="font-size: 10px; color: ${secondaryText}; margin-top: 1px; ${noWrapLine}">
@@ -265,7 +265,7 @@ export function buildWeeklyTableSectionHtml(
             <div style="font-size: 9.5px; font-weight: 700; color: ${secondaryText}; ${cellNoWrap}">
               ${startJuzStr}
             </div>
-            <div style="font-size: 11px; font-weight: 800; color: ${primaryText}; margin-top: 1px; ${cellNoWrap}">
+            <div style="font-size: ${isArabic ? "13px" : "11px"}; font-weight: 700; ${isArabic ? "font-family: Amiri, 'Amiri Quran', serif; font-feature-settings: 'liga' 1, 'calt' 1, 'locl' 1, 'mkmk' 1, 'mark' 1;" : ""} color: ${primaryText}; margin-top: 1px; ${cellNoWrap}">
               ${startSurahStr}
             </div>
             <div style="font-size: 9.5px; color: ${secondaryText}; margin-top: 1px; ${cellNoWrap}">
@@ -276,7 +276,7 @@ export function buildWeeklyTableSectionHtml(
             <div style="font-size: 9.5px; font-weight: 700; color: ${secondaryText}; ${cellNoWrap}">
               ${endJuzStr}
             </div>
-            <div style="font-size: 11px; font-weight: 800; color: ${primaryText}; margin-top: 1px; ${cellNoWrap}">
+            <div style="font-size: ${isArabic ? "13px" : "11px"}; font-weight: 700; ${isArabic ? "font-family: Amiri, 'Amiri Quran', serif; font-feature-settings: 'liga' 1, 'calt' 1, 'locl' 1, 'mkmk' 1, 'mark' 1;" : ""} color: ${primaryText}; margin-top: 1px; ${cellNoWrap}">
               ${endSurahStr}
             </div>
             <div style="font-size: 9.5px; color: ${secondaryText}; margin-top: 1px; ${cellNoWrap}">
@@ -380,14 +380,14 @@ export function buildStandaloneWeekExportHtml(
   )
 
   return `
-    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: Cairo, Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
+    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: Cairo, Amiri, 'Amiri Quran', Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
       
       <!-- Top Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 16px; min-width: 0; flex: 1 1 auto;">
           ${showLogo ? `<img src="${logoSrc}" alt="Wirddy" width="140" height="38" style="flex-shrink: 0; width: 140px; height: 38px; max-width: 140px; max-height: 38px; object-fit: contain; display: block;" />` : ""}
           <div style="min-width: 0;">
-            <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
+            <div style="display: inline-block; width: max-content; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: ${isArabic ? "normal" : "0.5px"}; padding: 3px 10px; border-radius: 6px; background-color: ${isDark ? "rgba(13, 148, 136, 0.15)" : "rgba(13, 148, 136, 0.1)"}; color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); white-space: nowrap; box-sizing: content-box;">
               ${planTag}
             </div>
             ${showGroupName ? `<div style="font-size: 19px; font-weight: 800; color: ${textPrimary}; margin-top: 3px; white-space: nowrap;">${week.title ? `${week.title} • ${week.groupName}` : week.groupName}</div>` : ""}
@@ -503,7 +503,7 @@ export function buildPdfPageHtml(
     `
 
   return `
-    <div dir="${dir}" style="width: 1000px; min-width: 1000px; max-width: 1000px; height: 1414px; min-height: 1414px; max-height: 1414px; background-color: ${bg}; color: ${textPrimary}; font-family: Cairo, Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; position: relative;">
+    <div dir="${dir}" style="width: 1000px; min-width: 1000px; max-width: 1000px; height: 1414px; min-height: 1414px; max-height: 1414px; background-color: ${bg}; color: ${textPrimary}; font-family: Cairo, Amiri, 'Amiri Quran', Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 36px 40px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; position: relative;">
       
       <!-- Page Header -->
       <div>
@@ -594,7 +594,7 @@ export function buildMemberPersonalScheduleHtml(
                 </span>
                 ${dateRange ? `<span style="font-size: 9.5px; font-weight: 600; padding: 1px 6px; border-radius: 4px; background-color: ${isDark ? "#1e293b" : "#e2e8f0"}; color: ${textSecondary};">${isArabic ? dateRange.formattedAr : dateRange.formattedEn}</span>` : ""}
               </div>
-              <div style="font-size: 11.5px; font-weight: 700; color: ${accentColor}; margin-top: 2px; white-space: nowrap;">
+              <div style="font-size: ${isArabic ? "13px" : "11.5px"}; font-weight: 700; ${isArabic ? "font-family: Amiri, 'Amiri Quran', serif; font-feature-settings: 'liga' 1, 'calt' 1, 'locl' 1, 'mkmk' 1, 'mark' 1;" : ""} color: ${accentColor}; margin-top: 2px; white-space: nowrap;">
                 ${rangeText}
               </div>
             </div>
@@ -614,7 +614,7 @@ export function buildMemberPersonalScheduleHtml(
     .join("")
 
   return `
-    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: Cairo, Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
+    <div dir="${dir}" style="width: 880px; min-width: 880px; max-width: 880px; background-color: ${bg}; color: ${textPrimary}; font-family: Cairo, Amiri, 'Amiri Quran', Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; image-rendering: -webkit-optimize-contrast; padding: 32px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid ${borderPrimary}; border-radius: 24px; position: relative;">
       <!-- Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid ${borderPrimary}; padding-bottom: 20px; margin-bottom: 20px;">
         <div style="display: flex; align-items: center; gap: 16px; min-width: 0;">

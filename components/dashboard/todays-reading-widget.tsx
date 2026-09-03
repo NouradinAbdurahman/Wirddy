@@ -122,7 +122,7 @@ export function TodaysReadingWidget({
         <div className="mt-4 flex flex-col justify-between gap-4 rounded-xl border border-border/80 bg-background/80 p-4 sm:flex-row sm:items-center">
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="font-serif text-lg font-bold text-foreground sm:text-xl">
+              <h4 className="font-quran text-lg font-bold text-foreground sm:text-xl">
                 {language === "ar"
                   ? `سورة ${reading.surahNameAr}`
                   : `Surah ${reading.surahNameEn}`}

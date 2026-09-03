@@ -5,6 +5,7 @@ import { motion } from "motion/react"
 import { useI18n } from "@/lib/i18n/context"
 import { MemberAssignment, WeekSchedule } from "@/lib/scheduler/types"
 import { Card } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 interface ScheduleTableViewProps {
   week: WeekSchedule
@@ -67,7 +68,7 @@ export function ScheduleTableView({ week }: ScheduleTableViewProps) {
                     <span className="block text-[10px] font-bold text-primary">
                       {t.tableHeaderStart}
                     </span>
-                    <p className="truncate font-extrabold text-foreground text-xs">
+                    <p className={cn("truncate font-bold text-foreground text-xs", language === "ar" && "font-quran text-sm")}>
                       {startSurah}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
@@ -78,7 +79,7 @@ export function ScheduleTableView({ week }: ScheduleTableViewProps) {
                     <span className="block text-[10px] font-bold text-primary">
                       {t.tableHeaderEnd}
                     </span>
-                    <p className="truncate font-extrabold text-foreground text-xs">
+                    <p className={cn("truncate font-bold text-foreground text-xs", language === "ar" && "font-quran text-sm")}>
                       {endSurah}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
@@ -96,7 +97,7 @@ export function ScheduleTableView({ week }: ScheduleTableViewProps) {
           <table className="w-full border-collapse text-start text-sm">
             {/* Table Header */}
             <thead>
-              <tr className="border-b border-border/60 bg-muted/50 text-[11px] font-extrabold tracking-wider text-muted-foreground uppercase dark:bg-muted/25">
+              <tr className="border-b border-border/60 bg-muted/50 text-[11px] font-bold text-muted-foreground uppercase dark:bg-muted/25">
                 <th className="w-[28%] min-w-[140px] px-4 py-3 text-start sm:px-5">
                   {t.tableHeaderMember}
                 </th>
@@ -147,7 +148,7 @@ export function ScheduleTableView({ week }: ScheduleTableViewProps) {
                               suppressHydrationWarning
                             />
                           </div>
-                          <span className="text-sm leading-tight font-extrabold break-words text-foreground sm:text-base">
+                          <span className="text-sm leading-tight font-bold break-words text-foreground sm:text-base">
                             {assignment.memberName}
                           </span>
                         </div>
@@ -166,7 +167,7 @@ export function ScheduleTableView({ week }: ScheduleTableViewProps) {
                           <span className="text-[11px] font-bold text-muted-foreground">
                             {t.juzLabel} {formatNumber(assignment.startJuz)}
                           </span>
-                          <span className="text-sm leading-tight font-extrabold break-words text-foreground">
+                          <span className={cn("text-sm leading-tight font-bold break-words text-foreground", language === "ar" && "font-quran text-base")}>
                             {startSurah}
                           </span>
                           <span className="text-xs text-muted-foreground">
@@ -182,7 +183,7 @@ export function ScheduleTableView({ week }: ScheduleTableViewProps) {
                           <span className="text-[11px] font-bold text-muted-foreground">
                             {t.juzLabel} {formatNumber(assignment.endJuz)}
                           </span>
-                          <span className="text-sm leading-tight font-extrabold break-words text-foreground">
+                          <span className={cn("text-sm leading-tight font-bold break-words text-foreground", language === "ar" && "font-quran text-base")}>
                             {endSurah}
                           </span>
                           <span className="text-xs text-muted-foreground">

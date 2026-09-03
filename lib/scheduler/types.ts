@@ -33,6 +33,8 @@ export interface MemberConfig {
   startSurah?: number // 1-114
   endSurah?: number // 1-114
   weeklyAmount: number // e.g. 1, 2, 3, 5
+  linkedUserId?: string | null
+  isLinked?: boolean
 }
 
 export interface GroupConfig {

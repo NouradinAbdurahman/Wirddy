@@ -52,6 +52,7 @@ export interface LoadedPublicGroup {
   islamicYear?: number
   dailyDivisionEnabled?: boolean
   recurrence?: RecurrenceConfig
+  ownerUserId?: string | null
 }
 
 export interface LoadedPublicMemberSchedule {
@@ -419,7 +420,7 @@ export async function getGroupByPublicId(
   const { data: group, error: groupError } = (await supabase
     .from("groups")
     .select(
-      "id, public_id, name, title, description, language, direction, expires_at, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah, start_date, uses_dates, occasion_type, islamic_year, daily_division_enabled"
+      "id, public_id, name, title, description, language, direction, expires_at, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah, start_date, uses_dates, occasion_type, islamic_year, daily_division_enabled, owner_user_id"
     )
     .eq("public_id", publicId.trim())
     .single()) as {
@@ -444,6 +445,7 @@ export async function getGroupByPublicId(
       occasion_type: OccasionType
       islamic_year: number | null
       daily_division_enabled: boolean
+      owner_user_id: string | null
     } | null
     error: any
   }
@@ -480,7 +482,7 @@ export async function getGroupByPublicId(
   const { data: members, error: membersError } = (await supabase
     .from("group_members")
     .select(
-      "id, public_id, name, knowledge_type, start_juz, end_juz, start_surah, end_surah, weekly_amount, sort_order"
+      "id, public_id, name, knowledge_type, start_juz, end_juz, start_surah, end_surah, weekly_amount, sort_order, linked_user_id"
     )
     .eq("group_id", group.id)
     .order("sort_order", { ascending: true })) as {
@@ -495,6 +497,7 @@ export async function getGroupByPublicId(
       end_surah: number | null
       weekly_amount: number
       sort_order: number
+      linked_user_id: string | null
     }> | null
     error: any
   }
@@ -513,6 +516,8 @@ export async function getGroupByPublicId(
     startSurah: m.start_surah || undefined,
     endSurah: m.end_surah || undefined,
     weeklyAmount: m.weekly_amount,
+    linkedUserId: m.linked_user_id || undefined,
+    isLinked: Boolean(m.linked_user_id),
   }))
 
   const memberPublicIdMap = new Map<string, string>()
@@ -721,6 +726,7 @@ export async function getGroupByPublicId(
     islamicYear: effectiveIslamicYear,
     dailyDivisionEnabled: effectiveDaily,
     recurrence: (group as any).recurrence || undefined,
+    ownerUserId: group.owner_user_id || undefined,
   }
 }
 
@@ -1852,14 +1858,92 @@ export async function linkMemberAccount(
 
   if (!group) return false
 
-  const { error } = await (supabase.from("group_members") as any)
+  const cleanId = memberPublicId.trim()
+  const { data: updated, error } = await (supabase.from("group_members") as any)
     .update({
       linked_user_id: userId,
     })
     .eq("group_id", group.id)
-    .eq("public_id", memberPublicId.trim())
+    .or(`public_id.eq.${cleanId},id.eq.${cleanId}`)
+    .select("id, public_id, name, linked_user_id")
 
-  return !error
+  if (error) {
+    console.error("linkMemberAccount error:", error)
+    return false
+  }
+
+  // Also associate unassigned reading_progress records for this member with this userId
+  if (updated && updated.length > 0) {
+    const memberId = updated[0].id
+    await (supabase.from("reading_progress") as any)
+      .update({ user_id: userId })
+      .eq("group_id", group.id)
+      .eq("member_id", memberId)
+      .is("user_id", null)
+    return true
+  }
+
+  return false
+}
+
+export interface MemberLinkStatusResult {
+  isLinked: boolean
+  isLinkedToCurrentUser: boolean
+  linkedUserId: string | null
+  currentUserId: string | null
+  isOwner: boolean
+  groupOwnerId: string | null
+  memberName: string
+}
+
+/**
+ * Checks whether a specific member slot is linked to an account.
+ */
+export async function getMemberLinkStatus(
+  groupPublicId: string,
+  memberPublicId: string,
+  currentUserId?: string | null
+): Promise<MemberLinkStatusResult | null> {
+  if (!groupPublicId || !memberPublicId) return null
+
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return null
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("id, owner_user_id")
+    .eq("public_id", groupPublicId.trim())
+    .single()
+
+  if (!group) return null
+
+  const cleanId = memberPublicId.trim()
+  const { data: members, error } = await supabase
+    .from("group_members")
+    .select("id, public_id, name, linked_user_id")
+    .eq("group_id", group.id)
+    .or(`public_id.eq.${cleanId},id.eq.${cleanId}`)
+
+  if (error || !members || members.length === 0) return null
+
+  const member = members[0]
+  const isLinked = Boolean(member.linked_user_id)
+  const isLinkedToCurrentUser = Boolean(
+    currentUserId && member.linked_user_id === currentUserId
+  )
+  const isOwner = Boolean(
+    currentUserId && group.owner_user_id === currentUserId
+  )
+
+  return {
+    isLinked,
+    isLinkedToCurrentUser,
+    linkedUserId: member.linked_user_id || null,
+    currentUserId: currentUserId || null,
+    isOwner,
+    groupOwnerId: group.owner_user_id || null,
+    memberName: member.name,
+  }
 }
 
 /**
@@ -2461,7 +2545,8 @@ export async function fetchUserTodaysReading(
  * Aggregates complete progress details and percentages for all members of a group.
  */
 export async function fetchGroupProgressSummary(
-  groupPublicId: string
+  groupPublicId: string,
+  requestingUserId?: string | null
 ): Promise<GroupProgressSummary | null> {
   const supabase = getSupabaseServerClient()
   if (!supabase) return null
@@ -2486,11 +2571,20 @@ export async function fetchGroupProgressSummary(
   // 2. Fetch group DB record & members with linked_user_id
   const { data: groupDb } = await supabase
     .from("groups")
-    .select("id")
+    .select("id, owner_user_id")
     .eq("public_id", groupPublicId.trim())
     .single()
 
   if (!groupDb) return null
+
+  // Security & Privacy: Only the owner of the group can view complete group progress summary
+  if (
+    requestingUserId &&
+    groupDb.owner_user_id &&
+    groupDb.owner_user_id !== requestingUserId
+  ) {
+    return null
+  }
 
   const { data: membersDb } = await supabase
     .from("group_members")
@@ -2514,7 +2608,10 @@ export async function fetchGroupProgressSummary(
 
   const memberSummaries: MemberProgressSummary[] = group.membersConfig.map((m) => {
     const dbMem = membersDb?.find(
-      (dm: any) => dm.public_id === m.publicId || dm.id === m.id
+      (dm: any) =>
+        (m.publicId && dm.public_id === m.publicId) ||
+        dm.id === m.id ||
+        (m.name && dm.name?.trim().toLowerCase() === m.name?.trim().toLowerCase())
     )
     const memberDbId = dbMem?.id
 
@@ -2569,8 +2666,8 @@ export async function fetchGroupProgressSummary(
       isCompleted,
       percent,
       lastActivityAt: lastActivity,
-      isLinked: Boolean(dbMem?.linked_user_id),
-      linkedUserId: dbMem?.linked_user_id || null,
+      isLinked: Boolean(dbMem?.linked_user_id || m.linkedUserId || m.isLinked),
+      linkedUserId: dbMem?.linked_user_id || m.linkedUserId || null,
     }
   })
 
