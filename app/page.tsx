@@ -337,12 +337,7 @@ export default function HomePage() {
         }}
       />
 
-      <main
-        className={cn(
-          "container mx-auto flex-1 px-4 sm:px-6 print:m-0 print:w-full print:max-w-none print:p-0",
-          step === "landing" ? "py-0" : "py-8"
-        )}
-      >
+      <main className="container mx-auto flex-1 px-4 py-8 sm:px-6 print:m-0 print:w-full print:max-w-none print:p-0">
         <AnimatePresence mode="wait">
           {/* 1. Modernized Full-Platform Landing Page */}
           {step === "landing" && (
