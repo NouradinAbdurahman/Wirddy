@@ -215,6 +215,14 @@ export function GroupCard({
               {isOwner && (
                 <>
                   <DropdownMenuSeparator />
+                  <Link href={`/g/${group.publicId}?edit=true`}>
+                    <DropdownMenuItem className="cursor-pointer gap-2 text-xs font-semibold text-foreground">
+                      <IconEdit className="h-4 w-4" />
+                      <span>
+                        {language === "ar" ? "تعديل الجدول" : "Edit Schedule"}
+                      </span>
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuItem
                     onClick={() => setShowHistory(true)}
                     className="cursor-pointer gap-2 text-xs font-semibold"

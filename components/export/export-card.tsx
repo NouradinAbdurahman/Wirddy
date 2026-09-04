@@ -27,7 +27,7 @@ export function ExportCard({
     <div
       id={elementId}
       dir={dir}
-      className="relative w-[820px] overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 p-7 font-sans text-slate-50 shadow-2xl"
+      className="relative w-[820px] overflow-hidden rounded-none border-0 bg-slate-950 p-7 font-sans text-slate-50 shadow-none"
       style={{
         fontFamily:
           language === "ar"

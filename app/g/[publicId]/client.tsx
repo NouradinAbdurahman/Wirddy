@@ -13,6 +13,7 @@ import {
 import { useI18n } from "@/lib/i18n/context"
 import { LoadedPublicGroup } from "@/lib/groups/service"
 import {
+  checkCanEditGroupAction,
   deleteGroupAction,
   updateAndRegenerateAction,
   verifyEditTokenAction,
@@ -168,18 +169,22 @@ export function PublicScheduleClient({
     }
   }, [groupData, editToken, publicId])
 
-  // Verify edit token if provided in query string
+  // Verify edit authorization (via token or owner session)
   useEffect(() => {
-    if (editToken && publicId) {
-      verifyEditTokenAction(publicId, editToken).then((res: any) => {
-        setIsEditor(Boolean(res.success && res.data))
+    if (publicId) {
+      checkCanEditGroupAction(publicId, editToken || undefined).then((res: any) => {
+        const canEdit = Boolean(res.success && res.data?.canEdit)
+        setIsEditor(canEdit)
         setIsVerifyingEdit(false)
+        if (canEdit && (searchParams.get("edit") === "true" || searchParams.get("editing") === "true")) {
+          setIsEditing(true)
+        }
       })
     } else {
       setIsEditor(false)
       setIsVerifyingEdit(false)
     }
-  }, [editToken, publicId])
+  }, [editToken, publicId, searchParams])
 
   // Not Found State
   if (!groupData) {

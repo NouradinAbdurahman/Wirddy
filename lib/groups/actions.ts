@@ -45,6 +45,7 @@ import {
   UserGroupSummary,
   UserTodaysReadingResult,
   validateEditAccess,
+  checkGroupAuthorization,
 } from "./service"
 import { createSupabaseServerClient } from "../supabase/server"
 
@@ -187,14 +188,19 @@ export async function getPublicScheduleAction(
 }
 
 /**
- * Server Action: Validates an edit token for a group.
+ * Server Action: Validates an edit token for a group or checks if user is the owner.
  */
 export async function validateEditTokenAction(
   publicId: string,
-  rawEditToken: string
+  rawEditToken?: string
 ): Promise<ActionResponse<boolean>> {
   try {
-    const isAuthorized = await validateEditAccess(publicId, rawEditToken)
+    const userId = await getAuthenticatedUserId()
+    const isAuthorized = await validateEditAccess(
+      publicId,
+      rawEditToken,
+      userId || undefined
+    )
     return {
       success: true,
       data: isAuthorized,
@@ -203,6 +209,36 @@ export async function validateEditTokenAction(
     return {
       success: false,
       error: err.message || "Validation failed.",
+    }
+  }
+}
+
+/**
+ * Server Action: Checks if current visitor can edit this group (as owner or with token).
+ */
+export async function checkCanEditGroupAction(
+  publicId: string,
+  rawEditToken?: string
+): Promise<ActionResponse<{ canEdit: boolean; isOwner: boolean }>> {
+  try {
+    const userId = await getAuthenticatedUserId()
+    const { authorized, group } = await checkGroupAuthorization(
+      publicId,
+      rawEditToken,
+      userId || undefined
+    )
+    const isOwner = Boolean(userId && group && group.owner_user_id === userId)
+    return {
+      success: true,
+      data: {
+        canEdit: authorized,
+        isOwner,
+      },
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Failed to check edit permissions.",
     }
   }
 }
@@ -229,11 +265,13 @@ export async function updateScheduleAction(
       }
     }
 
+    const userId = await getAuthenticatedUserId()
     const updated = await updateGroupAndRegenerate(
       publicId,
       rawEditToken,
       input,
-      lang
+      lang,
+      userId || undefined
     )
     return {
       success: true,

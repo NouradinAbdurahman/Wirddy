@@ -13,6 +13,7 @@ import {
   IconCircleCheck,
   IconCopy,
   IconDownload,
+  IconEdit,
   IconHistory,
   IconLayoutGrid,
   IconLoader2,
@@ -232,6 +233,20 @@ export function ScheduleView({
                 <span>
                   {isDuplicating ? t.duplicatingSchedule : t.btnDuplicate}
                 </span>
+              </Button>
+            )}
+
+            {/* Edit Schedule Button (Only for editors/creators) */}
+            {!isViewOnly && onEditPlan && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onEditPlan}
+                className="h-8.5 gap-1.5 rounded-xl border-border/70 px-3 text-xs font-semibold hover:bg-muted"
+              >
+                <IconEdit className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>{language === "ar" ? "تعديل الجدول" : "Edit Schedule"}</span>
               </Button>
             )}
 

@@ -794,52 +794,37 @@ export async function getMemberScheduleByPublicId(
 }
 
 /**
- * Validates edit access for a group using the raw secret edit token.
+ * Validates edit access for a group using the raw secret edit token or authenticated owner.
  */
 export async function validateEditAccess(
   publicId: string,
-  rawEditToken: string
+  rawEditToken?: string,
+  userId?: string
 ): Promise<boolean> {
-  if (!publicId || !rawEditToken || typeof rawEditToken !== "string") {
-    return false
-  }
-
-  const supabase = getSupabaseServerClient()
-  if (!supabase) {
-    return false
-  }
-
-  const { data: group, error } = (await supabase
-    .from("groups")
-    .select("edit_token_hash, expires_at")
-    .eq("public_id", publicId.trim())
-    .single()) as {
-    data: { edit_token_hash: string; expires_at: string } | null
-    error: any
-  }
-
-  if (error || !group) {
-    return false
-  }
-
-  if (new Date(group.expires_at).getTime() < Date.now()) {
-    return false
-  }
-
-  return verifyEditToken(rawEditToken, group.edit_token_hash)
+  const { authorized } = await checkGroupAuthorization(
+    publicId,
+    rawEditToken,
+    userId
+  )
+  return authorized
 }
 
 /**
- * Updates a saved group with a new schedule plan. Requires a verified secret edit token.
+ * Updates a saved group with a new schedule plan. Requires a verified secret edit token or authenticated owner.
  */
 export async function updateGroupAndRegenerate(
   publicId: string,
   rawEditToken: string,
   input: ScheduleInput,
-  lang: "ar" | "en" = "ar"
+  lang: "ar" | "en" = "ar",
+  userId?: string
 ): Promise<LoadedPublicGroup> {
-  const isAuthorized = await validateEditAccess(publicId, rawEditToken)
-  if (!isAuthorized) {
+  const authCheck = await checkGroupAuthorization(
+    publicId,
+    rawEditToken,
+    userId
+  )
+  if (!authCheck.authorized || !authCheck.group) {
     throw new Error(
       lang === "ar"
         ? "رمز التعديل غير صحيح أو غير مصرح لك بالتعديل."
