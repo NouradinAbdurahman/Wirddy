@@ -63,3 +63,14 @@ Note: `.prettierrc` is configured for no semicolons and double quotes, but the e
 - Icons come from `@tabler/icons-react` (per `components.json`'s `iconLibrary`), and directional icons (arrows, chevrons) should be swapped based on `dir` from `useI18n()` rather than hard-coded, since the app is RTL-first.
 - Motion/animation uses the `motion` package (`motion/react`), not `framer-motion`.
 - Scheduler and Quran-resolution logic is pure and unit-tested in `tests/` (`scheduler.test.ts`, `quran-api.test.ts`) independent of React — keep new logic there similarly pure/testable rather than embedding it in components.
+
+## Project Skills (`michaelshimeles/skills`)
+
+The project has skills installed via `npx skills add michaelshimeles/skills` under `.claude/skills/` and `.agents/skills/`. Whenever working on this repository, you must adhere to these skills:
+
+- **`new-feature`** (`.claude/skills/new-feature/`): Claude Code manages worktrees under `.claude/worktrees/`. Always branch tasks from latest `origin/main`.
+- **`code-structure`** (`.claude/skills/code-structure/`): Maintain two-layer separation (Actions orchestrate domain rules; services centralize shared mechanics).
+- **`unslop`** (`.claude/skills/unslop/`): Cut AI tells, puffery, em dashes, and decorative emojis. Use active voice, plain language, and concrete numbers.
+- **`evidence-driven-testing`** (`.claude/skills/evidence-driven-testing/`): Verifiable proof of behavior instead of prose claims.
+- **`before-and-after`** (`.claude/skills/before-and-after/`): Capture visual comparisons using `@vercel/before-and-after`.
+- **`greploop` / `greploop-apps`** (`.claude/skills/greploop/`): Iterative PR review loops to achieve a 5/5 score.
