@@ -14,7 +14,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38bdf8?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?style=flat-square&logo=pwa)](https://web.dev/progressive-web-apps/)
-[![Tests](https://img.shields.io/badge/Tests-160%20Passing-emerald?style=flat-square&logo=vitest)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/Tests-217%20Passing-emerald?style=flat-square&logo=vitest)](https://vitest.dev/)
 [![Auth](https://img.shields.io/badge/Auth-Account--Free%20%2B%20Supabase-blue?style=flat-square)](https://wirddy.vercel.app)
 
 [**🌐 Live App**](https://wirddy.vercel.app) · [**📖 Quran Reader**](#-authentic-digital-mushaf-reader) · [**✨ Features**](#-key-features) · [**📐 Architecture**](#-architecture--data-flow) · [**🚀 Getting Started**](#-getting-started) · [**🧪 Testing**](#-testing--validation)
@@ -46,8 +46,9 @@ It combines two core experiences:
 
 ### 🧮 Intelligent Quran Scheduling Engine
 - **Mathematical Invariant**: Enforces that total weekly allocations across all members equal exactly 30 Juz (or matches a custom Surah/Juz range).
-- **Knowledge-Restricted Partitioning**: Members who only memorize or read specific portions (e.g. Juz 28–30, or Juz 1–15) are strictly assigned within their bounds.
-- **Smart Non-Repeating Rotation**: Backtracking solver with exponential recency-weighted penalty to minimize overlapping assignments across successive weeks.
+- **Knowledge-Restricted Partitioning**: Members who only know specific portions (a Juz range such as 28–30, or a Surah range) are only assigned inside them, including portions that wrap from Juz 30 back to Juz 1. A Surah range counts a Juz only when the whole Juz is inside it.
+- **Smart Non-Repeating Rotation**: A depth-first solver with memoized dead ends and a fixed search budget, so 30 members over 52 weeks generate in under 100 ms. Repeating a recent portion costs more than an old one, so members move through new parts first.
+- **Clear Errors**: When no valid split exists, the planner says why in Arabic or English, and warns about Ramadan plans longer than 30 days.
 - **Exact Ayah Resolution**: Automatically resolves abstract Juz numbers to exact Surah names, Surah numbers, and Ayah coordinates based on official Uthmani Quranic metadata.
 
 ### 📊 Modern Dashboard (`/dashboard`)
@@ -64,7 +65,9 @@ It combines two core experiences:
 ### 🔗 Zero-Login Persistence & Supabase Integration
 - **100% Account-Free Option**: Create and share schedules instantly without signups or passwords via public links (`/g/[publicId]`).
 - **👤 Personal Member Views**: Dedicated personal URLs (`/g/[publicId]/member/[memberPublicId]`) allowing each member to view and track their individual schedule.
-- **🔑 Cryptographic Creator Authorization**: SHA-256 hashed edit keys stored in the creator's browser to allow edits without requiring an account.
+- **🔑 Cryptographic Creator Authorization**: A secret edit link (its key is stored only as a SHA-256 hash) lets the creator edit without an account.
+- **🤝 Member Account Linking**: Members can link their personal slot to an account; a linked slot can't be taken over, and only its owner or the group creator can change its progress.
+- **🔁 Recurring Khatmahs**: Weekly, monthly or Ramadan cycles renew automatically for signed-in creators, keeping member links.
 - **🔐 Optional Supabase Authentication**: Email/Password and OAuth support for authenticated users who wish to synchronize groups and bookmarks across devices.
 
 ### 🎨 Cross-Browser 4K Export Suite
@@ -76,7 +79,7 @@ It combines two core experiences:
 
 ### 📲 Progressive Web App (PWA) & Offline
 - **Installable PWA**: Installable to home screens on iOS (Safari) and Android (Chrome) with custom app icons and standalone display mode.
-- **Offline Reliability**: Service worker caching for Quran pages, static assets, and client-side scheduling.
+- **Offline Reliability**: Quran pages read once open offline, scheduling runs in the browser, and reading progress ticked offline syncs when the connection returns. Each deploy refreshes the service worker cache.
 
 ---
 
@@ -116,10 +119,14 @@ wirddy/
 │   │   ├── render-pdf.ts             # Multi-page A4 PDF generation via jsPDF
 │   │   ├── create-zip.ts             # Bulk ZIP archive generation via JSZip
 │   │   └── validate-file.ts          # Magic byte signature validators (PNG, PDF, ZIP)
-│   ├── groups/                       # Account-free & authenticated Supabase persistence
+│   ├── groups/                       # Server actions, domain rules, persistence, rate limits
+│   ├── storage/                      # Offline progress queue & local history
 │   ├── dates/                        # Hijri & Gregorian calendar utilities & Ramadan logic
 │   └── i18n/                         # Lightweight zero-dependency bilingual dictionary & context
-└── tests/                            # Vitest automated test suite (160 tests, 13 test files)
+├── hooks/                            # useHydrated, useStorageValue, useAuthUser
+├── supabase/migrations/              # Database schema, run in order
+├── vercel.json                       # Functions run in icn1 (Seoul), next to the database
+└── tests/                            # Vitest automated test suite (217 tests, 18 test files)
 ```
 
 ---
@@ -145,14 +152,23 @@ wirddy/
 
 3. **Set up environment variables**:
    Create a `.env.local` file in the project root:
+   Copy `.env.example` to `.env.local` and fill in:
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
    SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key   # npx web-push generate-vapid-keys
+   VAPID_PRIVATE_KEY=your_vapid_private_key
+   VAPID_SUBJECT=mailto:you@example.com
+   CRON_SECRET=a_long_random_secret                    # cron endpoints refuse all calls without it
    ```
+   Creating a schedule works without any of these; saving, accounts, progress and reminders need Supabase.
 
-4. **Start the development server**:
+4. **Set up the database** (once, and again for each new migration):
+   Run the files in `supabase/migrations/` in order in the Supabase SQL editor.
+
+5. **Start the development server**:
    ```bash
    npm run dev
    ```
@@ -167,10 +183,10 @@ wirddy/
 | `npm run dev` | Starts the Next.js development server with Turbopack |
 | `npm run build` | Builds the optimized production application |
 | `npm run start` | Starts the production server |
-| `npm run test` | Runs all 160 automated Vitest unit and integration tests |
+| `npm run test` | Runs all 217 automated Vitest unit and integration tests |
 | `npm run typecheck` | Runs the TypeScript compiler (`tsc --noEmit`) for strict type validation |
-| `npm run lint` | Lints the codebase with ESLint |
-| `npm run format` | Formats all code with Prettier |
+| `npm run lint` | Lints the codebase with ESLint (must report 0 errors) |
+| `npm run format` | Formats all code with Prettier (avoid as part of unrelated changes) |
 
 ---
 
@@ -182,11 +198,14 @@ Wirddy features a comprehensive automated test suite covering Quran page mapping
 npm test
 ```
 
-### Test Coverage Summary (160 Passing Tests):
+### Test Coverage Summary (217 Passing Tests):
 - **`reader-integration.test.ts`**: Canonical 604-page Madani Mushaf coordinates, Ayah boundaries, two-page spread pairings, and dictionary translations.
 - **`platform-features.test.ts`**: Quran search across Surahs/Ayahs, group creation, and export workflows.
 - **`pages-data.test.ts`**: Verification of all 604 page boundaries and Surah start indices.
-- **`scheduler.test.ts`**: Backtracking permutation solver, capacity partitioning, and knowledge bounds.
+- **`scheduler.test.ts`**: Scheduling, capacity partitioning, and knowledge bounds.
+- **`scheduler-regressions.test.ts`**: Wrap-around and Surah knowledge, custom range validation, no gaps or overlaps, bilingual errors, and generation speed.
+- **`member-linking.test.ts`**: Account linking, takeover protection, server-side regeneration, edits that keep links and progress, progress permissions, account deletion, and recurring cycles, against an in-memory Supabase that rejects bad UUID comparisons like Postgres.
+- **`cron.test.ts`**: Cron secret checks and reminder timing across time zones.
 - **`quran-api.test.ts`**: Offline Quran dataset integrity, Juz boundaries, and Surah mappings.
 - **`export.test.ts`**: Filename sanitization, ASCII safety, PDF pagination, and PNG/PDF/ZIP binary header checks.
 - **`advanced-features.test.ts`**: Ramadan mode, daily 7-day divisions, Hijri/Gregorian date formatting, and title/description propagation.
@@ -199,11 +218,20 @@ npm test
 
 ---
 
+## 🌐 Deployment
+
+- Production deploys from the `master` branch on Vercel; other branches get preview deployments.
+- Server functions run in Vercel's `icn1` (Seoul) region, next to the Supabase database, set in `vercel.json`.
+- Reminder and recurring-cycle jobs run from Supabase `pg_cron` and call `/api/cron/*` with `CRON_SECRET`.
+
+---
+
 ## 🔒 Privacy & Data Policy
 
 - **No User Tracking**: Wirddy does not use third-party tracking scripts, analytics cookies, or advertising trackers.
 - **Account-Free Sharing**: No personal contact details, emails, or phone numbers are required to create or view group schedules.
-- **Cryptographic Edit Keys**: Group creator authorization keys are generated with cryptographic entropy and stored exclusively in the creator's local browser storage.
+- **Cryptographic Edit Keys**: Edit keys are 256-bit random values; the server stores only their SHA-256 hash.
+- **Account IDs Stay Private**: People holding a group or member link never see other members' account IDs, and the group progress summary is visible only to the group's owner.
 
 ---
 
