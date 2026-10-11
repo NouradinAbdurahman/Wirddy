@@ -11,7 +11,7 @@ import { useI18n } from "@/lib/i18n/context"
 import { Card } from "@/components/ui/card"
 
 export function HowItWorks() {
-  const { language, t, formatNumber } = useI18n()
+  const { t, formatNumber } = useI18n()
 
   const steps = [
     {

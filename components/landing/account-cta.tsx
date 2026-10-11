@@ -5,10 +5,7 @@ import Link from "next/link"
 import {
   IconArrowLeft,
   IconArrowRight,
-  IconBookmark,
-  IconDeviceMobile,
   IconLayoutDashboard,
-  IconSparkles,
   IconUserCheck,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"

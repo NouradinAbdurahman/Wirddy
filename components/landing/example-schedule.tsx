@@ -2,25 +2,16 @@
 
 import React, { useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import {
-  IconCheck,
-  IconLayoutGrid,
-  IconRotate,
-  IconTable,
-} from "@tabler/icons-react"
+import { IconCheck, IconLayoutGrid, IconTable } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 type PreviewViewMode = "cards" | "table"
 
-interface ExampleScheduleProps {
-  onTryTemplate?: () => void
-}
-
-export function ExampleSchedule({ onTryTemplate }: ExampleScheduleProps) {
+export function ExampleSchedule() {
   const { language, t, formatNumber } = useI18n()
   const [activeWeek, setActiveWeek] = useState<number>(1)
   const [viewMode, setViewMode] = useState<PreviewViewMode>("cards")

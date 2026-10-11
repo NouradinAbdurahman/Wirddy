@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "motion/react"
 import {
   IconArrowLeft,
   IconArrowRight,
-  IconCalendar,
   IconCalendarEvent,
   IconCheck,
   IconChevronRight,
@@ -17,11 +16,9 @@ import {
   IconHistory,
   IconLayoutGrid,
   IconLoader2,
-  IconMoon,
   IconPrinter,
   IconRotate,
   IconShare,
-  IconSparkles,
   IconTable,
   IconUser,
   IconUsers,
@@ -29,12 +26,7 @@ import {
 } from "@tabler/icons-react"
 import { InviteMemberModal } from "@/components/dashboard/invite-member-modal"
 import { useI18n } from "@/lib/i18n/context"
-import {
-  GeneratedSchedule,
-  MemberConfig,
-  ScheduleInput,
-} from "@/lib/scheduler/types"
-import { ExportViewMode } from "@/lib/export"
+import { GeneratedSchedule, ScheduleInput } from "@/lib/scheduler/types"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"

@@ -1,33 +1,25 @@
 "use client"
 
-import React, { useEffect, useState, useMemo, Suspense } from "react"
+import React, { useCallback, useEffect, useState, useMemo, Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
 import {
   IconBell,
   IconBookmark,
   IconBook2,
-  IconCalendarEvent,
   IconChartBar,
-  IconCheck,
   IconChevronRight,
-  IconClock,
-  IconCopy,
-  IconDownload,
   IconFlame,
   IconHistory,
   IconPlus,
   IconRefresh,
   IconSearch,
   IconShare,
-  IconSparkles,
   IconSpeakerphone,
   IconTrash,
   IconTrendingUp,
   IconUser,
   IconUsers,
-  IconX,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
@@ -35,10 +27,9 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AppSidebar, NavItemKey } from "@/components/layout/app-sidebar"
 import { cn } from "@/lib/utils"
-import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import { extractUserProfile, UserProfileInfo } from "@/lib/auth/user"
 import {
   createAnnouncementAction,
@@ -46,21 +37,18 @@ import {
   fetchScheduleHistoryAction,
   getAnnouncementsAction,
   getGroupProgressSummaryAction,
-  getGroupReadingProgressAction,
   getMyGroupsAction,
-  getNotificationPreferencesAction,
   getTodaysReadingAction,
   getUserBookmarksAction,
   restoreScheduleVersionAction,
   saveNotificationPreferencesAction,
-  saveReadingProgressAction,
+  getNotificationPreferencesAction,
 } from "@/lib/groups/actions"
 import {
   GroupProgressSummary,
   MemberProgressSummary,
   ScheduleHistoryRecord,
   UserGroupSummary,
-  UserTodaysReadingResult,
 } from "@/lib/groups/service"
 import {
   TodaysReadingWidget,
@@ -69,16 +57,16 @@ import {
 import { GroupCard } from "@/components/dashboard/group-card"
 import { InviteMemberModal } from "@/components/dashboard/invite-member-modal"
 import { BookmarkItem } from "@/components/dashboard/user-bookmarks-widget"
-import {
-  getRecentSchedules,
-  RecentScheduleItem,
-} from "@/lib/storage/recent-schedules"
 import { searchQuran, QuranSearchResult } from "@/lib/quran/search"
 import { toArabicNumerals } from "@/lib/dates/calendar"
 import { quranService } from "@/lib/quran/service"
 
+type AnnouncementItem = NonNullable<
+  Awaited<ReturnType<typeof getAnnouncementsAction>>["data"]
+>[number]
+
 function DashboardContent() {
-  const { language, dir, t, formatNumber } = useI18n()
+  const { language, t, formatNumber } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentTab = (searchParams.get("tab") as NavItemKey) || "dashboard"
@@ -86,9 +74,10 @@ function DashboardContent() {
   const [user, setUser] = useState<UserProfileInfo | null>(null)
   const [groups, setGroups] = useState<UserGroupSummary[]>([])
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([])
-  const [announcements, setAnnouncements] = useState<any[]>([])
-  const [recentSchedules, setRecentSchedules] = useState<RecentScheduleItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([])
+  // Nothing loads when accounts are not configured, so only start in the
+  // loading state when they are.
+  const [isLoading, setIsLoading] = useState(() => isSupabaseConfigured())
 
   // Real Dynamic Today's Reading
   const [todaysReading, setTodaysReading] = useState<TodaysReadingData | null>(null)
@@ -98,9 +87,20 @@ function DashboardContent() {
   const [groupSearchQuery, setGroupSearchQuery] = useState<string>("")
 
   // Group Progress Tab State
-  const [selectedProgressGroup, setSelectedProgressGroup] = useState<string>("")
-  const [groupProgressSummary, setGroupProgressSummary] = useState<GroupProgressSummary | null>(null)
-  const [isLoadingProgress, setIsLoadingProgress] = useState(false)
+  // The owned group picked in the progress tab. Falls back to the first
+  // owned group when nothing (or a group the user no longer owns) is picked.
+  const [progressGroupChoice, setSelectedProgressGroup] = useState<string>("")
+  const ownedGroupIds = groups.filter((g) => g.isOwner).map((g) => g.publicId)
+  const selectedProgressGroup = ownedGroupIds.includes(progressGroupChoice)
+    ? progressGroupChoice
+    : ownedGroupIds[0] || ""
+  const [progressData, setProgressData] = useState<{
+    group: string
+    summary: GroupProgressSummary | null
+  } | null>(null)
+  const isLoadingProgress = Boolean(selectedProgressGroup) && progressData?.group !== selectedProgressGroup
+  const groupProgressSummary =
+    progressData?.group === selectedProgressGroup ? progressData.summary : null
 
   // Invite Modal State
   const [inviteModalMember, setInviteModalMember] = useState<{
@@ -123,35 +123,37 @@ function DashboardContent() {
 
   // History Tab State
   const [selectedHistoryGroup, setSelectedHistoryGroup] = useState<string>("")
-  const [historyRecords, setHistoryRecords] = useState<ScheduleHistoryRecord[]>([])
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [historyData, setHistoryData] = useState<{
+    group: string
+    records: ScheduleHistoryRecord[]
+  } | null>(null)
+  const isLoadingHistory = Boolean(selectedHistoryGroup) && historyData?.group !== selectedHistoryGroup
+  const historyRecords = historyData?.group === selectedHistoryGroup ? historyData.records : []
 
   // Notifications Tab State
   const [notifDaily, setNotifDaily] = useState(true)
   const [notifTime, setNotifTime] = useState("20:00")
   const [notifIncomplete, setNotifIncomplete] = useState(true)
   const [notifAlerts, setNotifAlerts] = useState(true)
-  const [pushStatus, setPushStatus] = useState<string>("default")
   const [isSavingNotifs, setIsSavingNotifs] = useState(false)
   const [notifSaveSuccess, setNotifSaveSuccess] = useState(false)
 
-  const loadData = async (userId?: string) => {
+  const loadData = useCallback(async () => {
     setIsLoading(true)
     try {
-      const [groupsRes, bookmarksRes, todaysReadingRes] = await Promise.all([
+      const [groupsRes, bookmarksRes, todaysReadingRes, prefsRes] = await Promise.all([
         getMyGroupsAction("all"),
         getUserBookmarksAction(),
         getTodaysReadingAction(),
+        getNotificationPreferencesAction(),
       ])
 
       if (groupsRes.success && groupsRes.data) {
         setGroups(groupsRes.data)
-        if (groupsRes.data.length > 0) {
-          const firstGrp = groupsRes.data[0].publicId
-          const firstOwned = groupsRes.data.find((g) => g.isOwner)?.publicId || ""
-          if (!selectedProgressGroup && firstOwned) setSelectedProgressGroup(firstOwned)
-          if (!selectedAnnounceGroup) setSelectedAnnounceGroup(firstGrp)
-          if (!selectedHistoryGroup) setSelectedHistoryGroup(firstGrp)
+        const firstGrp = groupsRes.data[0]?.publicId
+        if (firstGrp) {
+          setSelectedAnnounceGroup((prev) => prev || firstGrp)
+          setSelectedHistoryGroup((prev) => prev || firstGrp)
         }
       }
 
@@ -159,19 +161,23 @@ function DashboardContent() {
         setBookmarks(bookmarksRes.data)
       }
 
-      if (todaysReadingRes.success && todaysReadingRes.data) {
-        setTodaysReading(todaysReadingRes.data)
-      } else {
-        setTodaysReading(null)
-      }
+      setTodaysReading(
+        todaysReadingRes.success && todaysReadingRes.data ? todaysReadingRes.data : null
+      )
 
-      setRecentSchedules(getRecentSchedules())
+      // Show the saved reminder settings, so saving here never resets them.
+      if (prefsRes.success && prefsRes.data) {
+        setNotifDaily(prefsRes.data.daily_reminder_enabled)
+        setNotifTime(prefsRes.data.reminder_time || "20:00")
+        setNotifIncomplete(prefsRes.data.incomplete_reminder_enabled)
+        setNotifAlerts(prefsRes.data.group_announcements_enabled)
+      }
     } catch (err) {
       console.error("Dashboard loadData error:", err)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient()
@@ -181,10 +187,9 @@ function DashboardContent() {
       if (session?.user) {
         const profile = extractUserProfile(session.user)
         setUser(profile)
-        loadData(session.user.id)
+        loadData()
       } else {
         setIsLoading(false)
-        setRecentSchedules(getRecentSchedules())
       }
     })
 
@@ -194,7 +199,7 @@ function DashboardContent() {
       if (session?.user) {
         const profile = extractUserProfile(session.user)
         setUser(profile)
-        loadData(session.user.id)
+        loadData()
       } else {
         setUser(null)
         setGroups([])
@@ -203,39 +208,21 @@ function DashboardContent() {
       }
     })
 
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setPushStatus(Notification.permission)
-    }
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
-
-  // Automatically ensure selectedProgressGroup is an owned group for progress tracking
-  useEffect(() => {
-    const owned = groups.filter((g) => g.isOwner)
-    if (
-      owned.length > 0 &&
-      (!selectedProgressGroup || !owned.some((g) => g.publicId === selectedProgressGroup))
-    ) {
-      setSelectedProgressGroup(owned[0].publicId)
-    }
-  }, [groups, selectedProgressGroup])
+  }, [loadData])
 
   // Load Group Progress when selected group changes
   useEffect(() => {
-    if (selectedProgressGroup) {
-      setIsLoadingProgress(true)
-      getGroupProgressSummaryAction(selectedProgressGroup).then((res) => {
-        setIsLoadingProgress(false)
-        if (res.success && res.data) {
-          setGroupProgressSummary(res.data)
-        } else {
-          setGroupProgressSummary(null)
-        }
+    if (!selectedProgressGroup) return
+    getGroupProgressSummaryAction(selectedProgressGroup).then((res) => {
+      setProgressData({
+        group: selectedProgressGroup,
+        summary: res.success && res.data ? res.data : null,
       })
-    }
+    })
   }, [selectedProgressGroup])
 
   // Load Announcements when selected group changes
@@ -251,15 +238,13 @@ function DashboardContent() {
 
   // Load History when selected group changes
   useEffect(() => {
-    if (selectedHistoryGroup) {
-      setIsLoadingHistory(true)
-      fetchScheduleHistoryAction(selectedHistoryGroup).then((res) => {
-        setIsLoadingHistory(false)
-        if (res.success && res.data) {
-          setHistoryRecords(res.data)
-        }
+    if (!selectedHistoryGroup) return
+    fetchScheduleHistoryAction(selectedHistoryGroup).then((res) => {
+      setHistoryData({
+        group: selectedHistoryGroup,
+        records: res.success && res.data ? res.data : [],
       })
-    }
+    })
   }, [selectedHistoryGroup])
 
   // Real Stats Calculations
@@ -354,7 +339,7 @@ function DashboardContent() {
     const res = await restoreScheduleVersionAction(record.id, selectedHistoryGroup, undefined, language)
     if (res.success) {
       alert(language === "ar" ? "تم استعادة النسخة بنجاح!" : "Schedule version restored successfully!")
-      loadData(user?.email)
+      loadData()
     } else {
       alert(res.error || "Failed to restore version.")
     }
@@ -364,13 +349,21 @@ function DashboardContent() {
   const handleSaveNotifications = async () => {
     setIsSavingNotifs(true)
     try {
-      await saveNotificationPreferencesAction({
+      const res = await saveNotificationPreferencesAction({
         dailyReminderEnabled: notifDaily,
         reminderTime: notifTime,
         incompleteReminderEnabled: notifIncomplete,
         groupAnnouncementsEnabled: notifAlerts,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       })
+      if (!res.success) {
+        window.alert(
+          language === "ar"
+            ? "تعذر حفظ إعدادات التنبيهات. يرجى المحاولة مرة أخرى."
+            : "Could not save notification settings. Please try again."
+        )
+        return
+      }
       setNotifSaveSuccess(true)
       setTimeout(() => setNotifSaveSuccess(false), 2500)
     } finally {
@@ -510,7 +503,7 @@ function DashboardContent() {
                 <div className="lg:col-span-2">
                   <TodaysReadingWidget
                     reading={todaysReadingData}
-                    onProgressUpdated={() => user && loadData(user.email)}
+                    onProgressUpdated={() => user && loadData()}
                   />
                 </div>
                 <div>
@@ -637,7 +630,7 @@ function DashboardContent() {
                       <GroupCard
                         key={g.publicId ? `grp-${g.publicId}` : `grp-idx-${idx}`}
                         group={g}
-                        onRefresh={() => loadData(user?.email)}
+                        onRefresh={() => loadData()}
                       />
                     ))}
                   </div>

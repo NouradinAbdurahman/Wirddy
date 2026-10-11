@@ -1,8 +1,12 @@
 "use client"
 
 import { useEffect } from "react"
+import { useOfflineSync } from "@/lib/storage/offline-sync"
 
 export function PwaRegistrar() {
+  // Replays reading progress saved while offline once the connection returns.
+  useOfflineSync()
+
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
       return
@@ -29,7 +33,7 @@ export function PwaRegistrar() {
     // In production, register the service worker
     window.addEventListener("load", () => {
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(`/sw.js?v=${process.env.NEXT_PUBLIC_BUILD_ID || "dev"}`)
         .then((registration) => {
           registration.onupdatefound = () => {
             const installingWorker = registration.installing

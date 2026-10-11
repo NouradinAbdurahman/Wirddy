@@ -73,8 +73,8 @@ export async function shareScheduleAsPdf(
         text,
       })
       return { success: true, method: "native-share" }
-    } catch (err: any) {
-      if (err?.name === "AbortError") {
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
         // User closed or canceled the share sheet — NOT an error
         return { success: false, method: "canceled" }
       }
@@ -83,7 +83,7 @@ export async function shareScheduleAsPdf(
       return {
         success: true,
         method: "fallback-download",
-        error: err?.message || "Native share failed",
+        error: err instanceof Error ? err.message : "Native share failed",
       }
     }
   }

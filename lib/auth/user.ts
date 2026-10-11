@@ -12,58 +12,39 @@ export interface UserProfileInfo {
  * @param user Supabase Auth User object
  * @returns UserProfileInfo or null
  */
-export function extractUserProfile(user: any): UserProfileInfo | null {
+/** Shape of the Supabase user fields this helper reads. */
+export interface AuthUserLike {
+  email?: string | null
+  user_metadata?: Record<string, unknown> | null
+}
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : ""
+}
+
+export function extractUserProfile(
+  user: AuthUserLike | null | undefined
+): UserProfileInfo | null {
   if (!user || typeof user !== "object") {
     return null
   }
 
   const metadata = user.user_metadata || {}
+  const email = text(user.email)
 
-  // 1. Full name resolution
-  const rawFullName =
-    metadata.full_name ||
-    metadata.name ||
-    (user.email ? user.email.split("@")[0] : "User")
-
+  // 1. Full name: metadata name, else the email's local part
   const fullName =
-    typeof rawFullName === "string" && rawFullName.trim().length > 0
-      ? rawFullName.trim()
-      : "User"
+    text(metadata.full_name) || text(metadata.name) || email.split("@")[0] || "User"
 
-  // 2. First name resolution: check given_name first, then extract first token from full_name
-  let firstName = metadata.given_name || metadata.first_name || ""
-
-  if (
-    (!firstName ||
-      typeof firstName !== "string" ||
-      firstName.trim().length === 0) &&
+  // 2. First name: given name, else the first word of the full name
+  const firstName =
+    text(metadata.given_name) ||
+    text(metadata.first_name) ||
+    fullName.split(/\s+/)[0] ||
     fullName
-  ) {
-    const words = fullName.split(/\s+/)
-    if (words.length > 0 && words[0] && words[0].trim().length > 0) {
-      firstName = words[0].trim()
-    }
-  }
-
-  if (
-    !firstName ||
-    typeof firstName !== "string" ||
-    firstName.trim().length === 0
-  ) {
-    firstName = fullName
-  }
 
   // 3. Avatar URL
-  const rawAvatar = metadata.avatar_url || metadata.picture || undefined
-  const avatarUrl =
-    typeof rawAvatar === "string" && rawAvatar.trim().length > 0
-      ? rawAvatar.trim()
-      : undefined
+  const avatarUrl = text(metadata.avatar_url) || text(metadata.picture) || undefined
 
-  return {
-    email: typeof user.email === "string" ? user.email.trim() : "",
-    fullName,
-    firstName: typeof firstName === "string" ? firstName.trim() : "User",
-    avatarUrl,
-  }
+  return { email, fullName, firstName, avatarUrl }
 }

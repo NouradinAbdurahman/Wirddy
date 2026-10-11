@@ -2,12 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import {
-  IconArrowLeft,
-  IconArrowRight,
-  IconLayoutDashboard,
-  IconSparkles,
-} from "@tabler/icons-react"
+import { IconArrowLeft, IconArrowRight, IconLayoutDashboard } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,7 +13,7 @@ interface FinalCtaProps {
 }
 
 export function FinalCta({ onCreateGroup }: FinalCtaProps) {
-  const { language, dir, t } = useI18n()
+  const { dir, t } = useI18n()
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const ArrowIcon = dir === "rtl" ? IconArrowLeft : IconArrowRight
 

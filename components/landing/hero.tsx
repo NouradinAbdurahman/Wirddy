@@ -14,10 +14,9 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 
 interface HeroProps {
   onCreateGroup: () => void
-  onHowItWorks: () => void
 }
 
-export function Hero({ onCreateGroup, onHowItWorks }: HeroProps) {
+export function Hero({ onCreateGroup }: HeroProps) {
   const { language, dir, t } = useI18n()
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const ArrowIcon = dir === "rtl" ? IconArrowLeft : IconArrowRight

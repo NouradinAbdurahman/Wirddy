@@ -12,7 +12,7 @@ import {
   RotationStyle,
   ScheduleInput,
 } from "@/lib/scheduler/types"
-import { generateQuranSchedule } from "@/lib/scheduler/engine"
+import { generateQuranSchedule, SchedulerError } from "@/lib/scheduler/engine"
 import { validateScheduleInput } from "@/lib/scheduler/validator"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -34,29 +34,24 @@ import { MemberList } from "@/components/planner/member-list"
 import { TotalIndicator } from "@/components/planner/total-indicator"
 import { WeeksSelector } from "@/components/planner/weeks-selector"
 import { GenerateButton } from "@/components/planner/generate-button"
+import { ValidationNotice } from "@/components/planner/validation-notice"
 import { AdvancedOptions } from "@/components/planner/advanced-options"
 import { ScheduleView } from "@/components/schedule/schedule-view"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  IconArrowLeft,
-  IconArrowRight,
-  IconSparkles,
-  IconUsersGroup,
-} from "@tabler/icons-react"
+import { IconArrowLeft, IconArrowRight, IconUsersGroup } from "@tabler/icons-react"
 import { saveRecentSchedule } from "@/lib/storage/recent-schedules"
 import { getCurrentHijriYear } from "@/lib/dates/ramadan"
 import { OccasionType } from "@/lib/scheduler/types"
-import { cn } from "@/lib/utils"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 type AppStep = "landing" | "planner" | "schedule"
 
 const STORAGE_STATE_KEY = "wirddy_planner_state_v3"
 
 export default function HomePage() {
-  const { language, dir, t, formatNumber } = useI18n()
+  const { language, dir, t } = useI18n()
   const [step, setStep] = useState<AppStep>("landing")
   const [groupName, setGroupName] = useState<string>("")
   const [title, setTitle] = useState<string>("")
@@ -85,7 +80,6 @@ export default function HomePage() {
   const [isGenerating, setIsGenerating] = useState<boolean>(false)
   const [validationError, setValidationError] = useState<string | null>(null)
 
-  const ArrowIcon = dir === "rtl" ? IconArrowLeft : IconArrowRight
   const BackArrowIcon = dir === "rtl" ? IconArrowRight : IconArrowLeft
 
   const suggestions = [
@@ -96,8 +90,13 @@ export default function HomePage() {
     t.suggStudy,
   ]
 
-  // Load persisted state on mount
-  useEffect(() => {
+  // Restore the saved plan once, on the first render after hydration. Server
+  // markup always shows the defaults, so restoring here avoids a hydration
+  // mismatch, and doing it during render avoids a flash of the defaults.
+  const hydrated = useHydrated()
+  const [restored, setRestored] = useState(false)
+  if (hydrated && !restored) {
+    setRestored(true)
     try {
       const stored = localStorage.getItem(STORAGE_STATE_KEY)
       if (stored) {
@@ -117,6 +116,7 @@ export default function HomePage() {
         if (parsed.islamicYear) setIslamicYear(parsed.islamicYear)
         if (typeof parsed.dailyDivisionEnabled === "boolean")
           setDailyDivisionEnabled(parsed.dailyDivisionEnabled)
+        if (parsed.recurrence?.frequency) setRecurrence(parsed.recurrence)
         if (Array.isArray(parsed.members) && parsed.members.length > 0)
           setMembers(parsed.members)
         if (parsed.schedule) {
@@ -136,10 +136,11 @@ export default function HomePage() {
     } catch (err) {
       console.error("Error loading stored plan:", err)
     }
-  }, [])
+  }
 
-  // Save state on change
+  // Save state on change, but never before the saved plan was read back.
   useEffect(() => {
+    if (!restored) return
     try {
       localStorage.setItem(
         STORAGE_STATE_KEY,
@@ -158,6 +159,7 @@ export default function HomePage() {
           occasionType,
           islamicYear,
           dailyDivisionEnabled,
+          recurrence,
           members,
           schedule,
         })
@@ -180,8 +182,10 @@ export default function HomePage() {
     occasionType,
     islamicYear,
     dailyDivisionEnabled,
+    recurrence,
     members,
     schedule,
+    restored,
   ])
 
   const startNewGroup = () => {
@@ -312,19 +316,20 @@ export default function HomePage() {
         })
 
         window.scrollTo({ top: 0, behavior: "smooth" })
-      } catch (err: any) {
-        setValidationError(err?.message || "Error generating schedule")
+      } catch (err) {
+        if (err instanceof SchedulerError) {
+          setValidationError(language === "ar" ? err.messageAr : err.messageEn)
+        } else {
+          setValidationError(
+            language === "ar"
+              ? "تعذر إنشاء الجدول. يرجى المحاولة مرة أخرى."
+              : "Could not generate the schedule. Please try again."
+          )
+        }
       } finally {
         setIsGenerating(false)
       }
     }, 250)
-  }
-
-  const scrollToHowItWorks = () => {
-    const el = document.getElementById("how-it-works")
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth" })
-    }
   }
 
   return (
@@ -349,10 +354,7 @@ export default function HomePage() {
               className="space-y-12 sm:space-y-20"
             >
               {/* 1. Hero Section */}
-              <Hero
-                onCreateGroup={startNewGroup}
-                onHowItWorks={scrollToHowItWorks}
-              />
+              <Hero onCreateGroup={startNewGroup} />
 
               {/* 2. How Wirddy Works (4 Steps Journey) */}
               <div id="how-it-works">
@@ -369,7 +371,7 @@ export default function HomePage() {
               <SmartScheduling />
 
               {/* 7. Weekly Schedule Interactive Preview */}
-              <ExampleSchedule onTryTemplate={startNewGroup} />
+              <ExampleSchedule />
 
               {/* 8. Stay on Track (Progress, Notifications & Reminders) */}
               <StayOnTrack />
@@ -528,12 +530,11 @@ export default function HomePage() {
                 />
               </Card>
 
-              {/* Validation Error Message */}
-              {validationError && (
-                <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-semibold text-destructive">
-                  {validationError}
-                </div>
-              )}
+              {/* Validation errors and warnings */}
+              <ValidationNotice
+                result={validationResult}
+                submitError={validationError}
+              />
 
               {/* Generate Button */}
               <GenerateButton

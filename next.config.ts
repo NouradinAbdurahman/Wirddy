@@ -1,6 +1,11 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  env: {
+    // Versions the service worker so each deploy replaces cached files.
+    NEXT_PUBLIC_BUILD_ID:
+      process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) || String(Date.now()),
+  },
   async headers() {
     return [
       {

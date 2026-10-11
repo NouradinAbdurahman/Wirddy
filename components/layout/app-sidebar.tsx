@@ -13,7 +13,6 @@ import {
   IconDeviceMobile,
   IconDownload,
   IconHistory,
-  IconLanguage,
   IconLayoutDashboard,
   IconLogout,
   IconMoon,
@@ -39,6 +38,7 @@ import {
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { extractUserProfile, UserProfileInfo } from "@/lib/auth/user"
 import { cn } from "@/lib/utils"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 export type NavItemKey =
   | "dashboard"
@@ -66,6 +66,11 @@ interface AppSidebarProps {
   className?: string
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
+}
+
 export function AppSidebar({
   activeKey = "dashboard",
   unreadAnnouncementsCount = 0,
@@ -76,14 +81,12 @@ export function AppSidebar({
   const { language, setLanguage, dir, t } = useI18n()
   const { theme, setTheme, resolvedTheme } = useTheme()
   const pathname = usePathname()
-  const [mounted, setMounted] = useState(false)
+  const mounted = useHydrated()
   const [user, setUser] = useState<UserProfileInfo | null>(null)
-  const [installPrompt, setInstallPrompt] = useState<any>(null)
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-
     const supabase = getSupabaseBrowserClient()
     if (!supabase) return
 
@@ -105,17 +108,20 @@ export function AppSidebar({
       }
     })
 
-    const handleBeforeInstall = (e: Event) => {
-      e.preventDefault()
-      setInstallPrompt(e)
-    }
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall)
-
     return () => {
       subscription.unsubscribe()
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstall)
     }
+  }, [])
+
+  // Chrome and Edge fire this when the app can be installed; keep it so the
+  // install button can show the native prompt.
+  useEffect(() => {
+    const onPrompt = (e: Event) => {
+      e.preventDefault()
+      setInstallPrompt(e as BeforeInstallPromptEvent)
+    }
+    window.addEventListener("beforeinstallprompt", onPrompt)
+    return () => window.removeEventListener("beforeinstallprompt", onPrompt)
   }, [])
 
   const handleSignOut = async () => {
@@ -130,7 +136,7 @@ export function AppSidebar({
   const handleInstallClick = () => {
     if (installPrompt) {
       installPrompt.prompt()
-      installPrompt.userChoice.then((choice: any) => {
+      installPrompt.userChoice.then((choice) => {
         if (choice.outcome === "accepted") {
           setInstallPrompt(null)
         }

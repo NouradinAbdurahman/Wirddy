@@ -6,7 +6,6 @@ import {
   IconArrowsShuffle,
   IconArrowsSplit,
   IconChartDots,
-  IconSparkles,
   IconSwitchHorizontal,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
@@ -18,7 +17,7 @@ interface RotationSelectorProps {
 }
 
 export function RotationSelector({ value, onChange }: RotationSelectorProps) {
-  const { t, dir } = useI18n()
+  const { t } = useI18n()
 
   const options: Array<{
     id: RotationStyle

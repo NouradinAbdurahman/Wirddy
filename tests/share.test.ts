@@ -80,7 +80,7 @@ describe("Schedule Full Plan PDF Share", () => {
       filename: "wirddy_Family_Circle.pdf",
     })
 
-    let sharedPayload: any = null
+    let sharedPayload: ShareData | null = null
     vi.stubGlobal("navigator", {
       share: vi.fn().mockImplementation(async (payload) => {
         sharedPayload = payload
@@ -93,13 +93,13 @@ describe("Schedule Full Plan PDF Share", () => {
     expect(result.success).toBe(true)
     expect(result.method).toBe("native-share")
     expect(sharedPayload).not.toBeNull()
-    expect(sharedPayload.title).toBe("Wirddy - Family Circle")
-    expect(sharedPayload.text).toBe("Family Circle - Full Quran Schedule")
-    expect(sharedPayload.files).toBeDefined()
-    expect(sharedPayload.files.length).toBe(1)
-    expect(sharedPayload.files[0] instanceof File).toBe(true)
-    expect(sharedPayload.files[0].type).toBe("application/pdf")
-    expect(sharedPayload.files[0].name).toBe("wirddy_Family_Circle.pdf")
+    expect(sharedPayload!.title).toBe("Wirddy - Family Circle")
+    expect(sharedPayload!.text).toBe("Family Circle - Full Quran Schedule")
+    expect(sharedPayload!.files).toBeDefined()
+    expect(sharedPayload!.files!.length).toBe(1)
+    expect(sharedPayload!.files![0] instanceof File).toBe(true)
+    expect(sharedPayload!.files![0].type).toBe("application/pdf")
+    expect(sharedPayload!.files![0].name).toBe("wirddy_Family_Circle.pdf")
   })
 
   it("shares Arabic PDF file via native Web Share with correct Arabic title and text", async () => {
@@ -111,7 +111,7 @@ describe("Schedule Full Plan PDF Share", () => {
       filename: "wirddy_عائلة_الفرح.pdf",
     })
 
-    let sharedPayload: any = null
+    let sharedPayload: ShareData | null = null
     vi.stubGlobal("navigator", {
       share: vi.fn().mockImplementation(async (payload) => {
         sharedPayload = payload
@@ -123,9 +123,9 @@ describe("Schedule Full Plan PDF Share", () => {
 
     expect(result.success).toBe(true)
     expect(result.method).toBe("native-share")
-    expect(sharedPayload.title).toBe("وردي - عائلة الفرح")
-    expect(sharedPayload.text).toBe("الخطة الكاملة لورد القرآن - عائلة الفرح")
-    expect(sharedPayload.files[0].type).toBe("application/pdf")
+    expect(sharedPayload!.title).toBe("وردي - عائلة الفرح")
+    expect(sharedPayload!.text).toBe("الخطة الكاملة لورد القرآن - عائلة الفرح")
+    expect(sharedPayload!.files![0].type).toBe("application/pdf")
   })
 
   it("handles user cancellation (AbortError) gracefully without error or download fallback", async () => {

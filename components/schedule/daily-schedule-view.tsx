@@ -1,9 +1,8 @@
 "use client"
 
 import React from "react"
-import { IconCheck, IconClock, IconSparkles } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
-import { DailyPortion, MemberAssignment } from "@/lib/scheduler/types"
+import { MemberAssignment } from "@/lib/scheduler/types"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { toArabicNumerals } from "@/lib/dates/calendar"

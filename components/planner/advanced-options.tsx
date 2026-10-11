@@ -11,11 +11,7 @@ import {
   IconSparkles,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
-import {
-  OccasionType,
-  RecurrenceConfig,
-  RecurrenceFrequency,
-} from "@/lib/scheduler/types"
+import { OccasionType, RecurrenceConfig } from "@/lib/scheduler/types"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -419,7 +415,7 @@ export function AdvancedOptions({
                 type="button"
                 onClick={() =>
                   onRecurrenceChange?.({
-                    frequency: item.id as any,
+                    frequency: item.id as RecurrenceConfig["frequency"],
                     autoAdvance: item.id !== "none",
                   })
                 }
@@ -434,6 +430,13 @@ export function AdvancedOptions({
             )
           })}
         </div>
+        {(recurrence?.frequency || "none") !== "none" && (
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            {language === "ar"
+              ? "تُنشأ كل دورة جديدة قبل بدايتها بيوم، ويحتفظ الأعضاء المرتبطون بحساباتهم. التجديد التلقائي يحتاج إلى أن تكون مسجّل الدخول عند حفظ الجدول."
+              : "Each new cycle is created the day before it starts, and linked members keep their accounts. Automatic renewal needs you to be signed in when you save the schedule."}
+          </p>
+        )}
       </Card>
     </div>
   )

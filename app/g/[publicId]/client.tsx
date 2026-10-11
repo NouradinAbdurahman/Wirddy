@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import {
@@ -12,15 +12,9 @@ import {
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { LoadedPublicGroup } from "@/lib/groups/service"
-import {
-  checkCanEditGroupAction,
-  deleteGroupAction,
-  updateAndRegenerateAction,
-  verifyEditTokenAction,
-} from "@/lib/groups/actions"
+import { checkCanEditGroupAction, updateAndRegenerateAction } from "@/lib/groups/actions"
 import {
   CustomQuranRange,
-  GeneratedSchedule,
   MemberConfig,
   OccasionType,
   RangeType,
@@ -41,9 +35,11 @@ import { RotationSelector } from "@/components/planner/rotation-selector"
 import { WeeksSelector } from "@/components/planner/weeks-selector"
 import { TotalIndicator } from "@/components/planner/total-indicator"
 import { GenerateButton } from "@/components/planner/generate-button"
+import { ValidationNotice } from "@/components/planner/validation-notice"
 import { AdvancedOptions } from "@/components/planner/advanced-options"
 import { validateScheduleInput } from "@/lib/scheduler/validator"
 import { getCurrentHijriYear } from "@/lib/dates/ramadan"
+import { useStorageValue } from "@/hooks/use-storage-value"
 
 interface PublicScheduleClientProps {
   initialData: LoadedPublicGroup | null
@@ -56,15 +52,28 @@ export function PublicScheduleClient({
 }: PublicScheduleClientProps) {
   const { language, dir, t } = useI18n()
   const searchParams = useSearchParams()
-  const editToken = searchParams.get("edit") || ""
+  // `?edit=<token>` carries the secret edit token. `?editing=true` only asks
+  // to open the editor (used by the dashboard for signed-in owners).
+  const rawEditParam = searchParams.get("edit") || ""
+  const editToken = rawEditParam === "true" ? "" : rawEditParam
+  const wantsEditor =
+    searchParams.get("editing") === "true" || rawEditParam === "true"
 
-  const [groupData, setGroupData] = useState<LoadedPublicGroup | null>(
-    initialData
-  )
+  const [loadedGroup, setGroupData] = useState<LoadedPublicGroup | null>(initialData)
+  // When the server could not load the group (for example offline), show the
+  // copy saved on this device during an earlier visit.
+  const cachedRaw = useStorageValue(loadedGroup ? null : `wirddy_cached_group_${publicId}`)
+  const cachedGroup = useMemo<LoadedPublicGroup | null>(() => {
+    if (!cachedRaw) return null
+    try {
+      const parsed = JSON.parse(cachedRaw) as LoadedPublicGroup
+      return parsed?.publicId === publicId ? parsed : null
+    } catch {
+      return null
+    }
+  }, [cachedRaw, publicId])
+  const groupData = loadedGroup ?? cachedGroup
   const [isEditor, setIsEditor] = useState<boolean>(false)
-  const [isVerifyingEdit, setIsVerifyingEdit] = useState<boolean>(
-    Boolean(editToken)
-  )
   const [isEditing, setIsEditing] = useState<boolean>(false)
 
   // Edit form state
@@ -121,6 +130,7 @@ export function PublicScheduleClient({
 
   // Save to device-local history and offline cache on mount if valid
   useEffect(() => {
+    const groupData = loadedGroup
     if (groupData && !groupData.isExpired) {
       try {
         localStorage.setItem(
@@ -148,43 +158,19 @@ export function PublicScheduleClient({
         rangeType: groupData.rangeType,
         updatedAt: new Date().toISOString(),
       })
-    } else if (!groupData && publicId && typeof window !== "undefined") {
-      // Attempt to load from client-side offline cached snapshot
-      try {
-        const raw = localStorage.getItem(`wirddy_cached_group_${publicId}`)
-        if (raw) {
-          const cached = JSON.parse(raw)
-          if (cached && cached.publicId === publicId) {
-            setGroupData(cached)
-            setGroupName(cached.groupName || "")
-            setTitle(cached.title || "")
-            setDescription(cached.description || "")
-            setWeeksCount(cached.schedule?.weeksCount || 4)
-            setMembers(cached.membersConfig || [])
-          }
-        }
-      } catch {
-        // ignore
-      }
     }
-  }, [groupData, editToken, publicId])
+  }, [loadedGroup, publicId, editToken])
 
   // Verify edit authorization (via token or owner session)
   useEffect(() => {
-    if (publicId) {
-      checkCanEditGroupAction(publicId, editToken || undefined).then((res: any) => {
-        const canEdit = Boolean(res.success && res.data?.canEdit)
-        setIsEditor(canEdit)
-        setIsVerifyingEdit(false)
-        if (canEdit && (searchParams.get("edit") === "true" || searchParams.get("editing") === "true")) {
-          setIsEditing(true)
-        }
-      })
-    } else {
-      setIsEditor(false)
-      setIsVerifyingEdit(false)
-    }
-  }, [editToken, publicId, searchParams])
+    checkCanEditGroupAction(publicId, editToken || undefined).then((res) => {
+      const canEdit = Boolean(res.success && res.data?.canEdit)
+      setIsEditor(canEdit)
+      if (canEdit && wantsEditor) {
+        setIsEditing(true)
+      }
+    })
+  }, [editToken, publicId, wantsEditor])
 
   // Not Found State
   if (!groupData) {
@@ -454,11 +440,7 @@ export function PublicScheduleClient({
               <WeeksSelector weeksCount={weeksCount} onChange={setWeeksCount} />
             </Card>
 
-            {editError && (
-              <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs font-semibold text-destructive">
-                {editError}
-              </div>
-            )}
+            <ValidationNotice result={validationResult} submitError={editError} />
 
             <GenerateButton
               onGenerate={handleSaveAndRegenerate}

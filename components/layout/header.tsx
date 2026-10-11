@@ -23,30 +23,20 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { extractUserProfile, UserProfileInfo } from "@/lib/auth/user"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 interface HeaderProps {
-  onNewGroup?: () => void
-  onShowHowItWorks?: () => void
   onGoHome?: () => void
   onLogoClick?: () => void
-  inPlanner?: boolean
 }
 
-export function Header({
-  onNewGroup,
-  onShowHowItWorks,
-  onGoHome,
-  onLogoClick,
-  inPlanner,
-}: HeaderProps) {
+export function Header({ onGoHome, onLogoClick }: HeaderProps) {
   const { language, setLanguage, t } = useI18n()
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = React.useState(false)
+  const mounted = useHydrated()
   const [user, setUser] = React.useState<UserProfileInfo | null>(null)
 
   React.useEffect(() => {
-    setMounted(true)
-
     const supabase = getSupabaseBrowserClient()
     if (!supabase) return
 

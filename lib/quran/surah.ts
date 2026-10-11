@@ -1,4 +1,4 @@
-import { fetchSurahs, fetchSurah } from "./api"
+import { fetchSurahs } from "./api"
 import { normalizeApiSurah } from "./normalize"
 import { SurahInfo } from "./types"
 

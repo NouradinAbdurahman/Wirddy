@@ -1,20 +1,12 @@
 "use client"
 
 import React, { useState } from "react"
-import { motion } from "framer-motion"
-import {
-  IconSpeakerphone,
-  IconPlus,
-  IconTrash,
-  IconCheck,
-} from "@tabler/icons-react"
+import { motion } from "motion/react"
+import { IconSpeakerphone, IconPlus } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  createAnnouncementAction,
-  getAnnouncementsAction,
-} from "@/lib/groups/actions"
+import { createAnnouncementAction } from "@/lib/groups/actions"
 
 export interface AnnouncementItem {
   id: string
@@ -36,7 +28,7 @@ export function AnnouncementsWidget({
   isOwner = false,
   onAnnouncementsUpdated,
 }: AnnouncementsWidgetProps) {
-  const { language, t } = useI18n()
+  const { t } = useI18n()
   const [isCreating, setIsCreating] = useState(false)
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")

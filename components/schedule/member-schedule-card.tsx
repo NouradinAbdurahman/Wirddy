@@ -2,12 +2,6 @@
 
 import React from "react"
 import { motion } from "motion/react"
-import {
-  IconArrowLeft,
-  IconArrowRight,
-  IconBook,
-  IconCircleCheck,
-} from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { MemberAssignment } from "@/lib/scheduler/types"
 import { Card, CardContent } from "@/components/ui/card"
@@ -24,7 +18,7 @@ export function MemberScheduleCard({
   index,
   onCardClick,
 }: MemberScheduleCardProps) {
-  const { language, dir, t, formatNumber } = useI18n()
+  const { language, t, formatNumber } = useI18n()
 
   return (
     <motion.div

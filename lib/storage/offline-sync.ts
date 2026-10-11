@@ -1,54 +1,89 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import {
-  saveReadingProgressAction,
-  saveBookmarkAction,
-} from "@/lib/groups/actions"
+import { useEffect, useState, useSyncExternalStore } from "react"
+import { saveReadingProgressAction, saveBookmarkAction } from "@/lib/groups/actions"
 
-export interface QueuedMutation {
+/**
+ * Offline queue for changes made without a connection. Changes are stored in
+ * IndexedDB (localStorage when IndexedDB is unavailable) and replayed in
+ * order when the browser comes back online.
+ */
+
+export interface ProgressPayload {
+  groupPublicId: string
+  memberPublicId: string
+  weekNumber: number
+  dayNumber: number
+  isCompleted: boolean
+}
+
+export interface BookmarkPayload {
+  surahNumber: number
+  ayahNumber: number
+  juzNumber: number
+  note?: string
+}
+
+export type QueuedMutation = {
   id: string
-  action: "save_progress" | "save_bookmark"
-  payload: any
   createdAt: string
   retryCount: number
-}
+} & (
+  | { action: "save_progress"; payload: ProgressPayload }
+  | { action: "save_bookmark"; payload: BookmarkPayload }
+)
+
+type MutationInput =
+  | { action: "save_progress"; payload: ProgressPayload }
+  | { action: "save_bookmark"; payload: BookmarkPayload }
 
 const DB_NAME = "wirddy_offline_sync_db"
 const DB_VERSION = 1
 const STORE_NAME = "mutations"
+const FALLBACK_KEY = "wirddy_offline_mutations"
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof window === "undefined" || !window.indexedDB) {
       return reject(new Error("IndexedDB not supported in this environment."))
     }
-
     const request = window.indexedDB.open(DB_NAME, DB_VERSION)
-
-    request.onupgradeneeded = (event: any) => {
-      const db = event.target.result
+    request.onupgradeneeded = () => {
+      const db = request.result
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: "id" })
       }
     }
-
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)
   })
 }
 
+function readFallback(): QueuedMutation[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FALLBACK_KEY) || "[]")
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeFallback(list: QueuedMutation[]) {
+  try {
+    localStorage.setItem(FALLBACK_KEY, JSON.stringify(list))
+  } catch {
+    // Storage full or disabled: the change is lost, as it would be without a queue.
+  }
+}
+
 /**
- * Adds a mutation to the offline IndexedDB queue.
+ * Adds a change to the offline queue.
  */
-export async function enqueueOfflineMutation(
-  action: "save_progress" | "save_bookmark",
-  payload: any
-): Promise<void> {
+export async function enqueueOfflineMutation(input: MutationInput): Promise<void> {
   const mutation: QueuedMutation = {
+    ...input,
+    // Timestamp prefix keeps the queue in creation order.
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-    action,
-    payload,
     createdAt: new Date().toISOString(),
     retryCount: 0,
   }
@@ -61,49 +96,32 @@ export async function enqueueOfflineMutation(
       tx.oncomplete = resolve
       tx.onerror = reject
     })
-  } catch (err) {
-    // LocalStorage fallback if IndexedDB fails
-    try {
-      const raw = localStorage.getItem("wirddy_offline_mutations") || "[]"
-      const list = JSON.parse(raw)
-      list.push(mutation)
-      localStorage.setItem("wirddy_offline_mutations", JSON.stringify(list))
-    } catch {
-      // ignore
-    }
+  } catch {
+    writeFallback([...readFallback(), mutation])
   }
-
-  // Attempt instant flush if online
-  if (typeof navigator !== "undefined" && navigator.onLine) {
-    flushOfflineQueue().catch(console.error)
-  }
+  notifyQueueChanged()
 }
 
 /**
- * Retrieves all pending offline mutations.
+ * Returns all queued changes, oldest first.
  */
 export async function getPendingOfflineMutations(): Promise<QueuedMutation[]> {
   try {
     const db = await openDatabase()
-    const tx = db.transaction(STORE_NAME, "readonly")
-    const store = tx.objectStore(STORE_NAME)
-    return new Promise((resolve, reject) => {
+    const store = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME)
+    const list = await new Promise<QueuedMutation[]>((resolve, reject) => {
       const req = store.getAll()
-      req.onsuccess = () => resolve(req.result || [])
+      req.onsuccess = () => resolve((req.result as QueuedMutation[]) || [])
       req.onerror = reject
     })
+    return list.sort((a, b) => a.id.localeCompare(b.id))
   } catch {
-    try {
-      const raw = localStorage.getItem("wirddy_offline_mutations") || "[]"
-      return JSON.parse(raw)
-    } catch {
-      return []
-    }
+    return readFallback()
   }
 }
 
 /**
- * Deletes a processed mutation from the queue.
+ * Removes a replayed change from the queue.
  */
 export async function removeOfflineMutation(id: string): Promise<void> {
   try {
@@ -115,75 +133,89 @@ export async function removeOfflineMutation(id: string): Promise<void> {
       tx.onerror = reject
     })
   } catch {
-    try {
-      const raw = localStorage.getItem("wirddy_offline_mutations") || "[]"
-      const list = JSON.parse(raw).filter((m: any) => m.id !== id)
-      localStorage.setItem("wirddy_offline_mutations", JSON.stringify(list))
-    } catch {
-      // ignore
-    }
+    writeFallback(readFallback().filter((m) => m.id !== id))
+  }
+  notifyQueueChanged()
+}
+
+function isOffline(): boolean {
+  return typeof navigator !== "undefined" && !navigator.onLine
+}
+
+/**
+ * Saves reading progress, or queues it when the device is offline or the
+ * request cannot reach the server. A queued change counts as saved for the
+ * UI and is sent once the connection returns.
+ */
+export async function saveProgressOrQueue(
+  payload: ProgressPayload
+): Promise<{ success: boolean; queued?: boolean; reason?: string }> {
+  if (isOffline()) {
+    await enqueueOfflineMutation({ action: "save_progress", payload })
+    return { success: true, queued: true }
+  }
+  try {
+    const res = await saveReadingProgressAction(
+      payload.groupPublicId,
+      payload.memberPublicId,
+      payload.weekNumber,
+      payload.dayNumber,
+      payload.isCompleted
+    )
+    return { success: res.success, reason: res.data?.reason }
+  } catch {
+    // The server action request itself failed, which means no connection.
+    await enqueueOfflineMutation({ action: "save_progress", payload })
+    return { success: true, queued: true }
   }
 }
 
 let isFlushing = false
 
 /**
- * Replays all pending mutations against Supabase when connectivity resumes.
+ * Replays queued changes in order. Changes the server refuses for good
+ * (not allowed, invalid, or gone) are dropped; others stay for the next try.
  */
-export async function flushOfflineQueue(): Promise<{
-  syncedCount: number
-  errors: number
-}> {
-  if (isFlushing || (typeof navigator !== "undefined" && !navigator.onLine)) {
-    return { syncedCount: 0, errors: 0 }
-  }
+export async function flushOfflineQueue(): Promise<{ syncedCount: number; errors: number }> {
+  if (isFlushing || isOffline()) return { syncedCount: 0, errors: 0 }
 
   isFlushing = true
   let syncedCount = 0
   let errors = 0
 
   try {
-    const pending = await getPendingOfflineMutations()
-    for (const m of pending) {
+    for (const m of await getPendingOfflineMutations()) {
       try {
         if (m.action === "save_progress") {
-          const {
-            groupPublicId,
-            memberPublicId,
-            weekNumber,
-            dayNumber,
-            isCompleted,
-          } = m.payload
+          const p = m.payload
           const res = await saveReadingProgressAction(
-            groupPublicId,
-            memberPublicId,
-            weekNumber,
-            dayNumber,
-            isCompleted
+            p.groupPublicId,
+            p.memberPublicId,
+            p.weekNumber,
+            p.dayNumber,
+            p.isCompleted
           )
+          const permanent =
+            res.data?.reason === "forbidden" ||
+            res.data?.reason === "invalid" ||
+            res.data?.reason === "not_found"
+          if (res.success) syncedCount++
+          else errors++
+          if (res.success || permanent) await removeOfflineMutation(m.id)
+        } else {
+          const p = m.payload
+          const res = await saveBookmarkAction(p.surahNumber, p.ayahNumber, p.juzNumber, p.note)
           if (res.success) {
-            await removeOfflineMutation(m.id)
             syncedCount++
-          } else {
-            errors++
-          }
-        } else if (m.action === "save_bookmark") {
-          const { surahNumber, ayahNumber, juzNumber, note } = m.payload
-          const res = await saveBookmarkAction(
-            surahNumber,
-            ayahNumber,
-            juzNumber,
-            note
-          )
-          if (res.success) {
             await removeOfflineMutation(m.id)
-            syncedCount++
           } else {
             errors++
           }
         }
-      } catch (err) {
+      } catch {
+        // Still unreachable: stop and keep the rest for the next attempt.
         errors++
+        break
       }
     }
   } finally {
@@ -193,50 +225,59 @@ export async function flushOfflineQueue(): Promise<{
   return { syncedCount, errors }
 }
 
+// Lets components re-read the queue size after it changes.
+const queueListeners = new Set<() => void>()
+function notifyQueueChanged() {
+  queueListeners.forEach((l) => l())
+}
+
+function subscribeOnline(listener: () => void) {
+  window.addEventListener("online", listener)
+  window.addEventListener("offline", listener)
+  return () => {
+    window.removeEventListener("online", listener)
+    window.removeEventListener("offline", listener)
+  }
+}
+
 /**
- * React hook to track online/offline status and pending sync queue.
+ * Tracks connectivity and the queue size, and replays the queue when the
+ * app starts online or the connection comes back.
  */
 export function useOfflineSync() {
-  const [isOnline, setIsOnline] = useState<boolean>(
-    typeof navigator !== "undefined" ? navigator.onLine : true
+  const isOnline = useSyncExternalStore(
+    subscribeOnline,
+    () => navigator.onLine,
+    () => true
   )
-  const [pendingCount, setPendingCount] = useState<number>(0)
-  const [isSyncing, setIsSyncing] = useState<boolean>(false)
-
-  const updateStatus = () => {
-    if (typeof navigator !== "undefined") {
-      setIsOnline(navigator.onLine)
-    }
-    getPendingOfflineMutations().then((list) => setPendingCount(list.length))
-  }
+  const [pendingCount, setPendingCount] = useState(0)
+  const [isSyncing, setIsSyncing] = useState(false)
 
   useEffect(() => {
-    updateStatus()
-
-    const handleOnline = () => {
-      setIsOnline(true)
-      setIsSyncing(true)
-      flushOfflineQueue()
-        .then(() => updateStatus())
-        .finally(() => setIsSyncing(false))
+    const refreshCount = () => {
+      getPendingOfflineMutations().then((list) => setPendingCount(list.length))
     }
-
-    const handleOffline = () => {
-      setIsOnline(false)
-      updateStatus()
-    }
-
-    window.addEventListener("online", handleOnline)
-    window.addEventListener("offline", handleOffline)
-
-    const interval = setInterval(updateStatus, 15000)
-
+    queueListeners.add(refreshCount)
+    refreshCount()
     return () => {
-      window.removeEventListener("online", handleOnline)
-      window.removeEventListener("offline", handleOffline)
-      clearInterval(interval)
+      queueListeners.delete(refreshCount)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isOnline) return
+    let active = true
+    getPendingOfflineMutations().then((list) => {
+      if (!active || list.length === 0) return
+      setIsSyncing(true)
+      flushOfflineQueue().finally(() => {
+        if (active) setIsSyncing(false)
+      })
+    })
+    return () => {
+      active = false
+    }
+  }, [isOnline])
 
   return { isOnline, pendingCount, isSyncing, flushQueue: flushOfflineQueue }
 }

@@ -1,7 +1,8 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from "react"
+import React, { createContext, useContext, useEffect } from "react"
 import { Language, translations, Translations } from "./dictionary"
+import { useStorageValue, writeStorageValue } from "@/hooks/use-storage-value"
 
 interface I18nContextType {
   language: Language
@@ -18,36 +19,18 @@ const STORAGE_KEY = "wirddy_language"
 const ARABIC_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"]
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("ar")
-  const [mounted, setMounted] = useState(false)
+  // The language lives in localStorage so it survives reloads and stays in
+  // sync across tabs. Server rendering uses the Arabic default.
+  const stored = useStorageValue(STORAGE_KEY)
+  const language: Language = stored === "en" ? "en" : "ar"
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY) as Language | null
-      if (stored === "ar" || stored === "en") {
-        setLanguageState(stored)
-      }
-    } catch {
-      // ignore
-    }
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      const dir = language === "ar" ? "rtl" : "ltr"
-      document.documentElement.lang = language
-      document.documentElement.dir = dir
-      try {
-        localStorage.setItem(STORAGE_KEY, language)
-      } catch {
-        // ignore
-      }
-    }
+    document.documentElement.lang = language
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr"
   }, [language])
 
   const setLanguage = (lang: Language) => {
-    setLanguageState(lang)
+    writeStorageValue(STORAGE_KEY, lang)
   }
 
   const formatNumber = (num: number): string => {

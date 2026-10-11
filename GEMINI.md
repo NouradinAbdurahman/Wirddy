@@ -1,5 +1,9 @@
 # Gemini & Antigravity Agent Guidelines
 
+## Read first: `npx skills add michaelshimeles/skills`
+
+This project's agent skills come from `npx skills add michaelshimeles/skills` and are committed under `.claude/skills/` and `.agents/skills/`. Every agent must read the `SKILL.md` of each skill and follow it on every task. If the folders are missing, run `npx skills add michaelshimeles/skills -s '*' -y` from the repo root first. `CLAUDE.md` describes the codebase.
+
 This workspace has installed skills from `michaelshimeles/skills` under `.agents/skills/`. All agents operating in this project must adhere to the instructions defined in `.agents/skills/` and summarized below.
 
 ## Installed Skills Reference
@@ -11,4 +15,4 @@ This workspace has installed skills from `michaelshimeles/skills` under `.agents
 - **UI Comparisons (`before-and-after`):** Use `@vercel/before-and-after` to capture before/after states for UI PRs.
 - **Code Review Loops (`greploop` / `greploop-apps`):** Resolve all actionable feedback until reaching 5/5 confidence.
 
-See [AGENTS.md](file:///Users/nouradin/Downloads/Wirddy/AGENTS.md) and [.agents/rules/skills.md](file:///Users/nouradin/Downloads/Wirddy/.agents/rules/skills.md) for complete details.
+See [AGENTS.md](/AGENTS.md) and [.agents/rules/skills.md](/.agents/rules/skills.md) for complete details.

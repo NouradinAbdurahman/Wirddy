@@ -3,7 +3,7 @@
 import React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { IconArrowRight, IconFileOff, IconPlus } from "@tabler/icons-react"
+import { IconFileOff, IconPlus } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { LoadedPublicGroup } from "@/lib/groups/service"
 import { Header } from "@/components/layout/header"

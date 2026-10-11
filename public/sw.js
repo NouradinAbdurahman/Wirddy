@@ -1,5 +1,11 @@
 // Wirddy Progressive Web App Service Worker
-const CACHE_NAME = 'wirddy-pwa-v1';
+// The page registers this worker as /sw.js?v=<build id>, so every deploy
+// installs a fresh worker with its own cache and the old cache is removed.
+const BUILD_VERSION = new URL(self.location.href).searchParams.get('v') || 'dev';
+const CACHE_NAME = `wirddy-pwa-${BUILD_VERSION}`;
+// Quran text never changes, so it lives in its own cache that survives deploys.
+const QURAN_TEXT_CACHE = 'wirddy-quran-text-v1';
+const QURAN_API_HOST = 'api.alquran.cloud';
 
 const STATIC_ASSETS = [
   '/',
@@ -36,7 +42,7 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((name) => {
-            if (name !== CACHE_NAME) {
+            if (name !== CACHE_NAME && name !== QURAN_TEXT_CACHE) {
               return caches.delete(name);
             }
           })
@@ -61,6 +67,23 @@ self.addEventListener('fetch', (event) => {
     url.pathname.startsWith('/auth') ||
     url.pathname.startsWith('/login')
   ) {
+    return;
+  }
+
+  // 0. Quran text from the API: cache-first, so pages read once open
+  //    instantly and keep working offline.
+  if (url.hostname === QURAN_API_HOST) {
+    event.respondWith(
+      caches.open(QURAN_TEXT_CACHE).then(async (cache) => {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        const response = await fetch(request);
+        if (response && response.status === 200) {
+          cache.put(request, response.clone());
+        }
+        return response;
+      })
+    );
     return;
   }
 

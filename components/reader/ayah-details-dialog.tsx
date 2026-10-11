@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useMemo, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "motion/react"
 import {
   IconX,
   IconBookmark,
@@ -11,19 +11,13 @@ import {
   IconShare,
   IconChevronRight,
   IconChevronLeft,
-  IconBook,
-  IconBook2,
   IconSparkles,
   IconLoader2,
-  IconArrowRight,
-  IconArrowLeft,
   IconWorld,
-  IconShare2,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
 import { QuranDataService } from "@/lib/quran/service"
 import { fetchAyah } from "@/lib/quran/api"
 import { toArabicNumerals } from "@/lib/dates/calendar"
@@ -56,12 +50,15 @@ export function AyahDetailsDialog({
   onBookmark,
   isBookmarked = false,
 }: AyahDetailsDialogProps) {
-  const { language, dir, t, formatNumber } = useI18n()
+  const { language, dir, t } = useI18n()
   const isRTL = dir === "rtl"
 
-  const [arabicText, setArabicText] = useState<string>(propArabicText || "")
-  const [translationText, setTranslationText] = useState<string>(propTranslationText || "")
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  // Text fetched for an ayah the caller did not supply, tagged with the ayah.
+  const [fetched, setFetched] = useState<{
+    ayah: number
+    arabic: string
+    translation: string
+  } | null>(null)
   const [copiedArabic, setCopiedArabic] = useState<boolean>(false)
   const [copiedTranslation, setCopiedTranslation] = useState<boolean>(false)
   const [shareToast, setShareToast] = useState<boolean>(false)
@@ -75,56 +72,36 @@ export function AyahDetailsDialog({
     return quranService.getSurah(surahNumber)
   }, [surahNumber])
 
-  // Sync state when props change or load missing data
+  const globalNum = location.globalAyahNumber
+  const needsFetch = !propArabicText || !propTranslationText
+  const current = fetched?.ayah === globalNum ? fetched : null
+  const arabicText = propArabicText || current?.arabic || ""
+  const translationText = propTranslationText || current?.translation || ""
+  const isLoading = needsFetch && !current
+
+  // Load whatever text the caller did not pass in.
   useEffect(() => {
+    if (!needsFetch) return
     let isCancelled = false
 
-    if (propArabicText && propTranslationText) {
-      setArabicText(propArabicText)
-      setTranslationText(propTranslationText)
-      setIsLoading(false)
-      return
-    }
-
-    if (propArabicText) {
-      setArabicText(propArabicText)
-    }
-
-    const loadAyahDetails = async () => {
-      try {
-        setIsLoading(true)
-        const globalNum = location.globalAyahNumber
-
-        // Fetch Arabic if missing
-        if (!propArabicText) {
-          const arData = await fetchAyah(globalNum, "quran-uthmani")
-          if (!isCancelled && arData) {
-            setArabicText(arData.text)
-          }
-        }
-
-        // Fetch Translation if missing
-        if (!propTranslationText) {
-          const transData = await fetchAyah(globalNum, "en.sahih")
-          if (!isCancelled && transData) {
-            setTranslationText(transData.text)
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load Ayah details:", err)
-      } finally {
+    Promise.all([
+      propArabicText ? null : fetchAyah(globalNum, "quran-uthmani"),
+      propTranslationText ? null : fetchAyah(globalNum, "en.sahih"),
+    ])
+      .then(([ar, tr]) => {
         if (!isCancelled) {
-          setIsLoading(false)
+          setFetched({ ayah: globalNum, arabic: ar?.text || "", translation: tr?.text || "" })
         }
-      }
-    }
-
-    loadAyahDetails()
+      })
+      .catch((err) => {
+        console.error("Failed to load Ayah details:", err)
+        if (!isCancelled) setFetched({ ayah: globalNum, arabic: "", translation: "" })
+      })
 
     return () => {
       isCancelled = true
     }
-  }, [surahNumber, ayahNumber, propArabicText, propTranslationText, location.globalAyahNumber])
+  }, [globalNum, needsFetch, propArabicText, propTranslationText])
 
   // Navigate to previous Ayah
   const handlePrevAyah = useCallback(() => {

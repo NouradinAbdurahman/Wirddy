@@ -1,13 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { quranService } from "../lib/quran/service"
 import { validateJuzBoundaries } from "../lib/quran/juz"
-import {
-  normalizeApiAyah,
-  normalizeApiJuzData,
-  normalizeApiSurah,
-} from "../lib/quran/normalize"
+import { normalizeApiAyah, normalizeApiSurah } from "../lib/quran/normalize"
 import { resolveJuzRange, resolveSurahToJuzRange } from "../lib/quran/resolver"
-import { ApiAyah, ApiJuzData, ApiSurahReference } from "../lib/quran/types"
+import { ApiAyah, ApiSurahReference } from "../lib/quran/types"
 
 describe("AlQuran Cloud API Integration & Quran Data Model", () => {
   it("loads all 30 verified Juz boundaries", () => {

@@ -11,10 +11,9 @@ import {
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 
 export function ShareExport() {
-  const { language, t } = useI18n()
+  const { t } = useI18n()
 
   const formats = [
     {
