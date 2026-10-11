@@ -1,4 +1,5 @@
 import { getSupabaseServerClient } from "../supabase/server"
+import { Database, Json } from "../supabase/types"
 import {
   CustomQuranRange,
   DailyPortion,
@@ -12,7 +13,7 @@ import {
   ScheduleInput,
   WeekSchedule,
 } from "../scheduler/types"
-import { generateQuranSchedule } from "../scheduler/engine"
+import { generateQuranSchedule, SchedulerError } from "../scheduler/engine"
 import { validateScheduleInput } from "../scheduler/validator"
 import {
   generateEditToken,
@@ -21,7 +22,14 @@ import {
   hashEditToken,
   verifyEditToken,
 } from "./crypto"
-import { WeekDateRange } from "../dates/calendar"
+import { addDaysToDate, calculateWeekDateRanges, WeekDateRange } from "../dates/calendar"
+import { getCurrentHijriYear, getRamadanStartDate } from "../dates/ramadan"
+import {
+  findGroupMember,
+  insertPlanWithAssignments,
+  planSettingsFromInput,
+  settingsColumns,
+} from "./persistence"
 
 export interface SavedGroupResult {
   publicId: string
@@ -84,312 +92,232 @@ export interface LoadedPublicMemberSchedule {
   }
 }
 
+function localizedError(lang: "ar" | "en", ar: string, en: string): Error {
+  return new Error(lang === "ar" ? ar : en)
+}
+
 /**
- * Persists a generated schedule group to Supabase without requiring authentication.
+ * Validates input and generates its schedule, turning scheduler failures into
+ * errors in the requested language.
  */
-export async function saveScheduleGroup(
+function generateValidatedSchedule(
   input: ScheduleInput,
-  schedule: GeneratedSchedule,
-  lang: "ar" | "en" = "ar",
-  ownerUserId?: string | null
-): Promise<SavedGroupResult> {
-  // 1. Strict Server-Side Validation
+  lang: "ar" | "en"
+): GeneratedSchedule {
   const validation = validateScheduleInput(input)
   if (!validation.isValid) {
-    const errorMsg =
-      lang === "ar"
-        ? validation.errors[0]?.messageAr || "بيانات الخطة غير صالحة."
-        : validation.errors[0]?.messageEn || "Invalid schedule configuration."
-    throw new Error(errorMsg)
+    const first = validation.errors[0]
+    throw localizedError(
+      lang,
+      first?.messageAr || "بيانات الخطة غير صالحة.",
+      first?.messageEn || "Invalid schedule configuration."
+    )
   }
+  try {
+    return generateQuranSchedule(input)
+  } catch (err) {
+    if (err instanceof SchedulerError) {
+      throw localizedError(lang, err.messageAr, err.messageEn)
+    }
+    throw err
+  }
+}
+
+/**
+ * Keeps only the member fields a client may set, trimmed, with a unique
+ * internal ID per position. Public IDs and account links are assigned by the
+ * server.
+ */
+function sanitizeMembers(members: MemberConfig[]): MemberConfig[] {
+  return members.map((m, i) => ({
+    id: `member-${i + 1}`,
+    name: String(m.name || "").trim(),
+    knowledgeType: m.knowledgeType,
+    startJuz: m.startJuz,
+    endJuz: m.endJuz,
+    startSurah: m.knowledgeType === "surah_range" ? m.startSurah : undefined,
+    endSurah: m.knowledgeType === "surah_range" ? m.endSurah : undefined,
+    weeklyAmount: m.weeklyAmount,
+  }))
+}
+
+/**
+ * Stored recurrence for a group. Automatic renewal needs an owner account,
+ * because a cycle created by the server gets a new edit link that only the
+ * owner's account can reach.
+ */
+function storedRecurrence(
+  recurrence: RecurrenceConfig | undefined,
+  ownerUserId: string | null | undefined
+): RecurrenceConfig | null {
+  if (!recurrence || recurrence.frequency === "none") return null
+  return {
+    frequency: recurrence.frequency,
+    autoAdvance: Boolean(ownerUserId) && recurrence.autoAdvance !== false,
+  }
+}
+
+type GroupRow = Database["public"]["Tables"]["groups"]["Row"]
+
+/** Reads a stored recurrence value, ignoring anything malformed. */
+function parseRecurrence(value: Json | null | undefined): RecurrenceConfig | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null
+  const frequency = value.frequency
+  if (frequency !== "weekly" && frequency !== "monthly" && frequency !== "ramadan") return null
+  return { frequency, autoAdvance: value.autoAdvance === true }
+}
+
+function recurrenceJson(r: RecurrenceConfig | null): Json {
+  return r ? { frequency: r.frequency, autoAdvance: Boolean(r.autoAdvance) } : null
+}
+
+/**
+ * Returns the ISO date the next cycle of a recurring group starts on.
+ */
+export function computeNextCycleStart(params: {
+  frequency: RecurrenceConfig["frequency"]
+  startDate: string | null | undefined
+  weeksCount: number
+  createdAt: string | null | undefined
+  islamicYear: number | null | undefined
+}): string | null {
+  const { frequency, weeksCount, islamicYear } = params
+  if (frequency === "none") return null
+  if (frequency === "ramadan") {
+    const year = islamicYear ? islamicYear + 1 : getCurrentHijriYear() + 1
+    return getRamadanStartDate(year)
+  }
+  const base = params.startDate || (params.createdAt || new Date().toISOString()).slice(0, 10)
+  if (frequency === "weekly") return addDaysToDate(base, weeksCount * 7)
+  const d = new Date(`${base}T00:00:00Z`)
+  d.setUTCMonth(d.getUTCMonth() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
+/** A cycle is due one day before it starts, so members can see it in advance. */
+function cycleDueAt(nextStart: string | null): string | null {
+  if (!nextStart) return null
+  return `${addDaysToDate(nextStart, -1)}T00:00:00.000Z`
+}
+
+interface CreateGroupOptions {
+  /** Account links to copy onto members, keyed by member internal ID. */
+  linkedUserIds?: Map<string, string>
+  recurringSourceGroupId?: string
+  cycleIndex?: number
+}
+
+/**
+ * Creates a group, its members and its first plan version from trusted,
+ * already sanitized input. Removes the group again if any step fails.
+ */
+async function createGroupWithSchedule(
+  input: ScheduleInput,
+  lang: "ar" | "en",
+  ownerUserId: string | null | undefined,
+  options: CreateGroupOptions = {}
+): Promise<SavedGroupResult> {
+  const schedule = generateValidatedSchedule(input, lang)
 
   const supabase = getSupabaseServerClient()
   if (!supabase) {
-    throw new Error(
-      lang === "ar"
-        ? "خدمة الحفظ غير متوفرة حالياً."
-        : "Online saving service is currently unavailable."
+    throw localizedError(
+      lang,
+      "خدمة الحفظ غير متوفرة حالياً.",
+      "Online saving service is currently unavailable."
     )
   }
 
   const publicId = generatePublicId(14)
   const editToken = generateEditToken()
-  const editTokenHash = hashEditToken(editToken)
-  const dir = lang === "ar" ? "rtl" : "ltr"
-  const rotationStyle = input.group.rotationStyle || "medium"
-  const rangeType = input.group.rangeType || "full"
-  const startJuz = input.group.startJuz || 1
-  const customRange = input.group.customRange
-  const title = input.group.title?.trim() || null
-  const description = input.group.description?.trim() || null
-  const startDate = input.group.startDate || schedule.startDate || null
-  const usesDates = !!input.group.usesDates || !!schedule.usesDates
-  const occasionType =
-    input.group.occasionType || schedule.occasionType || "normal"
-  const islamicYear = input.group.islamicYear || schedule.islamicYear || null
-  const dailyDivisionEnabled =
-    !!input.group.dailyDivisionEnabled || !!schedule.dailyDivisionEnabled
+  const settings = planSettingsFromInput(input, schedule)
+  const recurrence = storedRecurrence(input.group.recurrence, ownerUserId)
+  const nextStart = recurrence
+    ? computeNextCycleStart({
+        frequency: recurrence.frequency,
+        startDate: settings.startDate,
+        weeksCount: schedule.weeksCount,
+        createdAt: null,
+        islamicYear: settings.islamicYear,
+      })
+    : null
 
-  // 2. Insert Group
-  // Try with all new columns first. If migration hasn't been applied yet (PGRST204),
-  // fall back to original columns so the app keeps working while migration is pending.
-  let { data: groupData, error: groupError } = (await supabase
-    .from("groups")
+  const { data: groupData, error: groupError } = (await supabase.from("groups")
     .insert({
       public_id: publicId,
-      edit_token_hash: editTokenHash,
+      edit_token_hash: hashEditToken(editToken),
       owner_user_id: ownerUserId || null,
       status: "active",
       is_archived: false,
       name: input.group.name.trim(),
-      title,
-      description,
       language: lang,
-      direction: dir,
-      scheduler_version: "1.3",
-      rotation_style: rotationStyle,
-      range_type: rangeType,
-      start_juz: startJuz,
-      range_start_surah: customRange?.startSurah || null,
-      range_start_ayah: customRange?.startAyah || null,
-      range_end_surah: customRange?.endSurah || null,
-      range_end_ayah: customRange?.endAyah || null,
-      start_date: startDate,
-      uses_dates: usesDates,
-      occasion_type: occasionType,
-      islamic_year: islamicYear,
-      daily_division_enabled: dailyDivisionEnabled,
-    } as any)
+      direction: lang === "ar" ? "rtl" : "ltr",
+      scheduler_version: "2.0",
+      recurrence: recurrenceJson(recurrence),
+      next_cycle_due_at: recurrence?.autoAdvance ? cycleDueAt(nextStart) : null,
+      recurring_source_group_id: options.recurringSourceGroupId || null,
+      cycle_index: options.cycleIndex || 1,
+      ...settingsColumns(settings),
+    })
     .select("id, expires_at")
-    .single()) as {
-    data: { id: string; expires_at: string } | null
-    error: any
-  }
-
-  // PGRST204 = column not found in schema cache (migration not yet applied to this DB)
-  if (groupError?.code === "PGRST204") {
-    console.warn(
-      "[Wirddy] Advanced columns not found — applying base-only fallback (run migration to enable all features)."
-    )
-    const fb = (await supabase
-      .from("groups")
-      .insert({
-        public_id: publicId,
-        edit_token_hash: editTokenHash,
-        name: input.group.name.trim(),
-        language: lang,
-        direction: dir,
-        scheduler_version: "1.2",
-        rotation_style: rotationStyle,
-        range_type: rangeType,
-        start_juz: startJuz,
-        range_start_surah: customRange?.startSurah || null,
-        range_start_ayah: customRange?.startAyah || null,
-        range_end_surah: customRange?.endSurah || null,
-        range_end_ayah: customRange?.endAyah || null,
-      } as any)
-      .select("id, expires_at")
-      .single()) as {
-      data: { id: string; expires_at: string } | null
-      error: any
-    }
-    groupData = fb.data
-    groupError = fb.error
-  }
+    .single()) as { data: { id: string; expires_at: string } | null; error: unknown }
 
   if (groupError || !groupData) {
     console.error("Error creating group:", groupError)
-    throw new Error(
-      lang === "ar"
-        ? "تعذر حفظ المجموعة على الخادم."
-        : "Failed to save group to server."
-    )
+    throw localizedError(lang, "تعذر حفظ المجموعة على الخادم.", "Failed to save group to server.")
   }
 
   const groupId = groupData.id
-  const expiresAt = groupData.expires_at
+  const fail = async (ar: string, en: string, detail: unknown) => {
+    console.error(en, detail)
+    await supabase.from("groups").delete().eq("id", groupId)
+    return localizedError(lang, ar, en)
+  }
 
-  // 3. Insert Members with unguessable publicId
-  const memberPublicIdMap = new Map<number, string>()
-  const memberInserts = input.members.map((m, idx) => {
-    const memberPublicId = m.publicId || generateMemberPublicId()
-    memberPublicIdMap.set(idx, memberPublicId)
-    return {
-      group_id: groupId,
-      name: m.name.trim(),
-      public_id: memberPublicId,
-      knowledge_type: m.knowledgeType,
-      start_juz: m.startJuz,
-      end_juz: m.endJuz,
-      start_surah: m.startSurah || null,
-      end_surah: m.endSurah || null,
-      weekly_amount: m.weeklyAmount,
-      sort_order: idx,
-    }
-  })
-
-  const { data: insertedMembers, error: membersError } = (await supabase
-    .from("group_members")
-    .insert(memberInserts as any)
-    .select("id, sort_order, public_id")) as {
-    data: Array<{ id: string; sort_order: number; public_id: string }> | null
-    error: any
+  const { data: insertedMembers, error: membersError } = (await (
+    supabase.from("group_members")
+  )
+    .insert(
+      schedule.members.map((m, idx) => ({
+        group_id: groupId,
+        name: m.name.trim(),
+        public_id: m.publicId,
+        knowledge_type: m.knowledgeType,
+        start_juz: m.startJuz,
+        end_juz: m.endJuz,
+        start_surah: m.startSurah || null,
+        end_surah: m.endSurah || null,
+        weekly_amount: m.weeklyAmount,
+        sort_order: idx,
+        linked_user_id: options.linkedUserIds?.get(m.id) || null,
+      }))
+    )
+    .select("id, public_id")) as {
+    data: Array<{ id: string; public_id: string }> | null
+    error: unknown
   }
 
   if (membersError || !insertedMembers) {
-    console.error("Error inserting members:", membersError)
-    await supabase.from("groups").delete().eq("id", groupId)
-    throw new Error(
-      lang === "ar"
-        ? "تعذر حفظ بيانات الأعضاء."
-        : "Failed to save group members."
-    )
+    throw await fail("تعذر حفظ بيانات الأعضاء.", "Failed to save group members.", membersError)
   }
 
-  const memberIdMap = new Map<number, string>()
-  const memberDbPublicIdMap = new Map<number, string>()
-  insertedMembers.forEach((im) => {
-    memberIdMap.set(im.sort_order, im.id)
-    memberDbPublicIdMap.set(im.sort_order, im.public_id)
+  const plan = await insertPlanWithAssignments(supabase, {
+    groupId,
+    versionNumber: 1,
+    weeksCount: schedule.weeksCount,
+    settings,
+    schedule,
+    memberRowIdByPublicId: new Map(insertedMembers.map((m) => [m.public_id, m.id])),
   })
-
-  // 4. Insert Schedule Plan
-  let { data: planData, error: planError } = (await supabase
-    .from("schedule_plans")
-    .insert({
-      group_id: groupId,
-      version_number: 1,
-      weeks_count: input.group.weeksCount,
-      total_juz_per_week: 30,
-      scheduler_version: "1.2",
-      is_active: true,
-      rotation_style: rotationStyle,
-      range_type: rangeType,
-      start_juz: startJuz,
-      range_start_surah: customRange?.startSurah || null,
-      range_start_ayah: customRange?.startAyah || null,
-      range_end_surah: customRange?.endSurah || null,
-      range_end_ayah: customRange?.endAyah || null,
-      title,
-      description,
-      start_date: startDate,
-      uses_dates: usesDates,
-      occasion_type: occasionType,
-      islamic_year: islamicYear,
-      daily_division_enabled: dailyDivisionEnabled,
-    } as any)
-    .select("id")
-    .single()) as { data: { id: string } | null; error: any }
-
-  if (planError?.code === "PGRST204") {
-    const fb2 = (await supabase
-      .from("schedule_plans")
-      .insert({
-        group_id: groupId,
-        version_number: 1,
-        weeks_count: input.group.weeksCount,
-        total_juz_per_week: 30,
-        scheduler_version: "1.2",
-        is_active: true,
-        rotation_style: rotationStyle,
-        range_type: rangeType,
-        start_juz: startJuz,
-        range_start_surah: customRange?.startSurah || null,
-        range_start_ayah: customRange?.startAyah || null,
-        range_end_surah: customRange?.endSurah || null,
-        range_end_ayah: customRange?.endAyah || null,
-      } as any)
-      .select("id")
-      .single()) as { data: { id: string } | null; error: any }
-    planData = fb2.data
-    planError = fb2.error
+  if (!plan.ok) {
+    throw await fail("تعذر حفظ خطة الجدول.", `Failed to save schedule ${plan.step}.`, plan.error)
   }
 
-  if (planError || !planData) {
-    console.error("Error inserting plan:", planError)
-    await supabase.from("groups").delete().eq("id", groupId)
-    throw new Error(
-      lang === "ar" ? "تعذر حفظ خطة الجدول." : "Failed to save schedule plan."
-    )
-  }
-
-  const planId = planData.id
-
-  // 5. Insert Weeks and Assignments
-  for (const week of schedule.weeks) {
-    const { data: weekData, error: weekError } = (await supabase
-      .from("schedule_weeks")
-      .insert({
-        schedule_plan_id: planId,
-        week_number: week.weekNumber,
-        total_juz: week.totalJuz || 30,
-      } as any)
-      .select("id")
-      .single()) as { data: { id: string } | null; error: any }
-
-    if (weekError || !weekData) {
-      console.error("Error inserting week:", weekError)
-      await supabase.from("groups").delete().eq("id", groupId)
-      throw new Error(
-        lang === "ar"
-          ? "تعذر حفظ أسابيع الجدول."
-          : "Failed to save schedule weeks."
-      )
-    }
-
-    const weekId = weekData.id
-    const assignmentInserts = week.assignments.map((a, aIdx) => {
-      const originalMemberIndex = input.members.findIndex(
-        (m) => m.id === a.memberId || m.name === a.memberName
-      )
-      const dbMemberId =
-        (originalMemberIndex >= 0
-          ? memberIdMap.get(originalMemberIndex)
-          : insertedMembers[0]?.id) || insertedMembers[0].id
-
-      return {
-        schedule_week_id: weekId,
-        member_id: dbMemberId,
-        member_name: a.memberName,
-        weekly_amount: a.weeklyAmount,
-        start_juz: a.startJuz,
-        end_juz: a.endJuz,
-        start_surah: a.startAyah.surahNumber,
-        start_surah_name_ar: a.startAyah.surahNameAr,
-        start_surah_name_en: a.startAyah.surahNameEn,
-        start_ayah: a.startAyah.ayahNumber,
-        end_surah: a.endAyah.surahNumber,
-        end_surah_name_ar: a.endAyah.surahNameAr,
-        end_surah_name_en: a.endAyah.surahNameEn,
-        end_ayah: a.endAyah.ayahNumber,
-        start_global_ayah: a.startAyah.globalAyahNumber || null,
-        end_global_ayah: a.endAyah.globalAyahNumber || null,
-        daily_breakdown: a.dailyBreakdown ? (a.dailyBreakdown as any) : null,
-        sort_order: aIdx,
-      }
-    })
-
-    const { error: assignError } = await supabase
-      .from("schedule_assignments")
-      .insert(assignmentInserts as any)
-
-    if (assignError) {
-      console.error("Error inserting assignments:", assignError)
-      await supabase.from("groups").delete().eq("id", groupId)
-      throw new Error(
-        lang === "ar"
-          ? "تعذر حفظ تعيينات الجدول."
-          : "Failed to save schedule assignments."
-      )
-    }
-  }
-
-  // Record initial history snapshot
   await createScheduleHistorySnapshot(
     groupId,
     "create_group",
     lang === "ar" ? "تم إنشاء الجدول" : "Schedule created",
-    { input, schedule },
+    { input: { ...input, members: schedule.members } },
     ownerUserId || undefined
   )
 
@@ -397,8 +325,26 @@ export async function saveScheduleGroup(
     publicId,
     editToken,
     groupName: input.group.name,
-    expiresAt,
+    expiresAt: groupData.expires_at,
   }
+}
+
+/**
+ * Saves a new group. The schedule sent by the browser is ignored: the server
+ * regenerates it from the validated input, so a modified client cannot store
+ * assignments that break the rules. Members get fresh random public IDs.
+ */
+export async function saveScheduleGroup(
+  input: ScheduleInput,
+  _clientSchedule: GeneratedSchedule | null,
+  lang: "ar" | "en" = "ar",
+  ownerUserId?: string | null
+): Promise<SavedGroupResult> {
+  const members = sanitizeMembers(input.members).map((m) => ({
+    ...m,
+    publicId: generateMemberPublicId(),
+  }))
+  return createGroupWithSchedule({ group: input.group, members }, lang, ownerUserId)
 }
 
 /**
@@ -420,7 +366,7 @@ export async function getGroupByPublicId(
   const { data: group, error: groupError } = (await supabase
     .from("groups")
     .select(
-      "id, public_id, name, title, description, language, direction, expires_at, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah, start_date, uses_dates, occasion_type, islamic_year, daily_division_enabled, owner_user_id"
+      "id, public_id, name, title, description, language, direction, expires_at, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah, start_date, uses_dates, occasion_type, islamic_year, daily_division_enabled, owner_user_id, recurrence"
     )
     .eq("public_id", publicId.trim())
     .single()) as {
@@ -446,8 +392,9 @@ export async function getGroupByPublicId(
       islamic_year: number | null
       daily_division_enabled: boolean
       owner_user_id: string | null
+      recurrence: Json | null
     } | null
-    error: any
+    error: unknown
   }
 
   if (groupError || !group) {
@@ -499,7 +446,7 @@ export async function getGroupByPublicId(
       sort_order: number
       linked_user_id: string | null
     }> | null
-    error: any
+    error: unknown
   }
 
   if (membersError || !members) {
@@ -516,7 +463,6 @@ export async function getGroupByPublicId(
     startSurah: m.start_surah || undefined,
     endSurah: m.end_surah || undefined,
     weeklyAmount: m.weekly_amount,
-    linkedUserId: m.linked_user_id || undefined,
     isLinked: Boolean(m.linked_user_id),
   }))
 
@@ -558,7 +504,7 @@ export async function getGroupByPublicId(
       islamic_year: number | null
       daily_division_enabled: boolean
     } | null
-    error: any
+    error: unknown
   }
 
   if (planError || !plan) {
@@ -576,7 +522,7 @@ export async function getGroupByPublicId(
       week_number: number
       total_juz: number
     }> | null
-    error: any
+    error: unknown
   }
 
   if (weeksError || !weeks) {
@@ -613,7 +559,7 @@ export async function getGroupByPublicId(
       daily_breakdown: DailyPortion[] | null
       sort_order: number
     }> | null
-    error: any
+    error: unknown
   }
 
   if (assignError || !assignments) {
@@ -666,10 +612,20 @@ export async function getGroupByPublicId(
     assignmentMap.set(a.schedule_week_id, list)
   })
 
+  const planStartDate = plan.start_date || group.start_date || undefined
+  const planUsesDates =
+    (plan.uses_dates ?? group.uses_dates ?? false) ||
+    (plan.occasion_type || group.occasion_type) === "ramadan"
+  const weekDateRanges =
+    planUsesDates && planStartDate
+      ? calculateWeekDateRanges(planStartDate, plan.weeks_count)
+      : undefined
+
   const builtWeeks: WeekSchedule[] = weeks.map((w) => ({
     weekNumber: w.week_number,
     totalJuz: w.total_juz,
     assignments: assignmentMap.get(w.id) || [],
+    dateRange: weekDateRanges?.[w.week_number - 1],
   }))
 
   const effectiveTitle = plan.title || group.title || undefined
@@ -700,6 +656,7 @@ export async function getGroupByPublicId(
     occasionType: effectiveOccasion,
     islamicYear: effectiveIslamicYear,
     dailyDivisionEnabled: effectiveDaily,
+    weekDateRanges,
     weeks: builtWeeks,
     members: membersConfig,
   }
@@ -725,8 +682,7 @@ export async function getGroupByPublicId(
     occasionType: effectiveOccasion,
     islamicYear: effectiveIslamicYear,
     dailyDivisionEnabled: effectiveDaily,
-    recurrence: (group as any).recurrence || undefined,
-    ownerUserId: group.owner_user_id || undefined,
+    recurrence: parseRecurrence(group.recurrence) || undefined,
   }
 }
 
@@ -751,20 +707,11 @@ export async function getMemberScheduleByPublicId(
   }
 
   // Filter assignments across all weeks for this specific member
-  const memberWeeks = group.schedule.weeks.map((week) => {
-    const assignment =
-      week.assignments.find(
-        (a) =>
-          a.memberPublicId === member.publicId ||
-          a.memberId === member.id ||
-          a.memberName === member.name
-      ) || week.assignments[0]
-
-    return {
-      weekNumber: week.weekNumber,
-      assignment,
-      dateRange: week.dateRange,
-    }
+  const memberWeeks = group.schedule.weeks.flatMap((week) => {
+    const assignment = week.assignments.find((a) => a.memberId === member.id)
+    return assignment
+      ? [{ weekNumber: week.weekNumber, assignment, dateRange: week.dateRange }]
+      : []
   })
 
   return {
@@ -810,7 +757,12 @@ export async function validateEditAccess(
 }
 
 /**
- * Updates a saved group with a new schedule plan. Requires a verified secret edit token or authenticated owner.
+ * Updates a group's settings and members and saves a new plan version.
+ *
+ * Members are matched to existing rows by public ID and updated in place, so
+ * their personal links, linked accounts and reading progress survive the
+ * edit. New members get fresh public IDs; members missing from the input are
+ * removed.
  */
 export async function updateGroupAndRegenerate(
   publicId: string,
@@ -819,234 +771,147 @@ export async function updateGroupAndRegenerate(
   lang: "ar" | "en" = "ar",
   userId?: string
 ): Promise<LoadedPublicGroup> {
-  const authCheck = await checkGroupAuthorization(
-    publicId,
-    rawEditToken,
-    userId
-  )
+  const authCheck = await checkGroupAuthorization(publicId, rawEditToken, userId)
   if (!authCheck.authorized || !authCheck.group) {
-    throw new Error(
-      lang === "ar"
-        ? "رمز التعديل غير صحيح أو غير مصرح لك بالتعديل."
-        : "Invalid edit token or unauthorized access."
+    throw localizedError(
+      lang,
+      "رمز التعديل غير صحيح أو غير مصرح لك بالتعديل.",
+      "Invalid edit token or unauthorized access."
     )
   }
-
-  const validation = validateScheduleInput(input)
-  if (!validation.isValid) {
-    const errorMsg =
-      lang === "ar"
-        ? validation.errors[0]?.messageAr || "بيانات الخطة غير صالحة."
-        : validation.errors[0]?.messageEn || "Invalid schedule configuration."
-    throw new Error(errorMsg)
-  }
+  const group = authCheck.group as { id: string; owner_user_id: string | null; created_at?: string }
 
   const supabase = getSupabaseServerClient()
   if (!supabase) {
-    throw new Error("Online service is currently unavailable.")
+    throw localizedError(lang, "الخدمة غير متوفرة حالياً.", "Online service is currently unavailable.")
   }
 
-  const newSchedule = generateQuranSchedule(input)
+  const { data: existingRows } = (await supabase
+    .from("group_members")
+    .select("id, public_id")
+    .eq("group_id", group.id)) as { data: Array<{ id: string; public_id: string | null }> | null }
+  const rowIdByPublicId = new Map<string, string>()
+  for (const r of existingRows || []) if (r.public_id) rowIdByPublicId.set(r.public_id, r.id)
 
-  // 1. Fetch group
-  const { data: group, error: fetchError } = (await supabase
-    .from("groups")
-    .select("id, owner_user_id")
-    .eq("public_id", publicId.trim())
-    .single()) as {
-    data: { id: string; owner_user_id: string | null } | null
-    error: any
-  }
+  // Keep a member's public ID only if it belongs to this group and is not
+  // already claimed by an earlier member in the list.
+  const claimed = new Set<string>()
+  const members = sanitizeMembers(input.members).map((m, i) => {
+    const requested = input.members[i]?.publicId
+    const keep = requested && rowIdByPublicId.has(requested) && !claimed.has(requested)
+    const pid = keep ? requested! : generateMemberPublicId()
+    claimed.add(pid)
+    return { ...m, publicId: pid }
+  })
+  const normalizedInput: ScheduleInput = { group: input.group, members }
+  const schedule = generateValidatedSchedule(normalizedInput, lang)
+  const settings = planSettingsFromInput(normalizedInput, schedule)
+  const recurrence = storedRecurrence(input.group.recurrence, group.owner_user_id)
+  const nextStart = recurrence
+    ? computeNextCycleStart({
+        frequency: recurrence.frequency,
+        startDate: settings.startDate,
+        weeksCount: schedule.weeksCount,
+        createdAt: group.created_at,
+        islamicYear: settings.islamicYear,
+      })
+    : null
 
-  if (fetchError || !group) {
-    throw new Error("Group not found.")
-  }
-
-  const rotationStyle = input.group.rotationStyle || "medium"
-  const rangeType = input.group.rangeType || "full"
-  const startJuz = input.group.startJuz || 1
-  const customRange = input.group.customRange
-  const title = input.group.title?.trim() || null
-  const description = input.group.description?.trim() || null
-  const startDate = input.group.startDate || newSchedule.startDate || null
-  const usesDates = !!input.group.usesDates || !!newSchedule.usesDates
-  const occasionType =
-    input.group.occasionType || newSchedule.occasionType || "normal"
-  const islamicYear = input.group.islamicYear || newSchedule.islamicYear || null
-  const dailyDivisionEnabled =
-    !!input.group.dailyDivisionEnabled || !!newSchedule.dailyDivisionEnabled
-
-  // Update group record
-  await (supabase.from("groups") as any)
+  const groupUpdate = await supabase.from("groups")
     .update({
       name: input.group.name.trim(),
-      title,
-      description,
       language: lang,
       direction: lang === "ar" ? "rtl" : "ltr",
-      rotation_style: rotationStyle,
-      range_type: rangeType,
-      start_juz: startJuz,
-      range_start_surah: customRange?.startSurah || null,
-      range_start_ayah: customRange?.startAyah || null,
-      range_end_surah: customRange?.endSurah || null,
-      range_end_ayah: customRange?.endAyah || null,
-      start_date: startDate,
-      uses_dates: usesDates,
-      occasion_type: occasionType,
-      islamic_year: islamicYear,
-      daily_division_enabled: dailyDivisionEnabled,
+      recurrence: recurrenceJson(recurrence),
+      next_cycle_due_at: recurrence?.autoAdvance ? cycleDueAt(nextStart) : null,
       updated_at: new Date().toISOString(),
+      ...settingsColumns(settings),
     })
     .eq("id", group.id)
-
-  // Re-sync members (preserve existing public_ids where possible)
-  await supabase.from("group_members").delete().eq("group_id", group.id)
-
-  const memberInserts = input.members.map((m, idx) => ({
-    group_id: group.id,
-    name: m.name.trim(),
-    public_id: m.publicId || generateMemberPublicId(),
-    knowledge_type: m.knowledgeType,
-    start_juz: m.startJuz,
-    end_juz: m.endJuz,
-    start_surah: m.startSurah || null,
-    end_surah: m.endSurah || null,
-    weekly_amount: m.weeklyAmount,
-    sort_order: idx,
-  }))
-
-  const { data: insertedMembers, error: membersError } = (await supabase
-    .from("group_members")
-    .insert(memberInserts as any)
-    .select("id, sort_order, public_id")) as {
-    data: Array<{ id: string; sort_order: number; public_id: string }> | null
-    error: any
+  if (groupUpdate.error) {
+    console.error("Error updating group:", groupUpdate.error)
+    throw localizedError(lang, "تعذر تحديث المجموعة.", "Failed to update group.")
   }
 
-  if (membersError || !insertedMembers) {
-    throw new Error("Failed to update group members.")
+  // Sync members: update kept rows, insert new ones, remove dropped ones.
+  const memberRowIdByPublicId = new Map<string, string>()
+  const newRows: Database["public"]["Tables"]["group_members"]["Insert"][] = []
+  for (const [idx, m] of members.entries()) {
+    const columns = {
+      name: m.name,
+      knowledge_type: m.knowledgeType,
+      start_juz: m.startJuz,
+      end_juz: m.endJuz,
+      start_surah: m.startSurah || null,
+      end_surah: m.endSurah || null,
+      weekly_amount: m.weeklyAmount,
+      sort_order: idx,
+    }
+    const rowId = rowIdByPublicId.get(m.publicId)
+    if (rowId) {
+      const res = await supabase.from("group_members").update(columns).eq("id", rowId)
+      if (res.error) throw localizedError(lang, "تعذر تحديث الأعضاء.", "Failed to update group members.")
+      memberRowIdByPublicId.set(m.publicId, rowId)
+    } else {
+      newRows.push({ group_id: group.id, public_id: m.publicId, ...columns })
+    }
   }
 
-  const memberIdMap = new Map<number, string>()
-  insertedMembers.forEach((im) => {
-    memberIdMap.set(im.sort_order, im.id)
-  })
+  if (newRows.length > 0) {
+    const { data: inserted, error } = (await supabase.from("group_members")
+      .insert(newRows)
+      .select("id, public_id")) as { data: Array<{ id: string; public_id: string }> | null; error: unknown }
+    if (error || !inserted) {
+      console.error("Error inserting members:", error)
+      throw localizedError(lang, "تعذر تحديث الأعضاء.", "Failed to update group members.")
+    }
+    for (const r of inserted) memberRowIdByPublicId.set(r.public_id, r.id)
+  }
 
-  // Get highest version number & mark previous plans inactive
+  const removedIds = (existingRows || [])
+    .filter((r) => !r.public_id || !claimed.has(r.public_id))
+    .map((r) => r.id)
+  if (removedIds.length > 0) {
+    await supabase.from("group_members").delete().in("id", removedIds)
+  }
+
   const { data: latestPlan } = (await supabase
     .from("schedule_plans")
     .select("version_number")
     .eq("group_id", group.id)
     .order("version_number", { ascending: false })
     .limit(1)
-    .single()) as { data: { version_number: number } | null }
+    .maybeSingle()) as { data: { version_number: number } | null }
 
-  const nextVersion = (latestPlan?.version_number || 1) + 1
+  const plan = await insertPlanWithAssignments(supabase, {
+    groupId: group.id,
+    versionNumber: (latestPlan?.version_number || 0) + 1,
+    weeksCount: schedule.weeksCount,
+    settings,
+    schedule,
+    memberRowIdByPublicId,
+  })
+  if (!plan.ok) {
+    console.error(`Error saving plan ${plan.step}:`, plan.error)
+    throw localizedError(lang, "تعذر حفظ النسخة الجديدة من الجدول.", "Failed to create new plan version.")
+  }
 
-  await (supabase.from("schedule_plans") as any)
+  // Only switch the old versions off once the new one is fully written.
+  await supabase.from("schedule_plans")
     .update({ is_active: false })
     .eq("group_id", group.id)
+    .neq("id", plan.planId)
 
-  // Insert new plan
-  const { data: planData, error: planError } = (await supabase
-    .from("schedule_plans")
-    .insert({
-      group_id: group.id,
-      version_number: nextVersion,
-      weeks_count: input.group.weeksCount,
-      total_juz_per_week: 30,
-      scheduler_version: "1.2",
-      is_active: true,
-      rotation_style: rotationStyle,
-      range_type: rangeType,
-      start_juz: startJuz,
-      range_start_surah: customRange?.startSurah || null,
-      range_start_ayah: customRange?.startAyah || null,
-      range_end_surah: customRange?.endSurah || null,
-      range_end_ayah: customRange?.endAyah || null,
-      title,
-      description,
-      start_date: startDate,
-      uses_dates: usesDates,
-      occasion_type: occasionType,
-      islamic_year: islamicYear,
-      daily_division_enabled: dailyDivisionEnabled,
-    } as any)
-    .select("id")
-    .single()) as { data: { id: string } | null; error: any }
-
-  if (planError || !planData) {
-    throw new Error("Failed to create new plan version.")
-  }
-
-  const planId = planData.id
-
-  // Insert weeks and assignments
-  for (const week of newSchedule.weeks) {
-    const { data: weekData, error: weekError } = (await supabase
-      .from("schedule_weeks")
-      .insert({
-        schedule_plan_id: planId,
-        week_number: week.weekNumber,
-        total_juz: week.totalJuz || 30,
-      } as any)
-      .select("id")
-      .single()) as { data: { id: string } | null; error: any }
-
-    if (weekError || !weekData) {
-      throw new Error("Failed to create plan weeks.")
-    }
-
-    const weekId = weekData.id
-    const assignmentInserts = week.assignments.map((a, aIdx) => {
-      const originalMemberIndex = input.members.findIndex(
-        (m) => m.id === a.memberId || m.name === a.memberName
-      )
-      const dbMemberId =
-        (originalMemberIndex >= 0
-          ? memberIdMap.get(originalMemberIndex)
-          : insertedMembers[0]?.id) || insertedMembers[0].id
-
-      return {
-        schedule_week_id: weekId,
-        member_id: dbMemberId,
-        member_name: a.memberName,
-        weekly_amount: a.weeklyAmount,
-        start_juz: a.startJuz,
-        end_juz: a.endJuz,
-        start_surah: a.startAyah.surahNumber,
-        start_surah_name_ar: a.startAyah.surahNameAr,
-        start_surah_name_en: a.startAyah.surahNameEn,
-        start_ayah: a.startAyah.ayahNumber,
-        end_surah: a.endAyah.surahNumber,
-        end_surah_name_ar: a.endAyah.surahNameAr,
-        end_surah_name_en: a.endAyah.surahNameEn,
-        end_ayah: a.endAyah.ayahNumber,
-        start_global_ayah: a.startAyah.globalAyahNumber || null,
-        end_global_ayah: a.endAyah.globalAyahNumber || null,
-        daily_breakdown: a.dailyBreakdown ? (a.dailyBreakdown as any) : null,
-        sort_order: aIdx,
-      }
-    })
-
-    await supabase.from("schedule_assignments").insert(assignmentInserts as any)
-  }
-
-  // Create history snapshot
   await createScheduleHistorySnapshot(
     group.id,
     "update_schedule",
     lang === "ar" ? "تم تعديل خطة الجدول" : "Schedule plan updated",
-    { input, schedule: newSchedule },
-    group.owner_user_id || undefined
+    { input: normalizedInput },
+    userId
   )
 
   const loaded = await getGroupByPublicId(publicId)
-  if (!loaded) {
-    throw new Error("Failed to load regenerated group.")
-  }
-
+  if (!loaded) throw new Error("Failed to load regenerated group.")
   return loaded
 }
 
@@ -1098,8 +963,7 @@ export async function duplicateGroupSchedule(
     members: freshMembers,
   }
 
-  const newSchedule = generateQuranSchedule(input)
-  return saveScheduleGroup(input, newSchedule, lang, ownerUserId)
+  return saveScheduleGroup(input, null, lang, ownerUserId)
 }
 
 /**
@@ -1144,7 +1008,11 @@ export async function startNewKhatmah(
       rangeType: existing.rangeType,
       startJuz: existing.startJuz,
       customRange: existing.customRange,
-      startDate: undefined, // Reset start date for the new cycle
+      // A dated plan restarts today; Ramadan plans use next Ramadan's first day.
+      startDate:
+        existing.usesDates && existing.occasionType !== "ramadan"
+          ? new Date().toISOString().slice(0, 10)
+          : undefined,
       usesDates: existing.usesDates,
       occasionType: existing.occasionType,
       islamicYear: nextIslamicYear || undefined,
@@ -1153,8 +1021,7 @@ export async function startNewKhatmah(
     members: freshMembers,
   }
 
-  const newSchedule = generateQuranSchedule(input)
-  return saveScheduleGroup(input, newSchedule, lang, ownerUserId)
+  return saveScheduleGroup(input, null, lang, ownerUserId)
 }
 
 /**
@@ -1164,7 +1031,7 @@ export async function checkGroupAuthorization(
   publicId: string,
   rawEditToken?: string,
   userId?: string
-): Promise<{ authorized: boolean; group?: any }> {
+): Promise<{ authorized: boolean; group?: GroupRow }> {
   if (!publicId) return { authorized: false }
 
   const supabase = getSupabaseServerClient()
@@ -1240,7 +1107,7 @@ export async function archiveGroup(
   const supabase = getSupabaseServerClient()
   if (!supabase) return false
 
-  const { error } = await (supabase.from("groups") as any)
+  const { error } = await supabase.from("groups")
     .update({
       is_archived: isArchived,
       status: isArchived ? "archived" : "active",
@@ -1275,261 +1142,172 @@ export interface UserGroupSummary {
   recurrence?: RecurrenceConfig | null
 }
 
+type GroupFilter = "all" | "active" | "draft" | "completed" | "archived" | "ramadan"
+
+interface GroupSummaryRow {
+  id: string
+  public_id: string
+  name: string
+  title: string | null
+  description: string | null
+  status: string | null
+  is_archived: boolean | null
+  occasion_type: string | null
+  islamic_year: number | null
+  daily_division_enabled: boolean | null
+  recurrence: Json | null
+  start_date: string | null
+  uses_dates: boolean | null
+  created_at: string
+  updated_at: string
+  group_members: Array<{ id: string; name: string; public_id: string | null; linked_user_id: string | null }> | null
+  schedule_plans: Array<{
+    id: string
+    weeks_count: number
+    is_active: boolean
+    start_date: string | null
+    uses_dates: boolean | null
+  }> | null
+}
+
+const GROUP_SUMMARY_COLUMNS = `
+  id, public_id, name, title, description, status, is_archived, occasion_type,
+  islamic_year, daily_division_enabled, recurrence, start_date, uses_dates,
+  created_at, updated_at,
+  group_members (id, name, public_id, linked_user_id),
+  schedule_plans (id, weeks_count, is_active, start_date, uses_dates)
+`
+
+function matchesGroupFilter(g: GroupSummaryRow, filter: GroupFilter): boolean {
+  if (filter === "active") return !g.is_archived && (g.status || "active") === "active"
+  if (filter === "archived") return Boolean(g.is_archived)
+  if (filter === "completed") return g.status === "completed"
+  if (filter === "draft") return g.status === "draft"
+  if (filter === "ramadan") return g.occasion_type === "ramadan"
+  return true
+}
+
 /**
- * Fetches all groups owned by or linked to a user.
+ * Fetches all groups owned by or linked to a user, with each group's current
+ * week and overall completion.
  */
 export async function fetchUserGroups(
   userId: string,
-  filter:
-    "all" | "active" | "draft" | "completed" | "archived" | "ramadan" = "all"
+  filter: GroupFilter = "all"
 ): Promise<UserGroupSummary[]> {
   if (!userId) return []
 
   const supabase = getSupabaseServerClient()
   if (!supabase) return []
 
-  // 1. Fetch groups owned by the user
-  let query = supabase
-    .from("groups")
-    .select(
-      `
-      id,
-      public_id,
-      name,
-      title,
-      description,
-      status,
-      is_archived,
-      occasion_type,
-      islamic_year,
-      daily_division_enabled,
-      recurrence,
-      start_date,
-      created_at,
-      updated_at,
-      owner_user_id,
-      group_members (id, name, public_id, linked_user_id),
-      schedule_plans (id, weeks_count, is_active)
-    `
-    )
-    .eq("owner_user_id", userId)
-    .order("updated_at", { ascending: false })
-
-  if (filter === "active") {
-    query = query.eq("is_archived", false).eq("status", "active")
-  } else if (filter === "archived") {
-    query = query.eq("is_archived", true)
-  } else if (filter === "completed") {
-    query = query.eq("status", "completed")
-  } else if (filter === "ramadan") {
-    query = query.eq("occasion_type", "ramadan")
-  }
-
-  let ownedGroups: any[] | null = null
-  const { data: initialOwned, error: ownedError } = await query
-  if (initialOwned) {
-    ownedGroups = initialOwned as any[]
-  }
-
-  if (ownedError) {
-    if (
-      ownedError.code === "42703" ||
-      ownedError.message?.includes("linked_user_id")
-    ) {
-      // Fallback query for schemas where linked_user_id migration has not yet been applied
-      let fallbackQuery = supabase
-        .from("groups")
-        .select(
-          `
-          id,
-          public_id,
-          name,
-          title,
-          description,
-          status,
-          is_archived,
-          occasion_type,
-          islamic_year,
-          daily_division_enabled,
-          recurrence,
-          start_date,
-          created_at,
-          updated_at,
-          owner_user_id,
-          group_members (id, name, public_id),
-          schedule_plans (id, weeks_count, is_active)
-        `
-        )
-        .eq("owner_user_id", userId)
-        .order("updated_at", { ascending: false })
-
-      if (filter === "active") {
-        fallbackQuery = fallbackQuery
-          .eq("is_archived", false)
-          .eq("status", "active")
-      } else if (filter === "archived") {
-        fallbackQuery = fallbackQuery.eq("is_archived", true)
-      } else if (filter === "completed") {
-        fallbackQuery = fallbackQuery.eq("status", "completed")
-      } else if (filter === "ramadan") {
-        fallbackQuery = fallbackQuery.eq("occasion_type", "ramadan")
-      }
-
-      const fb = await fallbackQuery
-      ownedGroups = (fb.data as any[]) || null
-    } else {
-      console.error("fetchUserGroups owned error:", ownedError)
-    }
-  }
-
-  // 2. Fetch groups where user is a linked member (safely handled if linked_user_id column is absent)
-  let linkedMembers: any[] | null = null
-  try {
-    const { data: membersData, error: memberError } = await supabase
+  const [owned, linked] = await Promise.all([
+    supabase
+      .from("groups")
+      .select(GROUP_SUMMARY_COLUMNS)
+      .eq("owner_user_id", userId)
+      .order("updated_at", { ascending: false }),
+    supabase
       .from("group_members")
-      .select(
-        `
-        id,
-        name,
-        public_id,
-        group_id,
-        groups (
-          id,
-          public_id,
-          name,
-          title,
-          description,
-          status,
-          is_archived,
-          occasion_type,
-          islamic_year,
-          daily_division_enabled,
-          recurrence,
-          start_date,
-          created_at,
-          updated_at,
-          owner_user_id,
-          group_members (id, name, public_id),
-          schedule_plans (id, weeks_count, is_active)
-        )
-      `
-      )
-      .eq("linked_user_id", userId)
+      .select(`id, name, public_id, groups (${GROUP_SUMMARY_COLUMNS})`)
+      .eq("linked_user_id", userId),
+  ])
 
-    if (!memberError && membersData) {
-      linkedMembers = membersData
-    } else if (
-      memberError &&
-      memberError.code !== "42703" &&
-      !memberError.message?.includes("linked_user_id")
-    ) {
-      console.error("fetchUserGroups member error:", memberError)
-    }
-  } catch {
-    // Ignore schema absence
+  if (owned.error) console.error("fetchUserGroups owned error:", owned.error)
+  if (linked.error) console.error("fetchUserGroups member error:", linked.error)
+
+  const entries: Array<{
+    g: GroupSummaryRow
+    isOwner: boolean
+    member?: { public_id: string | null; name: string }
+  }> = []
+  const seen = new Set<string>()
+
+  for (const g of (owned.data || []) as unknown as GroupSummaryRow[]) {
+    seen.add(g.public_id)
+    const own = g.group_members?.find((m) => m.linked_user_id === userId)
+    entries.push({ g, isOwner: true, member: own })
+  }
+  for (const lm of (linked.data || []) as unknown as Array<{
+    public_id: string | null
+    name: string
+    groups: GroupSummaryRow | null
+  }>) {
+    if (!lm.groups || seen.has(lm.groups.public_id)) continue
+    seen.add(lm.groups.public_id)
+    entries.push({ g: lm.groups, isOwner: false, member: lm })
   }
 
-  const resultMap = new Map<string, UserGroupSummary>()
+  const visible = entries.filter((e) => matchesGroupFilter(e.g, filter))
 
-  // Process owned groups
-  if (ownedGroups) {
-    for (const g of ownedGroups as any[]) {
-      const activePlan = Array.isArray(g.schedule_plans)
-        ? g.schedule_plans.find((p: any) => p.is_active) || g.schedule_plans[0]
-        : null
-      const weeksCount = activePlan?.weeks_count || 1
-      const membersCount = Array.isArray(g.group_members)
-        ? g.group_members.length
-        : 0
+  // One query for completion counts across all listed groups.
+  const completedByGroup = new Map<string, number>()
+  if (visible.length > 0) {
+    const { data: done } = await supabase
+      .from("reading_progress")
+      .select("group_id")
+      .in(
+        "group_id",
+        visible.map((e) => e.g.id)
+      )
+      .eq("is_completed", true)
+    for (const row of done || []) {
+      completedByGroup.set(row.group_id, (completedByGroup.get(row.group_id) || 0) + 1)
+    }
+  }
 
-      // Find user's own member link if exists
-      const ownMember = Array.isArray(g.group_members)
-        ? g.group_members.find((m: any) => m.linked_user_id === userId)
-        : null
+  return visible
+    .map(({ g, isOwner, member }) => {
+      const plan = g.schedule_plans?.find((p) => p.is_active) || g.schedule_plans?.[0]
+      const weeksCount = plan?.weeks_count || 1
+      const membersCount = g.group_members?.length || 0
+      const startDate = plan?.start_date || g.start_date
+      const usesDates = plan?.uses_dates ?? g.uses_dates ?? false
+      const { weekNumber } = currentPlanPosition(usesDates ? startDate || undefined : undefined, weeksCount)
+      const totalDays = membersCount * weeksCount * (g.daily_division_enabled ? 7 : 1)
+      const completed = completedByGroup.get(g.id) || 0
 
-      resultMap.set(g.public_id, {
+      const status = (["active", "draft", "completed", "archived"] as const).find(
+        (s) => s === g.status
+      )
+      return {
         publicId: g.public_id,
         groupName: g.name,
         title: g.title,
         description: g.description,
         membersCount,
         weeksCount,
-        startDate: g.start_date,
-        currentWeek: 1,
-        progressPercentage: 0,
-        status: (g.status || "active") as any,
-        isArchived: !!g.is_archived,
+        startDate,
+        currentWeek: weekNumber,
+        progressPercentage: totalDays > 0 ? Math.min(100, Math.round((completed / totalDays) * 100)) : 0,
+        status: status || "active",
+        isArchived: Boolean(g.is_archived),
         occasionType: g.occasion_type || "normal",
         islamicYear: g.islamic_year,
-        dailyDivisionEnabled: !!g.daily_division_enabled,
-        recurrence: g.recurrence || null,
+        dailyDivisionEnabled: Boolean(g.daily_division_enabled),
+        recurrence: parseRecurrence(g.recurrence),
         updatedAt: g.updated_at,
         createdAt: g.created_at,
-        isOwner: true,
-        userRole: "owner",
-        memberPublicId: ownMember?.public_id,
-        memberName: ownMember?.name,
-      })
-    }
-  }
+        isOwner,
+        userRole: isOwner ? ("owner" as const) : ("member" as const),
+        memberPublicId: member?.public_id || undefined,
+        memberName: member?.name,
+      }
+    })
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+}
 
-  // Process linked member groups
-  if (linkedMembers) {
-    for (const lm of linkedMembers as any[]) {
-      const g = lm.groups
-      if (!g || resultMap.has(g.public_id)) continue
-
-      // Apply filters to member groups as well
-      if (
-        filter === "active" &&
-        (g.is_archived || (g.status && g.status !== "active"))
-      )
-        continue
-      if (filter === "archived" && !g.is_archived) continue
-      if (filter === "completed" && g.status !== "completed") continue
-      if (filter === "ramadan" && g.occasion_type !== "ramadan") continue
-
-      const activePlan = Array.isArray(g.schedule_plans)
-        ? g.schedule_plans.find((p: any) => p.is_active) || g.schedule_plans[0]
-        : null
-      const weeksCount = activePlan?.weeks_count || 1
-      const membersCount = Array.isArray(g.group_members)
-        ? g.group_members.length
-        : 0
-
-      resultMap.set(g.public_id, {
-        publicId: g.public_id,
-        groupName: g.name,
-        title: g.title,
-        description: g.description,
-        membersCount,
-        weeksCount,
-        startDate: g.start_date,
-        currentWeek: 1,
-        progressPercentage: 0,
-        status: (g.status || "active") as any,
-        isArchived: !!g.is_archived,
-        occasionType: g.occasion_type || "normal",
-        islamicYear: g.islamic_year,
-        dailyDivisionEnabled: !!g.daily_division_enabled,
-        recurrence: g.recurrence || null,
-        updatedAt: g.updated_at,
-        createdAt: g.created_at,
-        isOwner: false,
-        userRole: "member",
-        memberPublicId: lm.public_id,
-        memberName: lm.name,
-      })
-    }
-  }
-
-  return Array.from(resultMap.values()).sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  )
+export type SaveProgressResult = {
+  success: boolean
+  progressId?: string
+  reason?: "invalid" | "not_found" | "forbidden" | "unavailable"
 }
 
 /**
- * Saves daily reading progress for a group member.
+ * Records whether a member finished a day's reading.
+ *
+ * A slot that is not linked to an account is controlled by whoever holds its
+ * personal link. Once a member links an account, only that account or the
+ * group owner can change the slot's progress.
  */
 export async function saveReadingProgress(
   groupPublicId: string,
@@ -1538,39 +1316,57 @@ export async function saveReadingProgress(
   dayNumber: number,
   isCompleted: boolean,
   userId?: string | null
-): Promise<{ success: boolean; progressId?: string }> {
+): Promise<SaveProgressResult> {
+  if (
+    !Number.isInteger(weekNumber) ||
+    !Number.isInteger(dayNumber) ||
+    weekNumber < 1 ||
+    dayNumber < 1 ||
+    dayNumber > 7 ||
+    typeof isCompleted !== "boolean"
+  ) {
+    return { success: false, reason: "invalid" }
+  }
+
   const supabase = getSupabaseServerClient()
-  if (!supabase) return { success: false }
+  if (!supabase) return { success: false, reason: "unavailable" }
 
-  const { data: group } = await supabase
-    .from("groups")
-    .select("id")
-    .eq("public_id", groupPublicId.trim())
-    .single()
+  const group = await findActiveGroup(groupPublicId)
+  if (!group) return { success: false, reason: "not_found" }
 
-  if (!group) return { success: false }
-
-  const { data: member } = await supabase
-    .from("group_members")
-    .select("id")
+  const { data: plan } = (await supabase
+    .from("schedule_plans")
+    .select("weeks_count")
     .eq("group_id", group.id)
-    .eq("public_id", memberPublicId.trim())
-    .single()
+    .eq("is_active", true)
+    .order("version_number", { ascending: false })
+    .limit(1)
+    .maybeSingle()) as { data: { weeks_count: number } | null }
+  if (!plan || weekNumber > plan.weeks_count) {
+    return { success: false, reason: "invalid" }
+  }
 
-  if (!member) return { success: false }
+  const member = await findGroupMember(supabase, group.id, memberPublicId)
+  if (!member) return { success: false, reason: "not_found" }
 
-  const completedAt = isCompleted ? new Date().toISOString() : null
+  if (
+    member.linked_user_id &&
+    member.linked_user_id !== userId &&
+    group.owner_user_id !== userId
+  ) {
+    return { success: false, reason: "forbidden" }
+  }
 
-  const { data, error } = await (supabase.from("reading_progress") as any)
+  const { data, error } = await supabase.from("reading_progress")
     .upsert(
       {
         group_id: group.id,
         member_id: member.id,
-        user_id: userId || null,
+        user_id: member.linked_user_id || null,
         week_number: weekNumber,
         day_number: dayNumber,
         is_completed: isCompleted,
-        completed_at: completedAt,
+        completed_at: isCompleted ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "group_id,member_id,week_number,day_number" }
@@ -1580,7 +1376,7 @@ export async function saveReadingProgress(
 
   if (error) {
     console.error("saveReadingProgress error:", error)
-    return { success: false }
+    return { success: false, reason: "unavailable" }
   }
 
   return { success: true, progressId: data?.id }
@@ -1625,7 +1421,14 @@ export async function fetchGroupReadingProgress(groupPublicId: string): Promise<
 
   if (error || !data) return []
 
-  return data.map((d: any) => ({
+  const rows = data as unknown as Array<{
+    week_number: number
+    day_number: number
+    is_completed: boolean
+    completed_at: string | null
+    group_members: { public_id: string | null; name: string } | null
+  }>
+  return rows.map((d) => ({
     memberPublicId: d.group_members?.public_id || "",
     memberName: d.group_members?.name || "",
     weekNumber: d.week_number,
@@ -1650,7 +1453,7 @@ export async function saveBookmark(
   const supabase = getSupabaseServerClient()
   if (!supabase) return { success: false }
 
-  const { data, error } = await (supabase.from("bookmarks") as any)
+  const { data, error } = await supabase.from("bookmarks")
     .insert({
       user_id: userId,
       surah_number: surahNumber,
@@ -1692,7 +1495,7 @@ export async function fetchUserBookmarks(userId: string): Promise<
 
   if (error || !data) return []
 
-  return data.map((b: any) => ({
+  return data.map((b) => ({
     id: b.id,
     surahNumber: b.surah_number,
     ayahNumber: b.ayah_number,
@@ -1743,7 +1546,7 @@ export async function createAnnouncement(
   const supabase = getSupabaseServerClient()
   if (!supabase) return { success: false }
 
-  const { data, error } = await (supabase.from("announcements") as any)
+  const { data, error } = await supabase.from("announcements")
     .insert({
       group_id: group.id,
       title: title.trim(),
@@ -1786,7 +1589,7 @@ export async function fetchAnnouncements(
 
   if (error || !data) return []
 
-  return data.map((a: any) => ({
+  return data.map((a) => ({
     id: a.id,
     title: a.title,
     content: a.content,
@@ -1822,53 +1625,89 @@ export async function deleteAnnouncement(
   return !error
 }
 
+export type LinkMemberResult =
+  | { success: true }
+  | {
+      success: false
+      reason: "not_found" | "already_linked" | "already_member" | "unavailable"
+    }
+
+/** Loads a non-expired group's row ID and owner by its public ID. */
+async function findActiveGroup(
+  groupPublicId: string
+): Promise<{ id: string; owner_user_id: string | null } | null> {
+  const supabase = getSupabaseServerClient()
+  if (!supabase || !groupPublicId) return null
+  const { data } = (await supabase
+    .from("groups")
+    .select("id, owner_user_id, expires_at")
+    .eq("public_id", groupPublicId.trim())
+    .maybeSingle()) as {
+    data: { id: string; owner_user_id: string | null; expires_at: string } | null
+  }
+  if (!data || new Date(data.expires_at).getTime() < Date.now()) return null
+  return data
+}
+
 /**
- * Links a group member to an authenticated user account.
+ * Links a member slot to the signed-in account. A slot that already belongs
+ * to another account is never taken over, and an account can hold only one
+ * slot per group.
  */
 export async function linkMemberAccount(
   groupPublicId: string,
   memberPublicId: string,
   userId: string
-): Promise<boolean> {
-  if (!groupPublicId || !memberPublicId || !userId) return false
+): Promise<LinkMemberResult> {
+  if (!groupPublicId || !memberPublicId || !userId) {
+    return { success: false, reason: "not_found" }
+  }
 
   const supabase = getSupabaseServerClient()
-  if (!supabase) return false
+  if (!supabase) return { success: false, reason: "unavailable" }
 
-  const { data: group } = await supabase
-    .from("groups")
+  const group = await findActiveGroup(groupPublicId)
+  if (!group) return { success: false, reason: "not_found" }
+
+  const member = await findGroupMember(supabase, group.id, memberPublicId)
+  if (!member) return { success: false, reason: "not_found" }
+
+  if (member.linked_user_id === userId) return { success: true }
+  if (member.linked_user_id) return { success: false, reason: "already_linked" }
+
+  const { data: otherSlot } = await supabase
+    .from("group_members")
     .select("id")
-    .eq("public_id", groupPublicId.trim())
-    .single()
-
-  if (!group) return false
-
-  const cleanId = memberPublicId.trim()
-  const { data: updated, error } = await (supabase.from("group_members") as any)
-    .update({
-      linked_user_id: userId,
-    })
     .eq("group_id", group.id)
-    .or(`public_id.eq.${cleanId},id.eq.${cleanId}`)
-    .select("id, public_id, name, linked_user_id")
+    .eq("linked_user_id", userId)
+    .limit(1)
+  if (otherSlot && otherSlot.length > 0) {
+    return { success: false, reason: "already_member" }
+  }
+
+  // The `is null` condition makes the claim atomic: if two people link at the
+  // same moment, only one update matches.
+  const { data: claimed, error } = (await supabase.from("group_members")
+    .update({ linked_user_id: userId })
+    .eq("id", member.id)
+    .is("linked_user_id", null)
+    .select("id")) as { data: Array<{ id: string }> | null; error: unknown }
 
   if (error) {
     console.error("linkMemberAccount error:", error)
-    return false
+    return { success: false, reason: "unavailable" }
+  }
+  if (!claimed || claimed.length === 0) {
+    return { success: false, reason: "already_linked" }
   }
 
-  // Also associate unassigned reading_progress records for this member with this userId
-  if (updated && updated.length > 0) {
-    const memberId = updated[0].id
-    await (supabase.from("reading_progress") as any)
-      .update({ user_id: userId })
-      .eq("group_id", group.id)
-      .eq("member_id", memberId)
-      .is("user_id", null)
-    return true
-  }
+  await supabase.from("reading_progress")
+    .update({ user_id: userId })
+    .eq("group_id", group.id)
+    .eq("member_id", member.id)
+    .is("user_id", null)
 
-  return false
+  return { success: true }
 }
 
 export interface MemberLinkStatusResult {
@@ -1882,7 +1721,8 @@ export interface MemberLinkStatusResult {
 }
 
 /**
- * Checks whether a specific member slot is linked to an account.
+ * Checks whether a member slot is linked to an account. Account IDs are only
+ * returned to their own holder.
  */
 export async function getMemberLinkStatus(
   groupPublicId: string,
@@ -1894,39 +1734,24 @@ export async function getMemberLinkStatus(
   const supabase = getSupabaseServerClient()
   if (!supabase) return null
 
-  const { data: group } = await supabase
-    .from("groups")
-    .select("id, owner_user_id")
-    .eq("public_id", groupPublicId.trim())
-    .single()
-
+  const group = await findActiveGroup(groupPublicId)
   if (!group) return null
 
-  const cleanId = memberPublicId.trim()
-  const { data: members, error } = await supabase
-    .from("group_members")
-    .select("id, public_id, name, linked_user_id")
-    .eq("group_id", group.id)
-    .or(`public_id.eq.${cleanId},id.eq.${cleanId}`)
+  const member = await findGroupMember(supabase, group.id, memberPublicId)
+  if (!member) return null
 
-  if (error || !members || members.length === 0) return null
-
-  const member = members[0]
-  const isLinked = Boolean(member.linked_user_id)
   const isLinkedToCurrentUser = Boolean(
     currentUserId && member.linked_user_id === currentUserId
   )
-  const isOwner = Boolean(
-    currentUserId && group.owner_user_id === currentUserId
-  )
+  const isOwner = Boolean(currentUserId && group.owner_user_id === currentUserId)
 
   return {
-    isLinked,
+    isLinked: Boolean(member.linked_user_id),
     isLinkedToCurrentUser,
-    linkedUserId: member.linked_user_id || null,
+    linkedUserId: isLinkedToCurrentUser ? member.linked_user_id : null,
     currentUserId: currentUserId || null,
     isOwner,
-    groupOwnerId: group.owner_user_id || null,
+    groupOwnerId: isOwner ? group.owner_user_id : null,
     memberName: member.name,
   }
 }
@@ -1951,7 +1776,7 @@ export async function saveNotificationPreferences(
   if (!supabase) return false
 
   const { error } = await (
-    supabase.from("notification_preferences") as any
+    supabase.from("notification_preferences")
   ).upsert({
     user_id: userId,
     daily_reminder_enabled: prefs.dailyReminderEnabled ?? true,
@@ -1969,9 +1794,12 @@ export async function saveNotificationPreferences(
 /**
  * Fetches notification preferences.
  */
+export type NotificationPreferencesRow =
+  Database["public"]["Tables"]["notification_preferences"]["Row"]
+
 export async function fetchNotificationPreferences(
   userId: string
-): Promise<any> {
+): Promise<NotificationPreferencesRow | null> {
   if (!userId) return null
 
   const supabase = getSupabaseServerClient()
@@ -1981,7 +1809,7 @@ export async function fetchNotificationPreferences(
     .from("notification_preferences")
     .select("*")
     .eq("user_id", userId)
-    .single()
+    .maybeSingle()
 
   return data || null
 }
@@ -1989,7 +1817,15 @@ export async function fetchNotificationPreferences(
 /**
  * Exports all user data in clean JSON format.
  */
-export async function exportUserData(userId: string): Promise<any> {
+export interface UserDataExport {
+  exportedAt: string
+  userId: string
+  groups: UserGroupSummary[]
+  bookmarks: Awaited<ReturnType<typeof fetchUserBookmarks>>
+  notificationPreferences: NotificationPreferencesRow | null
+}
+
+export async function exportUserData(userId: string): Promise<UserDataExport | null> {
   if (!userId) return null
 
   const groups = await fetchUserGroups(userId, "all")
@@ -2006,7 +1842,10 @@ export async function exportUserData(userId: string): Promise<any> {
 }
 
 /**
- * Deletes user account and cascades ownership.
+ * Deletes an account and its personal data: owned groups, bookmarks,
+ * notification settings and push subscriptions. Member slots the account had
+ * linked are released (the group keeps the slot and its progress), and
+ * finally the login itself is removed. Returns false if any step fails.
  */
 export async function deleteUserAccount(userId: string): Promise<boolean> {
   if (!userId) return false
@@ -2014,14 +1853,47 @@ export async function deleteUserAccount(userId: string): Promise<boolean> {
   const supabase = getSupabaseServerClient()
   if (!supabase) return false
 
-  // Delete owned groups
-  await supabase.from("groups").delete().eq("owner_user_id", userId)
-  // Delete bookmarks
-  await supabase.from("bookmarks").delete().eq("user_id", userId)
-  // Delete notification prefs
-  await supabase.from("notification_preferences").delete().eq("user_id", userId)
+  const steps: Array<[string, PromiseLike<{ error: unknown }>]> = [
+    ["groups", supabase.from("groups").delete().eq("owner_user_id", userId)],
+    ["bookmarks", supabase.from("bookmarks").delete().eq("user_id", userId)],
+    [
+      "notification_preferences",
+      supabase.from("notification_preferences").delete().eq("user_id", userId),
+    ],
+    ["push_subscriptions", supabase.from("push_subscriptions").delete().eq("user_id", userId)],
+    [
+      "group_members",
+      supabase.from("group_members")
+        .update({ linked_user_id: null })
+        .eq("linked_user_id", userId),
+    ],
+    [
+      "reading_progress",
+      supabase.from("reading_progress").update({ user_id: null }).eq("user_id", userId),
+    ],
+  ]
+
+  for (const [table, step] of steps) {
+    const { error } = await step
+    if (error) {
+      console.error(`deleteUserAccount failed on ${table}:`, error)
+      return false
+    }
+  }
+
+  const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+  if (authError) {
+    console.error("deleteUserAccount failed to remove login:", authError)
+    return false
+  }
 
   return true
+}
+
+/** What a history entry stores. Entries from before v2 also carry `schedule`. */
+export interface ScheduleSnapshot {
+  input?: ScheduleInput
+  schedule?: { weeksCount?: number; members?: unknown[] }
 }
 
 export interface ScheduleHistoryRecord {
@@ -2029,7 +1901,7 @@ export interface ScheduleHistoryRecord {
   groupId: string
   actionType: string
   description: string
-  snapshot: any
+  snapshot: ScheduleSnapshot | null
   createdBy: string | null
   createdAt: string
 }
@@ -2041,18 +1913,19 @@ export async function createScheduleHistorySnapshot(
   groupId: string,
   actionType: string,
   description: string,
-  snapshot: any,
+  snapshot: ScheduleSnapshot,
   userId?: string
 ): Promise<boolean> {
   const supabase = getSupabaseServerClient()
   if (!supabase) return false
 
   // 1. Insert new snapshot
-  const { error } = await (supabase.from("schedule_history") as any).insert({
+  const { error } = await supabase.from("schedule_history").insert({
     group_id: groupId,
     action_type: actionType,
     description: description.trim(),
-    snapshot: snapshot || null,
+    // Snapshots are plain JSON built from schedule input.
+    snapshot: snapshot as unknown as Json,
     created_by: userId || null,
     created_at: new Date().toISOString(),
   })
@@ -2071,7 +1944,7 @@ export async function createScheduleHistorySnapshot(
       .order("created_at", { ascending: false })
 
     if (allHistory && allHistory.length > 20) {
-      const idsToDelete = allHistory.slice(20).map((h: any) => h.id)
+      const idsToDelete = allHistory.slice(20).map((h) => h.id)
       await supabase.from("schedule_history").delete().in("id", idsToDelete)
     }
   } catch (err) {
@@ -2110,12 +1983,12 @@ export async function fetchScheduleHistory(
 
   if (error || !data) return []
 
-  return data.map((h: any) => ({
+  return data.map((h) => ({
     id: h.id,
     groupId: h.group_id,
     actionType: h.action_type,
     description: h.description,
-    snapshot: h.snapshot,
+    snapshot: h.snapshot as ScheduleSnapshot | null,
     createdBy: h.created_by,
     createdAt: h.created_at,
   }))
@@ -2155,8 +2028,8 @@ export async function restoreScheduleVersion(
     .eq("id", historyId)
     .eq("group_id", group.id)
     .single()) as {
-    data: { snapshot: any; description: string } | null
-    error: any
+    data: { snapshot: { input?: ScheduleInput } | null; description: string } | null
+    error: unknown
   }
 
   if (histError || !historyRecord?.snapshot?.input) {
@@ -2172,9 +2045,10 @@ export async function restoreScheduleVersion(
   // Execute schedule update with restored configuration
   const updatedGroup = await updateGroupAndRegenerate(
     groupPublicId,
-    rawEditToken || "authorized_session",
+    rawEditToken || "",
     restoredInput,
-    lang
+    lang,
+    userId
   )
 
   // Record restore event in history
@@ -2192,7 +2066,12 @@ export async function restoreScheduleVersion(
 }
 
 /**
- * Processes recurring schedule cycles (Weekly, Monthly, Ramadan) with idempotency protection.
+ * Creates the next cycle of a recurring group. Running it twice for the same
+ * cycle returns the cycle that already exists.
+ *
+ * The new cycle copies members (with their public IDs and linked accounts),
+ * points back to this group, and takes over automatic renewal so only the
+ * newest cycle renews.
  */
 export async function processRecurringCycle(
   groupPublicId: string,
@@ -2200,83 +2079,89 @@ export async function processRecurringCycle(
   rawEditToken?: string,
   lang: "ar" | "en" = "ar"
 ): Promise<SavedGroupResult> {
-  const { authorized, group } = await checkGroupAuthorization(
-    groupPublicId,
-    rawEditToken,
-    userId
-  )
+  const { authorized, group } = await checkGroupAuthorization(groupPublicId, rawEditToken, userId)
   if (!authorized || !group) {
-    throw new Error("Unauthorized to renew recurring cycle.")
+    throw localizedError(
+      lang,
+      "غير مصرح لك ببدء الدورة التالية.",
+      "Unauthorized to renew recurring cycle."
+    )
   }
+  return createNextCycle(group, lang)
+}
 
+async function createNextCycle(group: GroupRow, lang: "ar" | "en"): Promise<SavedGroupResult> {
   const supabase = getSupabaseServerClient()
-  if (!supabase) throw new Error("Service unavailable.")
+  if (!supabase) throw localizedError(lang, "الخدمة غير متوفرة.", "Service unavailable.")
 
-  const existing = await getGroupByPublicId(groupPublicId)
-  if (!existing) throw new Error("Group not found.")
-
-  const recurrence = (group as any).recurrence
-  const frequency =
-    recurrence?.frequency ||
-    (existing.occasionType === "ramadan" ? "ramadan" : "weekly")
-
-  const nextCycleIndex = ((group as any).cycle_index || 1) + 1
-
-  // Idempotency check: Ensure child cycle doesn't already exist
-  const { data: existingCycle } = await supabase
+  const { data: existingCycle } = (await supabase
     .from("groups")
-    .select("public_id, edit_token_hash, expires_at")
+    .select("public_id, expires_at")
     .eq("recurring_source_group_id", group.id)
-    .eq("cycle_index", nextCycleIndex)
-    .single()
+    .limit(1)
+    .maybeSingle()) as { data: { public_id: string; expires_at: string } | null }
 
   if (existingCycle) {
     return {
       publicId: existingCycle.public_id,
       editToken: "",
-      groupName: existing.groupName,
+      groupName: group.name,
       expiresAt: existingCycle.expires_at,
     }
   }
 
-  // Calculate next start date
-  let nextStartDate = existing.startDate
-  if (existing.startDate && existing.usesDates) {
-    const prevDate = new Date(existing.startDate)
-    if (String(frequency) === "weekly") {
-      prevDate.setDate(prevDate.getDate() + existing.schedule.weeksCount * 7)
-      nextStartDate = prevDate.toISOString().slice(0, 10)
-    } else if (String(frequency) === "monthly") {
-      prevDate.setMonth(prevDate.getMonth() + 1)
-      nextStartDate = prevDate.toISOString().slice(0, 10)
-    }
+  const existing = await getGroupByPublicId(group.public_id)
+  if (!existing || existing.isExpired) {
+    throw localizedError(lang, "المجموعة غير موجودة.", "Group not found.")
   }
 
-  const nextIslamicYear =
-    String(frequency) === "ramadan" || existing.occasionType === "ramadan"
-      ? (existing.islamicYear || 1447) + 1
-      : existing.islamicYear
+  const recurrence = parseRecurrence(group.recurrence)
+  const frequency =
+    recurrence?.frequency && recurrence.frequency !== "none"
+      ? recurrence.frequency
+      : existing.occasionType === "ramadan"
+        ? "ramadan"
+        : "weekly"
 
-  const freshMembers: MemberConfig[] = existing.membersConfig.map((m) => ({
-    id: generateMemberPublicId(),
-    name: m.name,
-    publicId: generateMemberPublicId(),
-    knowledgeType: m.knowledgeType,
-    startJuz: m.startJuz,
-    endJuz: m.endJuz,
-    startSurah: m.startSurah,
-    endSurah: m.endSurah,
-    weeklyAmount: m.weeklyAmount,
-  }))
+  const nextIndex = (group.cycle_index || 1) + 1
+  const nextStartDate = computeNextCycleStart({
+    frequency,
+    startDate: existing.startDate,
+    weeksCount: existing.schedule.weeksCount,
+    createdAt: group.created_at,
+    islamicYear: existing.islamicYear,
+  })
+  const isRamadan = frequency === "ramadan"
+  const nextIslamicYear = isRamadan
+    ? (existing.islamicYear || getCurrentHijriYear()) + 1
+    : existing.islamicYear
 
-  const cycleTitle =
-    frequency === "ramadan"
-      ? lang === "ar"
-        ? `ختمة رمضان ${nextIslamicYear} هـ`
-        : `Ramadan Khatmah ${nextIslamicYear} AH`
-      : lang === "ar"
-        ? `${existing.groupName} - دورة ${nextCycleIndex}`
-        : `${existing.groupName} - Cycle ${nextCycleIndex}`
+  const { data: memberRows } = (await supabase
+    .from("group_members")
+    .select("public_id, linked_user_id")
+    .eq("group_id", group.id)) as {
+    data: Array<{ public_id: string | null; linked_user_id: string | null }> | null
+  }
+  const linkByPublicId = new Map<string, string>()
+  for (const r of memberRows || []) {
+    if (r.public_id && r.linked_user_id) linkByPublicId.set(r.public_id, r.linked_user_id)
+  }
+
+  const linkedUserIds = new Map<string, string>()
+  const members: MemberConfig[] = sanitizeMembers(existing.membersConfig).map((m, i) => {
+    const publicId = existing.membersConfig[i].publicId || generateMemberPublicId()
+    const linked = linkByPublicId.get(publicId)
+    if (linked) linkedUserIds.set(m.id, linked)
+    return { ...m, publicId }
+  })
+
+  const cycleTitle = isRamadan
+    ? lang === "ar"
+      ? `ختمة رمضان ${nextIslamicYear} هـ`
+      : `Ramadan Khatmah ${nextIslamicYear} AH`
+    : lang === "ar"
+      ? `${existing.groupName} - دورة ${nextIndex}`
+      : `${existing.groupName} - Cycle ${nextIndex}`
 
   const input: ScheduleInput = {
     group: {
@@ -2288,37 +2173,85 @@ export async function processRecurringCycle(
       rangeType: existing.rangeType,
       startJuz: existing.startJuz,
       customRange: existing.customRange,
-      startDate: nextStartDate || undefined,
+      startDate: existing.usesDates || isRamadan ? nextStartDate || undefined : undefined,
       usesDates: existing.usesDates,
-      occasionType: frequency === "ramadan" ? "ramadan" : "normal",
+      occasionType: isRamadan ? "ramadan" : existing.occasionType,
       islamicYear: nextIslamicYear || undefined,
       dailyDivisionEnabled: existing.dailyDivisionEnabled,
-      recurrence: {
-        frequency: frequency as any,
-        cycleIndex: nextCycleIndex,
-        autoAdvance: true,
-      },
+      recurrence: { frequency, autoAdvance: recurrence?.autoAdvance !== false },
     },
-    members: freshMembers,
+    members,
   }
 
-  const newSchedule = generateQuranSchedule(input)
-  const saved = await saveScheduleGroup(
-    input,
-    newSchedule,
-    lang,
-    group.owner_user_id || undefined
-  )
+  const saved = await createGroupWithSchedule(input, lang, group.owner_user_id, {
+    linkedUserIds,
+    recurringSourceGroupId: group.id,
+    cycleIndex: nextIndex,
+  })
 
-  // Update parent group recurring pointers
-  await (supabase.from("groups") as any)
+  await supabase.from("groups")
     .update({
       last_cycle_generated_at: new Date().toISOString(),
-      cycle_index: nextCycleIndex,
+      next_cycle_due_at: null,
+      recurrence: recurrenceJson(recurrence ? { ...recurrence, autoAdvance: false } : null),
     })
     .eq("id", group.id)
 
   return saved
+}
+
+/**
+ * Cron entry point: creates the next cycle for a recurring group if it is
+ * due. Returns true when a new cycle was created.
+ */
+export async function advanceRecurringGroupIfDue(
+  groupPublicId: string,
+  now: Date = new Date()
+): Promise<boolean> {
+  const supabase = getSupabaseServerClient()
+  if (!supabase) return false
+
+  const { data: group } = (await supabase
+    .from("groups")
+    .select("*")
+    .eq("public_id", groupPublicId)
+    .maybeSingle()) as { data: GroupRow | null }
+
+  if (
+    !group ||
+    group.is_archived ||
+    !group.owner_user_id ||
+    !parseRecurrence(group.recurrence)?.autoAdvance ||
+    !group.next_cycle_due_at ||
+    new Date(group.next_cycle_due_at).getTime() > now.getTime()
+  ) {
+    return false
+  }
+
+  await createNextCycle(group, group.language === "en" ? "en" : "ar")
+  return true
+}
+
+/**
+ * Returns the current week and day (both 1-based) of a plan. Dated plans
+ * count whole days from their start date, so day 1 is the plan's first day.
+ * Undated plans fall back to week 1 and today's weekday (Sunday = 1).
+ */
+export function currentPlanPosition(
+  startDate: string | undefined,
+  weeksCount: number,
+  now: Date = new Date()
+): { weekNumber: number; dayNumber: number } {
+  if (startDate) {
+    const start = Date.parse(`${startDate}T00:00:00Z`)
+    const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    const elapsed = Math.floor((today - start) / 86400000)
+    if (elapsed < 0) return { weekNumber: 1, dayNumber: 1 }
+    const weekNumber = Math.min(weeksCount, Math.floor(elapsed / 7) + 1)
+    const dayNumber = elapsed >= weeksCount * 7 ? 7 : (elapsed % 7) + 1
+    return { weekNumber, dayNumber }
+  }
+  return { weekNumber: 1, dayNumber: now.getDay() + 1 }
 }
 
 export interface UserTodaysReadingResult {
@@ -2355,7 +2288,6 @@ export interface MemberProgressSummary {
   percent: number
   lastActivityAt: string | null
   isLinked: boolean
-  linkedUserId: string | null
 }
 
 export interface GroupProgressSummary {
@@ -2386,60 +2318,30 @@ export async function fetchUserTodaysReading(
   const userGroups = await fetchUserGroups(userId, "active")
   if (!userGroups || userGroups.length === 0) return null
 
-  // Prioritize group where user has a linked member slot, otherwise first active group
-  const activeGroupSummary =
-    userGroups.find((g) => Boolean(g.memberPublicId)) || userGroups[0]
-
-  if (!activeGroupSummary) return null
+  // Only a group where the user holds a member slot has a reading for them.
+  // Owning a group does not make the first member's reading yours.
+  const activeGroupSummary = userGroups.find((g) => Boolean(g.memberPublicId))
+  if (!activeGroupSummary?.memberPublicId) return null
 
   // 2. Fetch full loaded group data
   const group = await getGroupByPublicId(activeGroupSummary.publicId)
   if (!group || !group.schedule || !group.schedule.weeks.length) return null
 
-  // 3. Determine current week (1-indexed)
-  let currentWeekNum = 1
-  if (group.usesDates && group.startDate) {
-    const start = new Date(group.startDate).getTime()
-    const now = Date.now()
-    if (now >= start) {
-      const elapsedDays = Math.floor((now - start) / (24 * 60 * 60 * 1000))
-      currentWeekNum = Math.min(
-        group.schedule.weeksCount,
-        Math.max(1, Math.floor(elapsedDays / 7) + 1)
-      )
-    }
-  }
+  // 3. Current week and day within the plan. Dated plans count from their
+  // start date; undated plans use the day of the week.
+  const { weekNumber: currentWeekNum, dayNumber: currentDayNum } = currentPlanPosition(
+    group.usesDates ? group.startDate : undefined,
+    group.schedule.weeksCount
+  )
 
-  // 4. Determine current day of week (1 to 7)
-  const currentDayNum = Math.max(1, Math.min(7, (new Date().getDay() + 1)))
-
-  // 5. Find member
-  const targetMemberPublicId =
-    activeGroupSummary.memberPublicId ||
-    group.membersConfig[0]?.publicId ||
-    group.membersConfig[0]?.id
-
-  const member =
-    group.membersConfig.find(
-      (m) =>
-        m.publicId === targetMemberPublicId || m.id === targetMemberPublicId
-    ) || group.membersConfig[0]
-
+  // 4. The user's own member slot
+  const targetMemberPublicId = activeGroupSummary.memberPublicId
+  const member = group.membersConfig.find((m) => m.publicId === targetMemberPublicId)
   if (!member) return null
 
-  // 6. Find assignment for the current week
-  const week =
-    group.schedule.weeks.find((w) => w.weekNumber === currentWeekNum) ||
-    group.schedule.weeks[0]
-
-  const assignment =
-    week.assignments.find(
-      (a) =>
-        a.memberPublicId === member.publicId ||
-        a.memberId === member.id ||
-        a.memberName.toLowerCase().trim() === member.name.toLowerCase().trim()
-    ) || week.assignments[0]
-
+  // 5. Their assignment for the current week
+  const week = group.schedule.weeks.find((w) => w.weekNumber === currentWeekNum)
+  const assignment = week?.assignments.find((a) => a.memberId === member.id)
   if (!assignment) return null
 
   // 7. Check if daily breakdown applies
@@ -2479,26 +2381,16 @@ export async function fetchUserTodaysReading(
   // 8. Check completion status from reading_progress table
   let isCompleted = false
   try {
-    const { data: memberDb } = await supabase
-      .from("group_members")
-      .select("id")
-      .eq("public_id", member.publicId || targetMemberPublicId)
-      .single()
+    const { data: progressRow } = (await supabase
+      .from("reading_progress")
+      .select("is_completed")
+      .eq("group_id", group.schedule.id)
+      .eq("member_id", member.id)
+      .eq("week_number", currentWeekNum)
+      .eq("day_number", currentDayNum)
+      .maybeSingle()) as { data: { is_completed: boolean } | null }
 
-    if (memberDb?.id) {
-      const { data: progressRow } = await supabase
-        .from("reading_progress")
-        .select("is_completed")
-        .eq("group_id", (group as any).id || (await supabase.from("groups").select("id").eq("public_id", group.publicId).single()).data?.id)
-        .eq("member_id", memberDb.id)
-        .eq("week_number", currentWeekNum)
-        .eq("day_number", currentDayNum)
-        .single()
-
-      if (progressRow) {
-        isCompleted = Boolean(progressRow.is_completed)
-      }
-    }
+    isCompleted = Boolean(progressRow?.is_completed)
   } catch {
     // Non-fatal if query fails
   }
@@ -2540,18 +2432,10 @@ export async function fetchGroupProgressSummary(
   if (!group || !group.schedule) return null
 
   // 1. Determine current week
-  let currentWeekNum = 1
-  if (group.usesDates && group.startDate) {
-    const start = new Date(group.startDate).getTime()
-    const now = Date.now()
-    if (now >= start) {
-      const elapsedDays = Math.floor((now - start) / (24 * 60 * 60 * 1000))
-      currentWeekNum = Math.min(
-        group.schedule.weeksCount,
-        Math.max(1, Math.floor(elapsedDays / 7) + 1)
-      )
-    }
-  }
+  const { weekNumber: currentWeekNum } = currentPlanPosition(
+    group.usesDates ? group.startDate : undefined,
+    group.schedule.weeksCount
+  )
 
   // 2. Fetch group DB record & members with linked_user_id
   const { data: groupDb } = await supabase
@@ -2562,12 +2446,8 @@ export async function fetchGroupProgressSummary(
 
   if (!groupDb) return null
 
-  // Security & Privacy: Only the owner of the group can view complete group progress summary
-  if (
-    requestingUserId &&
-    groupDb.owner_user_id &&
-    groupDb.owner_user_id !== requestingUserId
-  ) {
+  // Only the signed-in owner can see every member's progress.
+  if (!requestingUserId || groupDb.owner_user_id !== requestingUserId) {
     return null
   }
 
@@ -2592,24 +2472,13 @@ export async function fetchGroupProgressSummary(
   let totalAssignedJuz = 0
 
   const memberSummaries: MemberProgressSummary[] = group.membersConfig.map((m) => {
-    const dbMem = membersDb?.find(
-      (dm: any) =>
-        (m.publicId && dm.public_id === m.publicId) ||
-        dm.id === m.id ||
-        (m.name && dm.name?.trim().toLowerCase() === m.name?.trim().toLowerCase())
-    )
+    const dbMem = membersDb?.find((dm) => dm.id === m.id)
     const memberDbId = dbMem?.id
 
-    const assignment =
-      week?.assignments.find(
-        (a) =>
-          a.memberPublicId === m.publicId ||
-          a.memberId === m.id ||
-          a.memberName.toLowerCase().trim() === m.name.toLowerCase().trim()
-      )
+    const assignment = week?.assignments.find((a) => a.memberId === m.id)
 
     const completedProgress = progressRows?.filter(
-      (p: any) => p.member_id === memberDbId && p.is_completed
+      (p) => p.member_id === memberDbId && p.is_completed
     ) || []
 
     const completedDaysCount = completedProgress.length
@@ -2626,7 +2495,7 @@ export async function fetchGroupProgressSummary(
     const lastActivity =
       completedProgress.length > 0
         ? completedProgress.sort(
-            (a: any, b: any) =>
+            (a, b) =>
               new Date(b.completed_at || b.updated_at).getTime() -
               new Date(a.completed_at || a.updated_at).getTime()
           )[0]?.completed_at
@@ -2651,8 +2520,7 @@ export async function fetchGroupProgressSummary(
       isCompleted,
       percent,
       lastActivityAt: lastActivity,
-      isLinked: Boolean(dbMem?.linked_user_id || m.linkedUserId || m.isLinked),
-      linkedUserId: dbMem?.linked_user_id || m.linkedUserId || null,
+      isLinked: Boolean(dbMem?.linked_user_id || m.isLinked),
     }
   })
 

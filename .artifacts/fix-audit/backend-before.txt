@@ -1,0 +1,5 @@
+BEFORE status: null
+BEFORE link result: false
+BEFORE week 1 assignment member ids (duplicate names): [ 0, 0, 2 ]
+BEFORE after edit: progress rows = 0 , linked slots = 0
+BEFORE progress week 99 day -3: {"success":true,"progressId":"b2dceebd-96df-43b5-99f2-7432f973a479"}

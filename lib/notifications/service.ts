@@ -47,7 +47,7 @@ export async function savePushSubscription(
   const supabase = getSupabaseServerClient()
   if (!supabase) return false
 
-  const { error } = await (supabase.from("push_subscriptions") as any).upsert(
+  const { error } = await supabase.from("push_subscriptions").upsert(
     {
       user_id: userId,
       endpoint: sub.endpoint,
@@ -104,6 +104,11 @@ export async function sendPushNotification(
     return { sent: 0, failed: 0 }
   }
 
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    console.warn("Push not sent: VAPID keys are not configured.")
+    return { sent: 0, failed: subscriptions.length }
+  }
+
   let sent = 0
   let failed = 0
 
@@ -118,7 +123,7 @@ export async function sendPushNotification(
     lang: payload.lang || "ar",
   })
 
-  for (const sub of subscriptions as any[]) {
+  for (const sub of subscriptions) {
     const pushSub = {
       endpoint: sub.endpoint,
       keys: {
@@ -128,17 +133,13 @@ export async function sendPushNotification(
     }
 
     try {
-      if (vapidPublicKey && vapidPrivateKey) {
-        await webpush.sendNotification(pushSub, payloadString)
-        sent++
-      } else {
-        // In local/test mode without VAPID keys, log gracefully
-        sent++
-      }
-    } catch (err: any) {
+      await webpush.sendNotification(pushSub, payloadString)
+      sent++
+    } catch (err) {
       failed++
       // If subscription expired or was cancelled by user (410 Gone / 404 Not Found), auto-prune
-      if (err?.statusCode === 404 || err?.statusCode === 410) {
+      const statusCode = (err as { statusCode?: number })?.statusCode
+      if (statusCode === 404 || statusCode === 410) {
         await supabase.from("push_subscriptions").delete().eq("id", sub.id)
       }
     }

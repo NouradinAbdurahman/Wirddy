@@ -45,10 +45,18 @@ export async function registerPushNotifications(): Promise<{
       }
     }
 
+    // Without the server's public key a subscription could never receive
+    // pushes, so stop here instead of subscribing with a placeholder.
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    if (!vapidKey) {
+      return {
+        success: false,
+        permission,
+        error: "Push notifications are not configured on this server.",
+      }
+    }
+
     const registration = await navigator.serviceWorker.ready
-    const vapidKey =
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-      "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U"
 
     let subscription = await registration.pushManager.getSubscription()
 
@@ -56,7 +64,7 @@ export async function registerPushNotifications(): Promise<{
       const convertedVapidKey = urlBase64ToUint8Array(vapidKey)
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey as any,
+        applicationServerKey: convertedVapidKey as BufferSource,
       })
     }
 
@@ -72,12 +80,12 @@ export async function registerPushNotifications(): Promise<{
     }
 
     return { success: true, permission: "granted" }
-  } catch (err: any) {
+  } catch (err) {
     console.error("Push registration error:", err)
     return {
       success: false,
       permission: Notification.permission,
-      error: err?.message || "Failed to register push subscription.",
+      error: err instanceof Error ? err.message : "Failed to register push subscription.",
     }
   }
 }

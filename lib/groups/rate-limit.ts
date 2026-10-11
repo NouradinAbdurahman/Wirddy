@@ -1,3 +1,5 @@
+import { getSupabaseServerClient } from "../supabase/server"
+
 interface RateLimitRecord {
   timestamps: number[]
 }
@@ -24,7 +26,9 @@ export interface RateLimitResult {
 }
 
 /**
- * Sliding-window rate limiter for anonymous abuse prevention.
+ * In-memory sliding-window rate limiter. Each server instance keeps its own
+ * counts, so on serverless hosting this is only a fallback; use
+ * `checkSharedRateLimit` in request handlers.
  */
 export function checkRateLimit(
   identifier: string,
@@ -66,4 +70,33 @@ export function checkRateLimit(
  */
 export function resetRateLimitStore(): void {
   rateLimitStore.clear()
+}
+
+/**
+ * Rate limiter shared by every server instance. Counts are kept in Postgres
+ * through the `check_rate_limit` function (see the rate limit migration),
+ * so the limit holds on serverless hosting where instances come and go.
+ * Falls back to the in-memory limiter when the database is not reachable.
+ */
+export async function checkSharedRateLimit(
+  identifier: string,
+  maxRequests: number,
+  windowMs: number
+): Promise<RateLimitResult> {
+  const supabase = getSupabaseServerClient()
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.rpc("check_rate_limit", {
+        p_key: identifier.trim() || "anonymous",
+        p_max: maxRequests,
+        p_window_seconds: Math.ceil(windowMs / 1000),
+      })
+      if (!error && typeof data === "boolean") {
+        return { allowed: data, remaining: data ? 1 : 0, resetInMs: data ? 0 : windowMs }
+      }
+    } catch {
+      // Fall through to the in-memory limiter.
+    }
+  }
+  return checkRateLimit(identifier, maxRequests, windowMs)
 }

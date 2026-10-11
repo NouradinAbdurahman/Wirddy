@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
   fetchUserGroups,
-  archiveGroup,
   saveReadingProgress,
   fetchGroupReadingProgress,
   saveBookmark,
@@ -12,7 +11,6 @@ import {
   saveNotificationPreferences,
   fetchNotificationPreferences,
   exportUserData,
-  startNewKhatmah,
 } from "../lib/groups/service"
 import { translations } from "../lib/i18n/dictionary"
 import { generateQuranSchedule } from "../lib/scheduler/engine"
@@ -287,7 +285,7 @@ describe("Complete Product Platform - Phase 1 through 7 Tests", () => {
         "mock-group-id",
         "update_plan",
         "تعديل الخطة",
-        { input: null, schedule: null }
+        {}
       )
       expect(typeof created).toBe("boolean")
     })
