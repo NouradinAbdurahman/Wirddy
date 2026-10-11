@@ -1,0 +1,1 @@
+Before fix: 'npx vitest run tests/scheduler-regressions.test.ts' did not finish within 120s (killed by timeout). The 15-member random-rotation case hangs, and SchedulerError / resolveSurahToKnownJuzRange do not exist yet.

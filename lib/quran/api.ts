@@ -45,8 +45,8 @@ async function fetchApi<T>(
     }
 
     return json.data
-  } catch (error: any) {
-    if (error.name === "AbortError") {
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Quran API request timed out")
     }
     throw error

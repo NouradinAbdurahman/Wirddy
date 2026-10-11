@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
 import {
   IconArrowLeft,
   IconArrowRight,
@@ -13,7 +12,6 @@ import {
   IconLogout,
   IconMoon,
   IconPalette,
-  IconSettings,
   IconSun,
   IconTrash,
   IconUser,
@@ -32,6 +30,7 @@ import {
   getNotificationPreferencesAction,
   saveNotificationPreferencesAction,
 } from "@/lib/groups/actions"
+import { useHydrated } from "@/hooks/use-hydrated"
 
 function SettingsContent() {
   const { language, setLanguage, dir, t } = useI18n()
@@ -41,7 +40,12 @@ function SettingsContent() {
   const [notifTime, setNotifTime] = useState("20:00")
   const [notifIncomplete, setNotifIncomplete] = useState(true)
   const [notifAlerts, setNotifAlerts] = useState(true)
-  const [pushStatus, setPushStatus] = useState<"default" | "granted" | "denied">("default")
+  // The browser's permission, unless the user just changed it here.
+  const hydrated = useHydrated()
+  const [pushOverride, setPushOverride] = useState<NotificationPermission | null>(null)
+  const pushStatus: NotificationPermission =
+    pushOverride ??
+    (hydrated && "Notification" in window ? Notification.permission : "default")
   const [isSavingNotifs, setIsSavingNotifs] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
@@ -62,10 +66,6 @@ function SettingsContent() {
         })
       }
     })
-
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setPushStatus(Notification.permission as any)
-    }
   }, [])
 
   const handleSignOut = async () => {
@@ -79,13 +79,21 @@ function SettingsContent() {
   const handleSaveNotifications = async () => {
     setIsSavingNotifs(true)
     try {
-      await saveNotificationPreferencesAction({
+      const res = await saveNotificationPreferencesAction({
         dailyReminderEnabled: notifDaily,
         reminderTime: notifTime,
         incompleteReminderEnabled: notifIncomplete,
         groupAnnouncementsEnabled: notifAlerts,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       })
+      if (!res.success) {
+        window.alert(
+          language === "ar"
+            ? "تعذر حفظ إعدادات التنبيهات. يرجى المحاولة مرة أخرى."
+            : "Could not save notification settings. Please try again."
+        )
+        return
+      }
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 2000)
     } finally {
@@ -96,16 +104,22 @@ function SettingsContent() {
   const handleRequestPush = async () => {
     const { registerPushNotifications } = await import("@/lib/notifications/client")
     const res = await registerPushNotifications()
-    setPushStatus(res.permission as any)
+    setPushOverride(res.permission as NotificationPermission)
+    if (!res.success && res.error) window.alert(res.error)
   }
 
   const handleTestNotification = async () => {
     const { sendTestNotificationAction } = await import("@/lib/groups/actions")
-    await sendTestNotificationAction()
-    alert(
-      language === "ar"
-        ? "تم إرسال التنبيه التجريبي بنجاح!"
-        : "Test notification sent successfully!"
+    const res = await sendTestNotificationAction()
+    const sent = res.success && (res.data?.sent ?? 0) > 0
+    window.alert(
+      sent
+        ? language === "ar"
+          ? "تم إرسال التنبيه التجريبي."
+          : "Test notification sent."
+        : language === "ar"
+          ? "لم يُرسل التنبيه. تأكد من تفعيل التنبيهات في هذا المتصفح، أو أن خادم التنبيهات مُعد."
+          : "The notification was not sent. Check that notifications are enabled in this browser and configured on the server."
     )
   }
 
@@ -126,7 +140,15 @@ function SettingsContent() {
 
   const handleDeleteAccount = async () => {
     if (!window.confirm(t.deleteAccountConfirm)) return
-    await deleteAccountAction()
+    const res = await deleteAccountAction()
+    if (!res.success) {
+      window.alert(
+        language === "ar"
+          ? "تعذر حذف الحساب. يرجى المحاولة لاحقاً."
+          : "Could not delete your account. Please try again later."
+      )
+      return
+    }
     const supabase = getSupabaseBrowserClient()
     if (supabase) await supabase.auth.signOut()
     window.location.href = "/"

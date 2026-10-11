@@ -3,12 +3,7 @@
  * Implements exact astronomical and Umm al-Qura conversion without hardcoded approximations.
  */
 
-import {
-  addDaysToDate,
-  parseIsoDate,
-  toArabicNumerals,
-  toIsoDateString,
-} from "./calendar"
+import { parseIsoDate, toArabicNumerals, toIsoDateString } from "./calendar"
 
 export interface HijriDateInfo {
   year: number
@@ -135,8 +130,6 @@ export function getRamadanStartDate(hijriYear: number): string {
   // Dynamic binary / linear search around estimated Gregorian year
   // Formula: Gregorian Year ≈ (Hijri Year * 0.970229) + 621.57
   const approxGregorianYear = Math.round(hijriYear * 0.970229 + 621.57)
-  let searchDate = new Date(Date.UTC(approxGregorianYear, 0, 1, 12, 0, 0))
-
   for (let offset = -60; offset <= 365; offset++) {
     const candidate = new Date(
       Date.UTC(approxGregorianYear, 0, 1 + offset, 12, 0, 0)

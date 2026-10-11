@@ -6,14 +6,10 @@ import {
   IconHistory,
   IconRotateClockwise2,
   IconX,
-  IconCheck,
   IconAlertCircle,
-  IconCalendar,
-  IconUsers,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   fetchScheduleHistoryAction,
@@ -36,25 +32,29 @@ export function VersionHistoryModal({
   rawEditToken,
   onVersionRestored,
 }: VersionHistoryModalProps) {
-  const { language, dir, t, formatNumber } = useI18n()
-  const [history, setHistory] = useState<ScheduleHistoryRecord[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { language, t, formatNumber } = useI18n()
+  // The last loaded history, tagged with its group. Reopening refreshes it
+  // in the background while the previous list stays visible.
+  const [loaded, setLoaded] = useState<{
+    group: string
+    history: ScheduleHistoryRecord[]
+    error: string | null
+  } | null>(null)
   const [restoringId, setRestoringId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const current = loaded?.group === groupPublicId ? loaded : null
+  const isLoading = !current
+  const history = current?.history ?? []
+  const error = current?.error ?? null
 
   useEffect(() => {
-    if (isOpen && groupPublicId) {
-      setIsLoading(true)
-      setError(null)
-      fetchScheduleHistoryAction(groupPublicId, rawEditToken).then((res) => {
-        setIsLoading(false)
-        if (res.success && res.data) {
-          setHistory(res.data)
-        } else {
-          setError(res.error || "Failed to load version history.")
-        }
+    if (!isOpen || !groupPublicId) return
+    fetchScheduleHistoryAction(groupPublicId, rawEditToken).then((res) => {
+      setLoaded({
+        group: groupPublicId,
+        history: res.success && res.data ? res.data : [],
+        error: res.success ? null : res.error || "Failed to load version history.",
       })
-    }
+    })
   }, [isOpen, groupPublicId, rawEditToken])
 
   const handleRestore = async (record: ScheduleHistoryRecord) => {

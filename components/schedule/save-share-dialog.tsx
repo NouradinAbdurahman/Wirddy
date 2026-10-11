@@ -11,7 +11,6 @@ import {
   IconLoader2,
   IconQrcode,
   IconShare,
-  IconX,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { GeneratedSchedule, ScheduleInput } from "@/lib/scheduler/types"
@@ -44,7 +43,7 @@ export function SaveShareDialog({
   onSaveSuccess,
 }: SaveShareDialogProps) {
   const { language, dir, t } = useI18n()
-  const [isSaving, setIsSaving] = useState(false)
+  const [saveAttempt, setSaveAttempt] = useState(0)
   const [savedData, setSavedData] = useState<SavedGroupResult | null>(
     initialSavedData || null
   )
@@ -64,13 +63,6 @@ export function SaveShareDialog({
     ? `${origin}/g/${savedData.publicId}?edit=${savedData.editToken}`
     : ""
 
-  // Automatically save if not already saved when dialog opens
-  useEffect(() => {
-    if (isOpen && !savedData && !isSaving && !errorMsg) {
-      handleSave()
-    }
-  }, [isOpen])
-
   // Generate QR code whenever publicUrl changes
   useEffect(() => {
     if (publicUrl) {
@@ -87,45 +79,56 @@ export function SaveShareDialog({
     }
   }, [publicUrl])
 
-  const handleSave = async () => {
-    setIsSaving(true)
-    setErrorMsg(null)
+  // Saving runs while the dialog is open and nothing is saved or failed yet.
+  const isSaving = isOpen && !savedData && !errorMsg
 
-    try {
-      const input: ScheduleInput = scheduleInput || {
-        group: {
-          name: schedule.groupName,
-          weeksCount: schedule.weeksCount,
-          rotationStyle: schedule.rotationStyle,
-          rangeType: schedule.rangeType,
-          startJuz: schedule.startJuz,
-          customRange: schedule.customRange,
-        },
-        members: schedule.members,
-      }
+  // Save automatically when the dialog opens, and again on each retry. State
+  // is only updated once the server answers. The result is kept even if the
+  // dialog was closed meanwhile, so reopening shows the saved links instead
+  // of saving a second copy.
+  useEffect(() => {
+    if (!isOpen || savedData || errorMsg) return
 
-      const res = await saveScheduleAction(input, schedule, language)
-      if (res.success && res.data) {
-        setSavedData(res.data)
-        // Store in local device history
-        saveRecentSchedule({
-          publicId: res.data.publicId,
-          editToken: res.data.editToken,
-          groupName: res.data.groupName,
-          weeksCount: schedule.weeksCount,
-          totalJuz: 30,
-          updatedAt: new Date().toISOString(),
-        })
-        if (onSaveSuccess) onSaveSuccess(res.data)
-      } else {
-        setErrorMsg(res.error || t.saveOfflineWarning)
-      }
-    } catch {
-      setErrorMsg(t.saveOfflineWarning)
-    } finally {
-      setIsSaving(false)
+    const input: ScheduleInput = scheduleInput || {
+      group: {
+        name: schedule.groupName,
+        weeksCount: schedule.weeksCount,
+        rotationStyle: schedule.rotationStyle,
+        rangeType: schedule.rangeType,
+        startJuz: schedule.startJuz,
+        customRange: schedule.customRange,
+      },
+      members: schedule.members,
     }
+
+    // The server regenerates the schedule from the input, so only the input
+    // is sent.
+    saveScheduleAction(input, null, language)
+      .then((res) => {
+        if (res.success && res.data) {
+          setSavedData(res.data)
+          saveRecentSchedule({
+            publicId: res.data.publicId,
+            editToken: res.data.editToken,
+            groupName: res.data.groupName,
+            weeksCount: schedule.weeksCount,
+            totalJuz: 30,
+            updatedAt: new Date().toISOString(),
+          })
+          onSaveSuccess?.(res.data)
+        } else {
+          setErrorMsg(res.error || t.saveOfflineWarning)
+        }
+      })
+      .catch(() => setErrorMsg(t.saveOfflineWarning))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, saveAttempt])
+
+  const handleRetry = () => {
+    setErrorMsg(null)
+    setSaveAttempt((n) => n + 1)
   }
+
 
   const handleCopyPublic = async () => {
     if (!publicUrl) return
@@ -221,7 +224,7 @@ export function SaveShareDialog({
               </Button>
               <Button
                 type="button"
-                onClick={handleSave}
+                onClick={handleRetry}
                 className="rounded-xl text-xs"
               >
                 {language === "ar" ? "إعادة المحاولة" : "Try Again"}

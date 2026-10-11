@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  clearEmbeddedLogoCache,
-  getEmbeddedWirddyLogo,
-  preloadExportAssets,
-  validateEmbeddedLogoDataUrl,
-} from "../lib/export/assets"
+import { clearEmbeddedLogoCache, getEmbeddedWirddyLogo, validateEmbeddedLogoDataUrl } from "../lib/export/assets"
 import {
   buildPdfPageHtml,
   buildStandaloneWeekExportHtml,
@@ -86,10 +81,10 @@ describe("Wirddy Embedded Logo & Deterministic Export Architecture", () => {
       const mockBlob = new Blob(["fake-black-png-content"], {
         type: "image/png",
       })
-      const fetchSpy = vi.spyOn(global, "fetch").mockResolvedValue({
+      vi.spyOn(global, "fetch").mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
-      } as any)
+      } as never)
 
       // Mock FileReader
       class MockFileReader {
@@ -113,7 +108,7 @@ describe("Wirddy Embedded Logo & Deterministic Export Architecture", () => {
       vi.spyOn(global, "fetch").mockResolvedValue({
         ok: true,
         blob: async () => mockBlob,
-      } as any)
+      } as never)
 
       class MockFileReader {
         result: string = dummyBase64White
@@ -132,10 +127,10 @@ describe("Wirddy Embedded Logo & Deterministic Export Architecture", () => {
       vi.spyOn(global, "fetch").mockResolvedValue({
         ok: false,
         status: 404,
-      } as any)
+      } as never)
 
       // Ensure cache is not masking this test by forcing an error
-      await expect(getEmbeddedWirddyLogo("light" as any)).rejects.toThrow(
+      await expect(getEmbeddedWirddyLogo("light" as never)).rejects.toThrow(
         "Unable to load the Wirddy logo. Please try again."
       )
     })

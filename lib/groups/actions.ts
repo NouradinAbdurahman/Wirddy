@@ -1,16 +1,11 @@
 "use server"
 
 import { headers } from "next/headers"
-import {
-  GeneratedSchedule,
-  MemberConfig,
-  ScheduleInput,
-} from "../scheduler/types"
-import { checkRateLimit } from "./rate-limit"
+import { GeneratedSchedule, ScheduleInput } from "../scheduler/types"
+import { checkSharedRateLimit } from "./rate-limit"
 import {
   archiveGroup,
   createAnnouncement,
-  deleteAnnouncement,
   deleteBookmark,
   deleteGroup,
   deleteUserAccount,
@@ -35,6 +30,9 @@ import {
   processRecurringCycle,
   restoreScheduleVersion,
   SavedGroupResult,
+  SaveProgressResult,
+  NotificationPreferencesRow,
+  UserDataExport,
   saveBookmark,
   saveNotificationPreferences,
   saveReadingProgress,
@@ -55,16 +53,24 @@ export interface ActionResponse<T> {
   error?: string
 }
 
+function errorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback
+}
+
 async function getClientIp(): Promise<string> {
   try {
     const headersList = await headers()
+    // Vercel sets x-real-ip and x-vercel-forwarded-for itself, so prefer them
+    // over x-forwarded-for, whose first entry a client can supply.
+    const trusted =
+      headersList.get("x-vercel-forwarded-for") || headersList.get("x-real-ip")
+    if (trusted) {
+      return trusted.split(",")[0].trim()
+    }
     const forwarded = headersList.get("x-forwarded-for")
     if (forwarded) {
-      return forwarded.split(",")[0].trim()
-    }
-    const realIp = headersList.get("x-real-ip")
-    if (realIp) {
-      return realIp.trim()
+      const parts = forwarded.split(",")
+      return parts[parts.length - 1].trim()
     }
   } catch {
     // ignore in testing environments
@@ -90,12 +96,12 @@ async function getAuthenticatedUserId(): Promise<string | null> {
  */
 export async function saveScheduleAction(
   input: ScheduleInput,
-  schedule: GeneratedSchedule,
+  schedule: GeneratedSchedule | null,
   lang: "ar" | "en" = "ar"
 ): Promise<ActionResponse<SavedGroupResult>> {
   try {
     const ip = await getClientIp()
-    const rate = checkRateLimit(`save_${ip}`, 20, 600000)
+    const rate = await checkSharedRateLimit(`save_${ip}`, 20, 600000)
     if (!rate.allowed) {
       return {
         success: false,
@@ -143,10 +149,10 @@ export async function saveScheduleAction(
       success: true,
       data: result,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err.message || "Failed to save schedule.",
+      error: errorMessage(err, "Failed to save schedule."),
     }
   }
 }
@@ -159,7 +165,7 @@ export async function getPublicScheduleAction(
 ): Promise<ActionResponse<LoadedPublicGroup>> {
   try {
     const ip = await getClientIp()
-    const rate = checkRateLimit(`get_${ip}`, 120, 60000)
+    const rate = await checkSharedRateLimit(`get_${ip}`, 120, 60000)
     if (!rate.allowed) {
       return {
         success: false,
@@ -179,10 +185,10 @@ export async function getPublicScheduleAction(
       success: true,
       data: group,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err.message || "Failed to retrieve schedule.",
+      error: errorMessage(err, "Failed to retrieve schedule."),
     }
   }
 }
@@ -205,10 +211,10 @@ export async function validateEditTokenAction(
       success: true,
       data: isAuthorized,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err.message || "Validation failed.",
+      error: errorMessage(err, "Validation failed."),
     }
   }
 }
@@ -235,10 +241,10 @@ export async function checkCanEditGroupAction(
         isOwner,
       },
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err.message || "Failed to check edit permissions.",
+      error: errorMessage(err, "Failed to check edit permissions."),
     }
   }
 }
@@ -254,7 +260,7 @@ export async function updateScheduleAction(
 ): Promise<ActionResponse<LoadedPublicGroup>> {
   try {
     const ip = await getClientIp()
-    const rate = checkRateLimit(`update_${ip}`, 20, 600000)
+    const rate = await checkSharedRateLimit(`update_${ip}`, 20, 600000)
     if (!rate.allowed) {
       return {
         success: false,
@@ -277,10 +283,10 @@ export async function updateScheduleAction(
       success: true,
       data: updated,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err.message || "Failed to update and regenerate schedule.",
+      error: errorMessage(err, "Failed to update and regenerate schedule."),
     }
   }
 }
@@ -348,7 +354,7 @@ export async function duplicateGroupAction(
 ): Promise<ActionResponse<SavedGroupResult>> {
   try {
     const ip = await getClientIp()
-    const rate = checkRateLimit(`dup_${ip}`, 15, 600000)
+    const rate = await checkSharedRateLimit(`dup_${ip}`, 15, 600000)
     if (!rate.allowed) {
       return {
         success: false,
@@ -365,10 +371,10 @@ export async function duplicateGroupAction(
       success: true,
       data: result,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to duplicate schedule",
+      error: errorMessage(err, "Failed to duplicate schedule"),
     }
   }
 }
@@ -387,10 +393,10 @@ export async function startNewKhatmahAction(
       success: true,
       data: result,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to start new Khatmah cycle.",
+      error: errorMessage(err, "Failed to start new Khatmah cycle."),
     }
   }
 }
@@ -403,6 +409,12 @@ export async function getMemberScheduleAction(
   memberPublicId: string
 ): Promise<ActionResponse<LoadedPublicMemberSchedule>> {
   try {
+    const ip = await getClientIp()
+    const rate = await checkSharedRateLimit(`get_${ip}`, 120, 60000)
+    if (!rate.allowed) {
+      return { success: false, error: "Too many requests. Please slow down." }
+    }
+
     const data = await getMemberScheduleByPublicId(
       groupPublicId,
       memberPublicId
@@ -418,10 +430,10 @@ export async function getMemberScheduleAction(
       success: true,
       data,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to retrieve member schedule.",
+      error: errorMessage(err, "Failed to retrieve member schedule."),
     }
   }
 }
@@ -448,10 +460,10 @@ export async function getMyGroupsAction(
       success: true,
       data: groups,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to fetch user groups.",
+      error: errorMessage(err, "Failed to fetch user groups."),
       data: [],
     }
   }
@@ -466,8 +478,14 @@ export async function saveReadingProgressAction(
   weekNumber: number,
   dayNumber: number,
   isCompleted: boolean
-): Promise<ActionResponse<{ success: boolean; progressId?: string }>> {
+): Promise<ActionResponse<SaveProgressResult>> {
   try {
+    const ip = await getClientIp()
+    const rate = await checkSharedRateLimit(`progress_${ip}`, 240, 600000)
+    if (!rate.allowed) {
+      return { success: false, error: "Too many requests. Please slow down." }
+    }
+
     const userId = await getAuthenticatedUserId()
     const result = await saveReadingProgress(
       groupPublicId,
@@ -480,11 +498,18 @@ export async function saveReadingProgressAction(
     return {
       success: result.success,
       data: result,
+      error: result.success
+        ? undefined
+        : result.reason === "forbidden"
+          ? "This member's progress belongs to a linked account. Sign in with that account to update it."
+          : result.reason === "invalid"
+            ? "Invalid week or day."
+            : "Failed to save reading progress.",
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to save reading progress.",
+      error: errorMessage(err, "Failed to save reading progress."),
     }
   }
 }
@@ -494,17 +519,17 @@ export async function saveReadingProgressAction(
  */
 export async function getGroupReadingProgressAction(
   groupPublicId: string
-): Promise<ActionResponse<any[]>> {
+): Promise<ActionResponse<Awaited<ReturnType<typeof fetchGroupReadingProgress>>>> {
   try {
     const progress = await fetchGroupReadingProgress(groupPublicId)
     return {
       success: true,
       data: progress,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to fetch progress.",
+      error: errorMessage(err, "Failed to fetch progress."),
       data: [],
     }
   }
@@ -536,10 +561,10 @@ export async function saveBookmarkAction(
       success: res.success,
       data: { id: res.id },
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to save bookmark.",
+      error: errorMessage(err, "Failed to save bookmark."),
     }
   }
 }
@@ -547,7 +572,7 @@ export async function saveBookmarkAction(
 /**
  * Server Action: Fetches bookmarks for authenticated user.
  */
-export async function getUserBookmarksAction(): Promise<ActionResponse<any[]>> {
+export async function getUserBookmarksAction(): Promise<ActionResponse<Awaited<ReturnType<typeof fetchUserBookmarks>>>> {
   try {
     const userId = await getAuthenticatedUserId()
     if (!userId) return { success: true, data: [] }
@@ -557,10 +582,10 @@ export async function getUserBookmarksAction(): Promise<ActionResponse<any[]>> {
       success: true,
       data: bookmarks,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to fetch bookmarks.",
+      error: errorMessage(err, "Failed to fetch bookmarks."),
       data: [],
     }
   }
@@ -581,10 +606,10 @@ export async function deleteBookmarkAction(
       success: res,
       data: res,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to delete bookmark.",
+      error: errorMessage(err, "Failed to delete bookmark."),
     }
   }
 }
@@ -611,10 +636,10 @@ export async function createAnnouncementAction(
       success: res.success,
       data: { id: res.id },
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to create announcement.",
+      error: errorMessage(err, "Failed to create announcement."),
     }
   }
 }
@@ -624,17 +649,17 @@ export async function createAnnouncementAction(
  */
 export async function getAnnouncementsAction(
   groupPublicId: string
-): Promise<ActionResponse<any[]>> {
+): Promise<ActionResponse<Awaited<ReturnType<typeof fetchAnnouncements>>>> {
   try {
     const list = await fetchAnnouncements(groupPublicId)
     return {
       success: true,
       data: list,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to fetch announcements.",
+      error: errorMessage(err, "Failed to fetch announcements."),
       data: [],
     }
   }
@@ -643,25 +668,57 @@ export async function getAnnouncementsAction(
 /**
  * Server Action: Links a member slot to an authenticated account.
  */
+const LINK_ERRORS: Record<string, { ar: string; en: string }> = {
+  not_found: {
+    ar: "لم يتم العثور على هذا العضو في المجموعة.",
+    en: "This member was not found in the group.",
+  },
+  already_linked: {
+    ar: "هذا المكان مرتبط بحساب آخر بالفعل. اطلب من منشئ المجموعة المساعدة.",
+    en: "This member slot is already linked to another account. Ask the group creator for help.",
+  },
+  already_member: {
+    ar: "حسابك مرتبط بعضو آخر في هذه المجموعة بالفعل.",
+    en: "Your account is already linked to another member of this group.",
+  },
+  unavailable: {
+    ar: "الخدمة غير متوفرة حالياً. يرجى المحاولة لاحقاً.",
+    en: "The service is unavailable right now. Please try again later.",
+  },
+}
+
 export async function linkMemberAccountAction(
   groupPublicId: string,
-  memberPublicId: string
+  memberPublicId: string,
+  lang: "ar" | "en" = "ar"
 ): Promise<ActionResponse<boolean>> {
   try {
     const userId = await getAuthenticatedUserId()
     if (!userId) {
-      return { success: false, error: "Authentication required." }
+      return {
+        success: false,
+        error: lang === "ar" ? "يجب تسجيل الدخول أولاً." : "Authentication required.",
+      }
+    }
+
+    const ip = await getClientIp()
+    const rate = await checkSharedRateLimit(`link_${ip}`, 30, 600000)
+    if (!rate.allowed) {
+      return {
+        success: false,
+        error: lang === "ar" ? "محاولات كثيرة. حاول لاحقاً." : "Too many attempts. Please try again later.",
+      }
     }
 
     const res = await linkMemberAccount(groupPublicId, memberPublicId, userId)
-    return {
-      success: res,
-      data: res,
+    if (!res.success) {
+      return { success: false, data: false, error: LINK_ERRORS[res.reason][lang] }
     }
-  } catch (err: any) {
+    return { success: true, data: true }
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to link member account.",
+      error: errorMessage(err, "Failed to link member account."),
     }
   }
 }
@@ -680,10 +737,10 @@ export async function getMemberLinkStatusAction(
       success: true,
       data: status,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to fetch member link status.",
+      error: errorMessage(err, "Failed to fetch member link status."),
       data: null,
     }
   }
@@ -693,7 +750,7 @@ export async function getMemberLinkStatusAction(
  * Server Action: Saves notification preferences.
  */
 export async function saveNotificationPreferencesAction(
-  prefs: any
+  prefs: Parameters<typeof saveNotificationPreferences>[1]
 ): Promise<ActionResponse<boolean>> {
   try {
     const userId = await getAuthenticatedUserId()
@@ -704,10 +761,10 @@ export async function saveNotificationPreferencesAction(
       success: res,
       data: res,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to save notification preferences.",
+      error: errorMessage(err, "Failed to save notification preferences."),
     }
   }
 }
@@ -716,7 +773,7 @@ export async function saveNotificationPreferencesAction(
  * Server Action: Fetches notification preferences.
  */
 export async function getNotificationPreferencesAction(): Promise<
-  ActionResponse<any>
+  ActionResponse<NotificationPreferencesRow | null>
 > {
   try {
     const userId = await getAuthenticatedUserId()
@@ -727,10 +784,10 @@ export async function getNotificationPreferencesAction(): Promise<
       success: true,
       data,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to fetch notification preferences.",
+      error: errorMessage(err, "Failed to fetch notification preferences."),
     }
   }
 }
@@ -738,7 +795,7 @@ export async function getNotificationPreferencesAction(): Promise<
 /**
  * Server Action: Exports all user data as JSON.
  */
-export async function exportUserDataAction(): Promise<ActionResponse<any>> {
+export async function exportUserDataAction(): Promise<ActionResponse<UserDataExport | null>> {
   try {
     const userId = await getAuthenticatedUserId()
     if (!userId) return { success: false, error: "Authentication required." }
@@ -748,10 +805,10 @@ export async function exportUserDataAction(): Promise<ActionResponse<any>> {
       success: true,
       data,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to export data.",
+      error: errorMessage(err, "Failed to export data."),
     }
   }
 }
@@ -769,10 +826,10 @@ export async function deleteAccountAction(): Promise<ActionResponse<boolean>> {
       success: res,
       data: res,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to delete account.",
+      error: errorMessage(err, "Failed to delete account."),
     }
   }
 }
@@ -795,10 +852,10 @@ export async function fetchScheduleHistoryAction(
       success: true,
       data: history,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to fetch schedule history.",
+      error: errorMessage(err, "Failed to fetch schedule history."),
     }
   }
 }
@@ -825,10 +882,10 @@ export async function restoreScheduleVersionAction(
       success: true,
       data: restored,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to restore version.",
+      error: errorMessage(err, "Failed to restore version."),
     }
   }
 }
@@ -853,10 +910,10 @@ export async function processRecurringCycleAction(
       success: true,
       data: cycle,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to process recurring cycle.",
+      error: errorMessage(err, "Failed to process recurring cycle."),
     }
   }
 }
@@ -878,10 +935,10 @@ export async function savePushSubscriptionAction(sub: {
       success: res,
       data: res,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to save push subscription.",
+      error: errorMessage(err, "Failed to save push subscription."),
     }
   }
 }
@@ -907,10 +964,10 @@ export async function sendTestNotificationAction(): Promise<
       success: true,
       data: res,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to send test notification.",
+      error: errorMessage(err, "Failed to send test notification."),
     }
   }
 }
@@ -932,10 +989,10 @@ export async function getTodaysReadingAction(): Promise<
       success: true,
       data,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to fetch today's reading.",
+      error: errorMessage(err, "Failed to fetch today's reading."),
       data: null,
     }
   }
@@ -966,10 +1023,10 @@ export async function getGroupProgressSummaryAction(
       success: true,
       data: summary,
     }
-  } catch (err: any) {
+  } catch (err) {
     return {
       success: false,
-      error: err?.message || "Failed to fetch group progress summary.",
+      error: errorMessage(err, "Failed to fetch group progress summary."),
       data: null,
     }
   }

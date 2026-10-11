@@ -1,16 +1,10 @@
 "use client"
 
 import React, { useState } from "react"
-import { motion } from "framer-motion"
-import {
-  IconArrowRight,
-  IconArrowLeft,
-  IconBookmark,
-  IconCompass,
-} from "@tabler/icons-react"
+import { motion } from "motion/react"
+import { IconArrowRight, IconArrowLeft, IconBookmark } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { QuranReader } from "@/components/reader/quran-reader"
 
 export interface ContinueReadingData {

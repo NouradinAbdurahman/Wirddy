@@ -3,9 +3,7 @@ import {
   buildStandaloneWeekExportHtml,
   buildMemberPersonalScheduleHtml,
 } from "../lib/export/render-week"
-import { ExportWeek } from "../lib/export/types"
 import { ExportAssets } from "../lib/export/assets"
-import { MemberConfig, GeneratedSchedule } from "../lib/scheduler/types"
 import { generateQuranSchedule } from "../lib/scheduler/engine"
 import {
   checkGroupAuthorization,
@@ -144,7 +142,7 @@ describe("Schedule Editing & Rectangular PNG Export", () => {
           }),
         }),
       }
-      vi.mocked(getSupabaseServerClient).mockReturnValue(mockSupabase as any)
+      vi.mocked(getSupabaseServerClient).mockReturnValue(mockSupabase as never)
 
       // Owner accessing with their userId and NO rawEditToken
       const result = await checkGroupAuthorization(
@@ -155,7 +153,7 @@ describe("Schedule Editing & Rectangular PNG Export", () => {
 
       expect(result.authorized).toBe(true)
       expect(result.group).toBeDefined()
-      expect(result.group.id).toBe("group-123")
+      expect(result.group?.id).toBe("group-123")
     })
 
     it("authorizes user with valid secret edit token even if unauthenticated", async () => {
@@ -171,7 +169,7 @@ describe("Schedule Editing & Rectangular PNG Export", () => {
           }),
         }),
       }
-      vi.mocked(getSupabaseServerClient).mockReturnValue(mockSupabase as any)
+      vi.mocked(getSupabaseServerClient).mockReturnValue(mockSupabase as never)
 
       // Visitor accessing with correct rawEditToken and no userId
       const result = await checkGroupAuthorization(
@@ -197,7 +195,7 @@ describe("Schedule Editing & Rectangular PNG Export", () => {
           }),
         }),
       }
-      vi.mocked(getSupabaseServerClient).mockReturnValue(mockSupabase as any)
+      vi.mocked(getSupabaseServerClient).mockReturnValue(mockSupabase as never)
 
       // Different user with bad token
       const result = await checkGroupAuthorization(
@@ -222,7 +220,7 @@ describe("Schedule Editing & Rectangular PNG Export", () => {
           }),
         }),
       }
-      vi.mocked(getSupabaseServerClient).mockReturnValue(mockSupabase as any)
+      vi.mocked(getSupabaseServerClient).mockReturnValue(mockSupabase as never)
 
       const canEdit = await validateEditAccess(
         "PUB1234567890",

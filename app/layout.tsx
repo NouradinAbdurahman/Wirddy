@@ -8,9 +8,10 @@ import { I18nProvider } from "@/lib/i18n/context"
 import { PwaRegistrar } from "@/components/pwa/pwa-registrar"
 import { cn } from "@/lib/utils"
 
+// Cairo is a variable font: leaving out `weight` loads one file per subset
+// that covers every weight, instead of one file per weight.
 const cairo = Cairo({
   subsets: ["arabic", "latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
   variable: "--font-arabic",
   display: "swap",
 })
@@ -26,6 +27,8 @@ const amiri = Amiri({
   weight: ["400", "700"],
   variable: "--font-quran-amiri",
   display: "swap",
+  // Only the reader and exports use this font, so it loads when used.
+  preload: false,
 })
 
 const amiriQuran = Amiri_Quran({
@@ -33,6 +36,8 @@ const amiriQuran = Amiri_Quran({
   weight: ["400"],
   variable: "--font-quran-amiri-quran",
   display: "swap",
+  // Only the reader and exports use this font, so it loads when used.
+  preload: false,
 })
 
 const scheherazadeNew = Scheherazade_New({
@@ -40,6 +45,8 @@ const scheherazadeNew = Scheherazade_New({
   weight: ["400", "700"],
   variable: "--font-quran-scheherazade",
   display: "swap",
+  // Only the reader and exports use this font, so it loads when used.
+  preload: false,
 })
 
 export const metadata: Metadata = {

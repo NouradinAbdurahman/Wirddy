@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 import {
   IconBook,
   IconCheck,
@@ -12,7 +12,7 @@ import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { QuranReader } from "@/components/reader/quran-reader"
-import { saveReadingProgressAction } from "@/lib/groups/actions"
+import { saveProgressOrQueue } from "@/lib/storage/offline-sync"
 
 export interface TodaysReadingData {
   groupPublicId: string
@@ -71,13 +71,17 @@ export function TodaysReadingWidget({
     setIsCompleted(nextState)
 
     try {
-      await saveReadingProgressAction(
-        reading.groupPublicId,
-        reading.memberPublicId,
-        reading.weekNumber,
-        reading.dayNumber,
-        nextState
-      )
+      const res = await saveProgressOrQueue({
+        groupPublicId: reading.groupPublicId,
+        memberPublicId: reading.memberPublicId,
+        weekNumber: reading.weekNumber,
+        dayNumber: reading.dayNumber,
+        isCompleted: nextState,
+      })
+      if (!res.success) {
+        setIsCompleted(!nextState)
+        return
+      }
       if (onProgressUpdated) onProgressUpdated()
     } catch (err) {
       console.error("Failed to update reading progress:", err)
@@ -184,13 +188,13 @@ export function TodaysReadingWidget({
           assignmentTitle={`${reading.groupName} - ${language === "ar" ? `الأسبوع ${reading.weekNumber}` : `Week ${reading.weekNumber}`}`}
           onCompleteAssignment={() => {
             setIsCompleted(true)
-            saveReadingProgressAction(
-              reading.groupPublicId,
-              reading.memberPublicId,
-              reading.weekNumber,
-              reading.dayNumber,
-              true
-            )
+            void saveProgressOrQueue({
+              groupPublicId: reading.groupPublicId,
+              memberPublicId: reading.memberPublicId,
+              weekNumber: reading.weekNumber,
+              dayNumber: reading.dayNumber,
+              isCompleted: true,
+            })
           }}
         />
       )}

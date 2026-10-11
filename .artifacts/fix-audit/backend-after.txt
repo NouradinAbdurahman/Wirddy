@@ -1,0 +1,24 @@
+ ✓ tests/member-linking.test.ts > member account linking > reports an unlinked slot 15ms
+ ✓ tests/member-linking.test.ts > member account linking > links a slot by its public ID (not a uuid) and reports it 5ms
+ ✓ tests/member-linking.test.ts > member account linking > never lets another account take over a linked slot 3ms
+ ✓ tests/member-linking.test.ts > member account linking > allows one slot per account in a group 2ms
+ ✓ tests/member-linking.test.ts > member account linking > treats a crafted member ID as plain text 2ms
+ ✓ tests/member-linking.test.ts > saving schedules > keeps two members with the same name apart 4ms
+ ✓ tests/member-linking.test.ts > saving schedules > ignores assignments sent by a modified client 5ms
+ ✓ tests/member-linking.test.ts > saving schedules > does not expose account IDs to people holding the link 3ms
+ ✓ tests/member-linking.test.ts > saving schedules > rebuilds week date ranges when loading a dated plan 6ms
+ ✓ tests/member-linking.test.ts > editing a saved group > keeps member links, public IDs and reading progress 6ms
+ ✓ tests/member-linking.test.ts > editing a saved group > rejects a public ID that belongs to another group 5ms
+ ✓ tests/member-linking.test.ts > reading progress > rejects week and day numbers outside the plan 3ms
+ ✓ tests/member-linking.test.ts > reading progress > lets the link holder update an unlinked slot 2ms
+ ✓ tests/member-linking.test.ts > reading progress > only lets the linked account or the owner update a linked slot 2ms
+ ✓ tests/member-linking.test.ts > group progress summary > reflects linked members for the owner 3ms
+ ✓ tests/member-linking.test.ts > group progress summary > is hidden from anonymous visitors and other accounts 3ms
+ ✓ tests/member-linking.test.ts > member page and today's reading > shows only the member's own assignments 2ms
+ ✓ tests/member-linking.test.ts > member page and today's reading > gives an owner who is not a member no reading 3ms
+ ✓ tests/member-linking.test.ts > account deletion > removes personal data, releases slots and deletes the login 7ms
+ ✓ tests/member-linking.test.ts > account deletion > reports failure when a step fails 3ms
+ ✓ tests/member-linking.test.ts > recurring cycles > stores the recurrence setting and when the next cycle is due 3ms
+ ✓ tests/member-linking.test.ts > recurring cycles > does not auto-renew groups without an owner account 3ms
+ ✓ tests/member-linking.test.ts > recurring cycles > waits until the cycle is due, then creates exactly one next cycle 10ms
+ ✓ tests/member-linking.test.ts > recurring cycles > returns the existing cycle when started twice by hand 5ms

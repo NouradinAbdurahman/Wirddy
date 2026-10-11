@@ -10,20 +10,50 @@ import {
   WeekSchedule,
 } from "./types"
 import { validateScheduleInput } from "./validator"
-import {
-  addDaysToDate,
-  calculateDailyDates,
-  calculateWeekDateRanges,
-  parseIsoDate,
-} from "../dates/calendar"
+import { addDaysToDate, calculateDailyDates, calculateWeekDateRanges } from "../dates/calendar"
 import { formatRamadanDayLabel, getRamadanStartDate } from "../dates/ramadan"
 import { QuranLocation } from "../quran/types"
 import { generateMemberPublicId } from "../groups/crypto"
+import { getKnownAyahInterval, TOTAL_AYAHS } from "./knowledge"
 
-interface MemberState {
+/**
+ * Error thrown when a schedule cannot be generated. Carries both languages so
+ * the UI can show the message in the reader's language.
+ */
+export class SchedulerError extends Error {
+  readonly code: string
+  readonly messageAr: string
+  readonly messageEn: string
+
+  constructor(code: string, messageEn: string, messageAr: string) {
+    super(messageEn)
+    this.name = "SchedulerError"
+    this.code = code
+    this.messageEn = messageEn
+    this.messageAr = messageAr
+  }
+}
+
+/** Search nodes spent improving a week's rotation once a valid split exists. */
+const OPTIMIZE_NODE_BUDGET = 2000
+/** Hard ceiling on search nodes per week, so generation always finishes. */
+const HARD_NODE_LIMIT = 400000
+
+interface HistoryEntry {
+  start: number
+  end: number
+  week: number
+}
+
+interface SolverMember {
   member: MemberConfig
-  index: number
-  assignedHistory: Array<{ start: number; end: number }>
+  /** Units this member reads each week. */
+  size: number
+  /** knownPrefix[p] = number of known units in [0, p). */
+  knownPrefix: Int32Array
+  /** Members with the same type are interchangeable for feasibility. */
+  typeId: number
+  history: HistoryEntry[]
 }
 
 /**
@@ -45,217 +75,220 @@ function createSeededRandom(seed: number) {
 function hashStringToSeed(str: string): number {
   let hash = 0
   for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = (hash << 5) - hash + char
+    hash = (hash << 5) - hash + str.charCodeAt(i)
     hash |= 0
   }
   return Math.abs(hash)
 }
 
 /**
- * Calculates overlap between two closed intervals [a, b] and [c, d].
+ * Member order used to break ties between equally good assignments. This is
+ * what makes the rotation styles differ when history does not decide.
  */
-function calculateOverlap(a: number, b: number, c: number, d: number): number {
-  const overlap = Math.min(b, d) - Math.max(a, c) + 1
-  return Math.max(0, overlap)
-}
-
-/**
- * Finds a valid member permutation that satisfies knowledge restrictions and rotation goals.
- */
-function solveWeekPermutation(
-  members: MemberState[],
+function rotationOrder(
+  n: number,
   weekIndex: number,
   rotationStyle: RotationStyle,
-  seed: number,
-  startJuzOffset: number = 0
-): MemberState[] | null {
-  const n = members.length
-  const used = new Array(n).fill(false)
-  let bestPermutation: MemberState[] | null = null
-  let bestScore = Infinity
-
-  // Determine candidate search order based on rotation style
-  let candidateIndices: number[] = []
-
+  seed: number
+): number[] {
+  const order = Array.from({ length: n }, (_, i) => i)
   if (rotationStyle === "random") {
     const rng = createSeededRandom(seed + weekIndex * 1013)
-    candidateIndices = Array.from({ length: n }, (_, i) => i)
-    // Fisher-Yates shuffle with seeded RNG
-    for (let i = candidateIndices.length - 1; i > 0; i--) {
+    for (let i = n - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1))
-      ;[candidateIndices[i], candidateIndices[j]] = [
-        candidateIndices[j],
-        candidateIndices[i],
-      ]
+      ;[order[i], order[j]] = [order[j], order[i]]
     }
-  } else if (rotationStyle === "large") {
-    // Large jump: shift by half the member list plus week offset
-    const stride = Math.max(1, Math.floor(n / 2))
-    const offset = (weekIndex * stride) % n
-    candidateIndices = Array.from({ length: n }, (_, i) => (i + offset) % n)
-  } else if (rotationStyle === "small") {
-    // Small shift: minimal progressive movement
-    const offset = Math.floor(weekIndex / 2) % n
-    candidateIndices = Array.from({ length: n }, (_, i) => (i + offset) % n)
-  } else {
-    // Medium (default): standard cyclic shift
-    const offset = weekIndex % n
-    candidateIndices = Array.from({ length: n }, (_, i) => (i + offset) % n)
+    return order
   }
-
-  function backtrack(
-    currentPosition: number,
-    currentPerm: MemberState[],
-    currentScore: number
-  ) {
-    if (currentPosition === n) {
-      if (currentScore < bestScore) {
-        bestScore = currentScore
-        bestPermutation = [...currentPerm]
-      }
-      return
-    }
-
-    if (currentScore >= bestScore) return
-
-    // Calculate Juz range that this position will read
-    let startNominal = 1
-    for (let i = 0; i < currentPosition; i++) {
-      startNominal += currentPerm[i].member.weeklyAmount
-    }
-
-    for (let i = 0; i < n; i++) {
-      const candidateIdx = candidateIndices[i]
-      if (used[candidateIdx]) continue
-
-      const mState = members[candidateIdx]
-      const endNominal = startNominal + mState.member.weeklyAmount - 1
-
-      // Apply starting Juz offset
-      const startJuz = ((startNominal - 1 + startJuzOffset) % 30) + 1
-      const endJuz = ((endNominal - 1 + startJuzOffset) % 30) + 1
-
-      // Check knowledge boundary constraint
-      const k = mState.member
-      let isKnowledgeSatisfied = true
-
-      if (k.knowledgeType === "juz_range") {
-        if (endJuz >= startJuz) {
-          if (startJuz < k.startJuz || endJuz > k.endJuz) {
-            isKnowledgeSatisfied = false
-          }
-        } else {
-          // Wrapped range across 30 -> 1
-          if (
-            (startJuz < k.startJuz && startJuz > k.endJuz) ||
-            (endJuz < k.startJuz && endJuz > k.endJuz)
-          ) {
-            isKnowledgeSatisfied = false
-          }
-        }
-      }
-
-      if (!isKnowledgeSatisfied) continue
-
-      // Calculate repetition score against member history
-      let repetitionCost = 0
-      for (const past of mState.assignedHistory) {
-        if (endJuz >= startJuz && past.end >= past.start) {
-          const overlap = calculateOverlap(
-            startJuz,
-            endJuz,
-            past.start,
-            past.end
-          )
-          repetitionCost += overlap * 10
-        }
-      }
-
-      used[candidateIdx] = true
-      currentPerm.push(mState)
-
-      backtrack(currentPosition + 1, currentPerm, currentScore + repetitionCost)
-
-      currentPerm.pop()
-      used[candidateIdx] = false
-
-      if (bestScore === 0) return
-    }
-  }
-
-  backtrack(0, [], 0)
-  return bestPermutation
+  const offset =
+    rotationStyle === "large"
+      ? (weekIndex * Math.max(1, Math.floor(n / 2))) % n
+      : rotationStyle === "small"
+        ? Math.floor(weekIndex / 2) % n
+        : weekIndex % n
+  return order.map((i) => (i + offset) % n)
 }
 
 /**
- * Mathematically partitions an assignment's exact Ayah range across 7 days.
- * Guarantees:
- * - Day 1 starts at the exact weekly start Ayah.
- * - Day 7 ends at the exact weekly end Ayah.
- * - 0 gaps, 0 overlaps.
- * - Every single Ayah in the weekly range belongs to exactly one daily portion.
+ * Builds a prefix sum of repetition cost per unit for one member. Repeating a
+ * recent portion costs more than repeating an old one, so members cycle
+ * through the whole range before reading the same part again.
+ */
+function buildCostPrefix(m: SolverMember, totalUnits: number, weekIndex: number): Float64Array {
+  const diff = new Float64Array(totalUnits + 1)
+  for (const h of m.history) {
+    const weight = 1 / (weekIndex - h.week)
+    diff[h.start] += weight
+    diff[h.end + 1] -= weight
+  }
+  const prefix = new Float64Array(totalUnits + 1)
+  let running = 0
+  for (let u = 0; u < totalUnits; u++) {
+    running += diff[u]
+    prefix[u + 1] = prefix[u] + running
+  }
+  return prefix
+}
+
+function isBlockKnown(m: SolverMember, start: number): boolean {
+  return m.knownPrefix[start + m.size] - m.knownPrefix[start] === m.size
+}
+
+/**
+ * Orders members into consecutive blocks that cover units 0..totalUnits-1,
+ * with every block inside its member's known range. Returns member indices
+ * in reading order, or null when no valid order exists.
+ *
+ * The search is depth-first, trying the cheapest candidate first. Dead ends
+ * are remembered by the multiset of remaining member types, which keeps the
+ * hunt for a first valid order small even for 30 members. After a valid
+ * order is found, a fixed node budget is spent looking for a cheaper one.
+ */
+function solveWeek(
+  members: SolverMember[],
+  totalUnits: number,
+  order: number[],
+  weekIndex: number
+): number[] | null {
+  const n = members.length
+  const typeCount = members.reduce((mx, m) => Math.max(mx, m.typeId + 1), 0)
+  const remainingByType = new Array<number>(typeCount).fill(0)
+  for (const m of members) remainingByType[m.typeId]++
+
+  const used = new Array<boolean>(n).fill(false)
+  const perm: number[] = []
+  const deadEnds = new Set<string>()
+  let best: number[] | null = null
+  let bestCost = Infinity
+  let nodes = 0
+  const costPrefix = members.map((m) => buildCostPrefix(m, totalUnits, weekIndex))
+
+  // Result codes: 1 = reached a full split, 0 = proven impossible, -1 = cut short.
+  function dfs(position: number, cost: number): number {
+    if (position === totalUnits) {
+      if (cost < bestCost) {
+        bestCost = cost
+        best = perm.slice()
+      }
+      return 1
+    }
+
+    const key = remainingByType.join(",")
+    if (deadEnds.has(key)) return 0
+
+    nodes++
+    if (best && nodes > OPTIMIZE_NODE_BUDGET) return -1
+    if (nodes > HARD_NODE_LIMIT) return -1
+
+    const candidates: Array<{ idx: number; inc: number; rank: number }> = []
+    const feasibleType = new Map<number, boolean>()
+    for (let r = 0; r < n; r++) {
+      const idx = order[r]
+      if (used[idx]) continue
+      const m = members[idx]
+      if (position + m.size > totalUnits) continue
+      let ok = feasibleType.get(m.typeId)
+      if (ok === undefined) {
+        ok = isBlockKnown(m, position)
+        feasibleType.set(m.typeId, ok)
+      }
+      if (!ok) continue
+      const inc = costPrefix[idx][position + m.size] - costPrefix[idx][position]
+      candidates.push({ idx, inc, rank: r })
+    }
+
+    if (candidates.length === 0) {
+      deadEnds.add(key)
+      return 0
+    }
+
+    candidates.sort((a, b) => a.inc - b.inc || a.rank - b.rank)
+
+    let found = false
+    let cut = false
+    for (const c of candidates) {
+      if (cost + c.inc >= bestCost) {
+        cut = true
+        continue
+      }
+      const m = members[c.idx]
+      used[c.idx] = true
+      perm.push(c.idx)
+      remainingByType[m.typeId]--
+      const result = dfs(position + m.size, cost + c.inc)
+      remainingByType[m.typeId]++
+      perm.pop()
+      used[c.idx] = false
+
+      if (result === 1) found = true
+      else if (result === -1) cut = true
+
+      if (bestCost === 0) return 1
+      if (best && nodes > OPTIMIZE_NODE_BUDGET) return found ? 1 : -1
+      if (nodes > HARD_NODE_LIMIT) return found ? 1 : -1
+    }
+
+    if (!found && !cut) deadEnds.add(key)
+    return found ? 1 : cut ? -1 : 0
+  }
+
+  dfs(0, 0)
+  return best
+}
+
+/**
+ * Splits `totalUnits` across members in proportion to their weekly amount,
+ * giving each member at least `minUnits`. Uses largest remainders so the
+ * sizes always add up exactly.
+ */
+function allocateUnits(weights: number[], totalUnits: number, minUnits: number): number[] {
+  const n = weights.length
+  const sizes = new Array<number>(n).fill(minUnits)
+  const spare = totalUnits - minUnits * n
+  const totalWeight = weights.reduce((s, w) => s + w, 0)
+  const exact = weights.map((w) => (w / totalWeight) * spare)
+  let given = 0
+  exact.forEach((x, i) => {
+    sizes[i] += Math.floor(x)
+    given += Math.floor(x)
+  })
+  const byRemainder = exact
+    .map((x, i) => ({ i, r: x - Math.floor(x) }))
+    .sort((a, b) => b.r - a.r || a.i - b.i)
+  for (let k = 0; k < spare - given; k++) sizes[byRemainder[k % n].i]++
+  return sizes
+}
+
+/**
+ * Splits a member's weekly portion into 7 daily portions with no gaps or
+ * overlaps. The portion may wrap from An-Nas back to Al-Fatiha.
  */
 function buildDailyBreakdown(
-  startLoc: QuranLocation,
-  endLoc: QuranLocation,
+  startGlobal: number,
+  totalAyahs: number,
   weekNumber: number,
   startDateStr?: string,
   occasionType?: "normal" | "ramadan"
 ): DailyPortion[] {
   const portions: DailyPortion[] = []
-  const startGlobal = startLoc.globalAyahNumber
-  const endGlobal = endLoc.globalAyahNumber
+  const days = Math.min(7, totalAyahs)
+  const base = Math.floor(totalAyahs / days)
+  const remainder = totalAyahs % days
 
-  // Calculate total Ayahs (handling standard vs wrapped Quran ranges)
-  const isWrapped = endGlobal < startGlobal
-  const totalAyahs = isWrapped
-    ? 6236 - startGlobal + 1 + endGlobal
-    : endGlobal - startGlobal + 1
-
-  const baseAyahsPerDay = Math.floor(totalAyahs / 7)
-  const remainder = totalAyahs % 7
-
-  let currentGlobal = startGlobal
-  const weekStartIso = startDateStr
-    ? addDaysToDate(startDateStr, (weekNumber - 1) * 7)
-    : undefined
-
+  const weekStartIso = startDateStr ? addDaysToDate(startDateStr, (weekNumber - 1) * 7) : undefined
   const dailyDates = weekStartIso ? calculateDailyDates(weekStartIso) : []
 
-  for (let d = 1; d <= 7; d++) {
-    const dayCount = baseAyahsPerDay + (d <= remainder ? 1 : 0)
-    const dayStartGlobal = currentGlobal
-    let dayEndGlobal: number
+  let offset = 0
+  for (let d = 1; d <= days; d++) {
+    const count = base + (d <= remainder ? 1 : 0)
+    const dayStart = ((startGlobal - 1 + offset) % TOTAL_AYAHS) + 1
+    const dayEnd = ((startGlobal - 1 + offset + count - 1) % TOTAL_AYAHS) + 1
+    offset += count
 
-    if (!isWrapped) {
-      dayEndGlobal = Math.min(endGlobal, dayStartGlobal + dayCount - 1)
-      currentGlobal = dayEndGlobal + 1
-    } else {
-      if (dayStartGlobal + dayCount - 1 <= 6236) {
-        dayEndGlobal = dayStartGlobal + dayCount - 1
-        currentGlobal = (dayEndGlobal % 6236) + 1
-      } else {
-        dayEndGlobal = dayStartGlobal + dayCount - 1 - 6236
-        currentGlobal = dayEndGlobal + 1
-      }
-    }
-
-    const dayStartLoc = quranService.getLocationFromGlobalAyah(dayStartGlobal)
-    const dayEndLoc = quranService.getLocationFromGlobalAyah(dayEndGlobal)
-
+    const dayStartLoc = quranService.getLocationFromGlobalAyah(dayStart)
+    const dayEndLoc = quranService.getLocationFromGlobalAyah(dayEnd)
     const globalDayIndex = (weekNumber - 1) * 7 + d
     const dateInfo = dailyDates[d - 1]
-
-    let ramadanDay: number | undefined
-    let ramadanDayLabelAr: string | undefined
-    let ramadanDayLabelEn: string | undefined
-
-    if (occasionType === "ramadan") {
-      ramadanDay = globalDayIndex
-      ramadanDayLabelAr = formatRamadanDayLabel(globalDayIndex, "ar").title
-      ramadanDayLabelEn = formatRamadanDayLabel(globalDayIndex, "en").title
-    }
 
     portions.push({
       dayIndex: d,
@@ -265,297 +298,197 @@ function buildDailyBreakdown(
       formattedDateEn: dateInfo?.formattedEn,
       dayNameAr: dateInfo?.dayNameAr,
       dayNameEn: dateInfo?.dayNameEn,
-      ramadanDay,
-      ramadanDayLabelAr,
-      ramadanDayLabelEn,
+      ...(occasionType === "ramadan"
+        ? {
+            ramadanDay: globalDayIndex,
+            ramadanDayLabelAr: formatRamadanDayLabel(globalDayIndex, "ar").title,
+            ramadanDayLabelEn: formatRamadanDayLabel(globalDayIndex, "en").title,
+          }
+        : {}),
       startAyah: locationToAyahRef(dayStartLoc),
       endAyah: locationToAyahRef(dayEndLoc),
       startLocation: dayStartLoc,
       endLocation: dayEndLoc,
-      totalAyahs: dayCount,
+      totalAyahs: count,
     })
   }
 
   return portions
 }
 
+function noSplitError(weekNumber: number): SchedulerError {
+  return new SchedulerError(
+    "NO_VALID_SPLIT",
+    `Unable to split week ${weekNumber} so that every member reads only what they know. Widen some members' known ranges or change their weekly amounts.`,
+    `تعذر تقسيم الأسبوع ${weekNumber} بحيث يقرأ كل عضو ما يحفظه فقط. وسّع نطاق الحفظ لبعض الأعضاء أو غيّر مقدار قراءتهم الأسبوعي.`
+  )
+}
+
 /**
- * Generates an optimal Quran reading schedule with full support for:
- * - Schedule Dates & Multi-week range calculations
- * - Ramadan Occasion Mode
- * - Mathematical Ayah-Exact Daily Division (7 days)
- * - Custom Quran Ranges
- * - Starting Juz Wrapping
- * - Multi-member rotation algorithms
+ * Generates a Quran reading schedule.
+ *
+ * Full mode splits all 30 Juz each week, starting at `startJuz` and wrapping
+ * from Juz 30 to Juz 1. Custom mode splits the chosen ayah range in
+ * proportion to each member's weekly amount. In both modes every member
+ * reads only inside their known range, and rotation avoids repeating the
+ * portions a member read in recent weeks.
  */
 export function generateQuranSchedule(input: ScheduleInput): GeneratedSchedule {
   const validation = validateScheduleInput(input)
   if (!validation.isValid) {
-    throw new Error(
-      `Invalid schedule input: ${validation.errors.map((e) => e.messageEn).join(", ")}`
+    const first = validation.errors[0]
+    const err = new SchedulerError(
+      first?.code || "INVALID_INPUT",
+      `Invalid schedule input: ${validation.errors.map((e) => e.messageEn).join(", ")}`,
+      validation.errors.map((e) => e.messageAr).join("، ")
     )
+    throw err
   }
 
   const { group, members } = input
   const normalizedMembers: MemberConfig[] = members.map((m) => ({
     ...m,
-    publicId:
-      m.publicId || generateMemberPublicId(`${group.name}_${m.id || m.name}`),
+    publicId: m.publicId || generateMemberPublicId(`${group.name}_${m.id || m.name}`),
   }))
 
   const weeksCount = Math.max(1, Math.min(52, group.weeksCount || 1))
   const rotationStyle: RotationStyle = group.rotationStyle || "medium"
-  const rangeType = group.rangeType || "full"
+  const rangeType = group.rangeType === "custom" && group.customRange ? "custom" : "full"
   const startJuzSetting = group.startJuz || 1
   const startJuzOffset = (startJuzSetting - 1) % 30
   const dailyDivisionEnabled = !!group.dailyDivisionEnabled
   const occasionType = group.occasionType || "normal"
   const islamicYear = group.islamicYear
 
-  // Resolve effective start date
   let effectiveStartDate = group.startDate
   if (occasionType === "ramadan" && !effectiveStartDate) {
-    const year = islamicYear || 1448
-    effectiveStartDate = getRamadanStartDate(year)
+    effectiveStartDate = getRamadanStartDate(islamicYear || 1448)
   }
-
   const usesDates = !!group.usesDates || occasionType === "ramadan"
-
-  // Precompute week date ranges if dates are enabled
   const weekDateRanges =
     usesDates && effectiveStartDate
       ? calculateWeekDateRanges(effectiveStartDate, weeksCount)
       : undefined
 
-  const seed = hashStringToSeed(
-    group.name + normalizedMembers.map((m) => m.name).join("-")
-  )
+  const seed = hashStringToSeed(group.name + normalizedMembers.map((m) => m.name).join("-"))
 
-  // -------------------------------------------------------------
-  // 1. CUSTOM QURAN RANGE SCHEDULER
-  // -------------------------------------------------------------
-  if (rangeType === "custom" && group.customRange) {
-    const cRange = group.customRange
-    const startGlobal = quranService.getGlobalAyahNumber(
-      cRange.startSurah,
-      cRange.startAyah
+  // Describe the reading line as units. Full mode: 30 Juz in reading order
+  // from the starting Juz. Custom mode: the ayahs of the chosen range.
+  let totalUnits: number
+  let unitAyahSpan: (unit: number) => { start: number; end: number }
+  let sizes: number[]
+  let rangeStartGlobal = 1
+
+  if (rangeType === "custom") {
+    const cr = group.customRange!
+    rangeStartGlobal = quranService.getGlobalAyahNumber(cr.startSurah, cr.startAyah)
+    const rangeEndGlobal = quranService.getGlobalAyahNumber(cr.endSurah, cr.endAyah)
+    totalUnits = rangeEndGlobal - rangeStartGlobal + 1
+    unitAyahSpan = (u) => ({ start: rangeStartGlobal + u, end: rangeStartGlobal + u })
+    sizes = allocateUnits(
+      normalizedMembers.map((m) => m.weeklyAmount),
+      totalUnits,
+      dailyDivisionEnabled ? 7 : 1
     )
-    const endGlobal = quranService.getGlobalAyahNumber(
-      cRange.endSurah,
-      cRange.endAyah
-    )
-
-    const startLoc = quranService.getLocationFromGlobalAyah(startGlobal)
-    const endLoc = quranService.getLocationFromGlobalAyah(endGlobal)
-    const totalRangeAyahs = endGlobal - startGlobal + 1
-    const totalWeeklyAmount = normalizedMembers.reduce(
-      (s, m) => s + m.weeklyAmount,
-      0
-    )
-
-    const memberStates: MemberState[] = normalizedMembers.map((m, i) => ({
-      member: m,
-      index: i,
-      assignedHistory: [],
-    }))
-
-    const weeks: WeekSchedule[] = []
-
-    for (let weekNum = 1; weekNum <= weeksCount; weekNum++) {
-      let shiftedMembers = [...memberStates]
-      if (rotationStyle === "random") {
-        const rng = createSeededRandom(seed + weekNum * 1013)
-        for (let i = shiftedMembers.length - 1; i > 0; i--) {
-          const j = Math.floor(rng() * (i + 1))
-          ;[shiftedMembers[i], shiftedMembers[j]] = [
-            shiftedMembers[j],
-            shiftedMembers[i],
-          ]
-        }
-      } else {
-        const shift =
-          rotationStyle === "large"
-            ? (weekNum - 1) * Math.max(1, Math.floor(members.length / 2))
-            : rotationStyle === "small"
-              ? Math.floor((weekNum - 1) / 2)
-              : weekNum - 1
-        const offset = shift % members.length
-        for (let i = 0; i < offset; i++) {
-          const first = shiftedMembers.shift()
-          if (first) shiftedMembers.push(first)
-        }
-      }
-
-      const assignments: MemberAssignment[] = []
-      let currentGlobalAyah = startLoc.globalAyahNumber
-
-      for (let i = 0; i < shiftedMembers.length; i++) {
-        const mState = shiftedMembers[i]
-        const proportion = mState.member.weeklyAmount / totalWeeklyAmount
-        const memberAyahCount =
-          i === shiftedMembers.length - 1
-            ? endLoc.globalAyahNumber - currentGlobalAyah + 1
-            : Math.max(1, Math.round(proportion * totalRangeAyahs))
-
-        const assignStartGlobal = currentGlobalAyah
-        const assignEndGlobal = Math.min(
-          endLoc.globalAyahNumber,
-          assignStartGlobal + memberAyahCount - 1
-        )
-
-        const aStartLoc =
-          quranService.getLocationFromGlobalAyah(assignStartGlobal)
-        const aEndLoc = quranService.getLocationFromGlobalAyah(assignEndGlobal)
-
-        const dailyBreakdown = dailyDivisionEnabled
-          ? buildDailyBreakdown(
-              aStartLoc,
-              aEndLoc,
-              weekNum,
-              effectiveStartDate,
-              occasionType
-            )
-          : undefined
-
-        assignments.push({
-          memberId: mState.member.id,
-          memberName: mState.member.name,
-          memberPublicId: mState.member.publicId,
-          weeklyAmount: mState.member.weeklyAmount,
-          startJuz: aStartLoc.juzNumber,
-          endJuz: aEndLoc.juzNumber,
-          startAyah: locationToAyahRef(aStartLoc),
-          endAyah: locationToAyahRef(aEndLoc),
-          startLocation: aStartLoc,
-          endLocation: aEndLoc,
-          dailyBreakdown,
-        })
-
-        mState.assignedHistory.push({
-          start: aStartLoc.juzNumber,
-          end: aEndLoc.juzNumber,
-        })
-
-        currentGlobalAyah = assignEndGlobal + 1
-      }
-
-      weeks.push({
-        weekNumber: weekNum,
-        totalJuz: 30,
-        assignments,
-        dateRange: weekDateRanges ? weekDateRanges[weekNum - 1] : undefined,
-      })
+  } else {
+    totalUnits = 30
+    unitAyahSpan = (u) => {
+      const b = quranService.getJuzBoundary(((u + startJuzOffset) % 30) + 1)
+      return { start: b.start.globalAyahNumber, end: b.end.globalAyahNumber }
     }
-
-    return {
-      id: `sch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      createdAt: new Date().toISOString(),
-      groupName: group.name,
-      title: group.title,
-      description: group.description,
-      weeksCount,
-      rotationStyle,
-      rangeType,
-      startJuz: startJuzSetting,
-      customRange: group.customRange,
-      startDate: effectiveStartDate,
-      usesDates,
-      occasionType,
-      islamicYear,
-      dailyDivisionEnabled,
-      weekDateRanges,
-      weeks,
-      members,
-    }
+    sizes = normalizedMembers.map((m) => m.weeklyAmount)
   }
 
-  // -------------------------------------------------------------
-  // 2. FULL 30 JUZ QURAN SCHEDULER
-  // -------------------------------------------------------------
-  const memberStates: MemberState[] = normalizedMembers.map((m, i) => ({
-    member: m,
-    index: i,
-    assignedHistory: [],
-  }))
+  const typeIds = new Map<string, number>()
+  const solverMembers: SolverMember[] = normalizedMembers.map((m, i) => {
+    const known = getKnownAyahInterval(m)
+    const knownPrefix = new Int32Array(totalUnits + 1)
+    for (let u = 0; u < totalUnits; u++) {
+      const span = unitAyahSpan(u)
+      const ok = span.start >= known.start && span.end <= known.end
+      knownPrefix[u + 1] = knownPrefix[u] + (ok ? 1 : 0)
+    }
+    const typeKey = `${sizes[i]}:${known.start}:${known.end}`
+    if (!typeIds.has(typeKey)) typeIds.set(typeKey, typeIds.size)
+    return {
+      member: m,
+      size: sizes[i],
+      knownPrefix,
+      typeId: typeIds.get(typeKey)!,
+      history: [],
+    }
+  })
 
   const weeks: WeekSchedule[] = []
 
   for (let weekNum = 1; weekNum <= weeksCount; weekNum++) {
-    const permutation = solveWeekPermutation(
-      memberStates,
-      weekNum - 1,
-      rotationStyle,
-      seed,
-      startJuzOffset
-    )
+    const weekIndex = weekNum - 1
+    const order = rotationOrder(solverMembers.length, weekIndex, rotationStyle, seed)
+    const sequence = solveWeek(solverMembers, totalUnits, order, weekIndex)
+    if (!sequence) throw noSplitError(weekNum)
 
-    if (!permutation) {
-      throw new Error(
-        `Unable to generate a valid partition for Week ${weekNum} respecting knowledge constraints. Please adjust member ranges or amounts.`
-      )
-    }
-
-    let currentNominalJuz = 1
     const assignments: MemberAssignment[] = []
+    let position = 0
 
-    for (const mState of permutation) {
-      const nominalStart = currentNominalJuz
-      const nominalEnd = nominalStart + mState.member.weeklyAmount - 1
+    for (const idx of sequence) {
+      const sm = solverMembers[idx]
+      const m = sm.member
+      const blockStart = position
+      const blockEnd = position + sm.size - 1
+      position += sm.size
+      sm.history.push({ start: blockStart, end: blockEnd, week: weekIndex })
 
-      // Apply startJuz offset
-      const startJuz = ((nominalStart - 1 + startJuzOffset) % 30) + 1
-      const endJuz = ((nominalEnd - 1 + startJuzOffset) % 30) + 1
+      let startLoc: QuranLocation
+      let endLoc: QuranLocation
+      let startJuz: number
+      let endJuz: number
 
-      // If endJuz >= startJuz, standard continuous range
-      // If endJuz < startJuz (wrapped around 30 -> 1), resolve combined exact range
-      let exactRange
-      if (endJuz >= startJuz) {
-        exactRange = resolveJuzRange(startJuz, endJuz)
+      if (rangeType === "custom") {
+        startLoc = quranService.getLocationFromGlobalAyah(rangeStartGlobal + blockStart)
+        endLoc = quranService.getLocationFromGlobalAyah(rangeStartGlobal + blockEnd)
+        startJuz = startLoc.juzNumber
+        endJuz = endLoc.juzNumber
       } else {
-        // Wrapped range: e.g. startJuz=28, endJuz=2 (5 Juz: 28, 29, 30, 1, 2)
-        const part1 = resolveJuzRange(startJuz, 30)
-        const part2 = resolveJuzRange(1, endJuz)
-        exactRange = {
-          startJuz,
-          endJuz,
-          startAyah: part1.startAyah,
-          endAyah: part2.endAyah,
-          startLocation: part1.startLocation,
-          endLocation: part2.endLocation,
-          totalJuz: mState.member.weeklyAmount,
+        startJuz = ((blockStart + startJuzOffset) % 30) + 1
+        endJuz = ((blockEnd + startJuzOffset) % 30) + 1
+        if (endJuz >= startJuz) {
+          const r = resolveJuzRange(startJuz, endJuz)
+          startLoc = r.startLocation
+          endLoc = r.endLocation
+        } else {
+          startLoc = resolveJuzRange(startJuz, 30).startLocation
+          endLoc = resolveJuzRange(1, endJuz).endLocation
         }
       }
 
-      const dailyBreakdown = dailyDivisionEnabled
-        ? buildDailyBreakdown(
-            exactRange.startLocation,
-            exactRange.endLocation,
-            weekNum,
-            effectiveStartDate,
-            occasionType
-          )
-        : undefined
+      const startGlobal = startLoc.globalAyahNumber
+      const endGlobal = endLoc.globalAyahNumber
+      const portionAyahs =
+        endGlobal >= startGlobal
+          ? endGlobal - startGlobal + 1
+          : TOTAL_AYAHS - startGlobal + 1 + endGlobal
 
       assignments.push({
-        memberId: mState.member.id,
-        memberName: mState.member.name,
-        memberPublicId: mState.member.publicId,
-        weeklyAmount: mState.member.weeklyAmount,
+        memberId: m.id,
+        memberName: m.name,
+        memberPublicId: m.publicId,
+        weeklyAmount: m.weeklyAmount,
         startJuz,
         endJuz,
-        startAyah: exactRange.startAyah,
-        endAyah: exactRange.endAyah,
-        startLocation: exactRange.startLocation,
-        endLocation: exactRange.endLocation,
-        dailyBreakdown,
+        startAyah: locationToAyahRef(startLoc),
+        endAyah: locationToAyahRef(endLoc),
+        startLocation: startLoc,
+        endLocation: endLoc,
+        dailyBreakdown: dailyDivisionEnabled
+          ? buildDailyBreakdown(
+              startGlobal,
+              portionAyahs,
+              weekNum,
+              effectiveStartDate,
+              occasionType
+            )
+          : undefined,
       })
-
-      mState.assignedHistory.push({
-        start: startJuz,
-        end: endJuz,
-      })
-
-      currentNominalJuz = nominalEnd + 1
     }
 
     weeks.push({

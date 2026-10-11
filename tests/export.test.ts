@@ -24,10 +24,8 @@ import {
   buildMemberCardHtml,
   buildPdfPageHtml,
   buildStandaloneWeekExportHtml,
-  buildWeeklyCardsSectionHtml,
   buildWeeklyTableSectionHtml,
 } from "../lib/export/render-week"
-import { GeneratedSchedule } from "../lib/scheduler/types"
 import { generateQuranSchedule } from "../lib/scheduler/engine"
 
 describe("Export System: Filename Sanitization & Safe Download Filenames", () => {

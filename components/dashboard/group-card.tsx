@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 import {
   IconArchive,
   IconArrowBackUp,
@@ -11,7 +11,6 @@ import {
   IconDownload,
   IconEdit,
   IconEye,
-  IconFlame,
   IconHistory,
   IconMoon,
   IconRefresh,
@@ -22,7 +21,6 @@ import {
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -215,7 +213,7 @@ export function GroupCard({
               {isOwner && (
                 <>
                   <DropdownMenuSeparator />
-                  <Link href={`/g/${group.publicId}?edit=true`}>
+                  <Link href={`/g/${group.publicId}?editing=true`}>
                     <DropdownMenuItem className="cursor-pointer gap-2 text-xs font-semibold text-foreground">
                       <IconEdit className="h-4 w-4" />
                       <span>
@@ -234,6 +232,7 @@ export function GroupCard({
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleDuplicate}
+                    disabled={isActionLoading}
                     className="cursor-pointer gap-2 text-xs font-semibold"
                   >
                     <IconCopy className="h-4 w-4" />
@@ -241,6 +240,7 @@ export function GroupCard({
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleNewKhatmah}
+                    disabled={isActionLoading}
                     className="cursor-pointer gap-2 text-xs font-bold text-primary"
                   >
                     <IconRefresh className="h-4 w-4" />
@@ -249,6 +249,7 @@ export function GroupCard({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleToggleArchive}
+                    disabled={isActionLoading}
                     className="cursor-pointer gap-2 text-xs font-semibold"
                   >
                     {group.isArchived ? (

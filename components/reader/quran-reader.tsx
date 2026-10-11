@@ -2,14 +2,12 @@
 
 import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 import {
   IconArrowLeft,
   IconArrowRight,
   IconBookmark,
   IconBookmarkFilled,
-  IconBook,
-  IconBook2,
   IconCheck,
   IconChevronLeft,
   IconChevronRight,
@@ -31,6 +29,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { fetchPage, fetchPageTranslation } from "@/lib/quran/api"
+import type { ApiAyah } from "@/lib/quran/types"
 import { quranService } from "@/lib/quran/service"
 import {
   getPageForSurahAyah,
@@ -60,7 +59,6 @@ interface QuranReaderProps {
   initialAyahNumber?: number
   endSurahNumber?: number
   endAyahNumber?: number
-  title?: string
   assignmentTitle?: string
   isModal?: boolean
   isOpen?: boolean
@@ -68,13 +66,14 @@ interface QuranReaderProps {
   onCompleteAssignment?: () => void
 }
 
+type ReaderAyah = ApiAyah & { translation?: string }
+
 export function QuranReader({
   initialPage,
   initialSurahNumber,
   initialAyahNumber,
   endSurahNumber,
   endAyahNumber,
-  title,
   assignmentTitle,
   isModal,
   isOpen = true,
@@ -118,9 +117,16 @@ export function QuranReader({
   const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(false)
   const [rightPanelTab, setRightPanelTab] = useState<"surahs" | "juz" | "settings">("surahs")
 
-  const [page1Ayahs, setPage1Ayahs] = useState<any[]>([])
-  const [page2Ayahs, setPage2Ayahs] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  // Text of the pages on screen, tagged with the request it answers. While a
+  // new page loads, the previous one stays visible.
+  const [pageData, setPageData] = useState<{
+    key: string
+    page1: ReaderAyah[]
+    page2: ReaderAyah[]
+    failed: boolean
+  } | null>(null)
+  const page1Ayahs = pageData?.page1 ?? []
+  const page2Ayahs = pageData?.page2 ?? []
   const [isBookmarked, setIsBookmarked] = useState<boolean>(false)
   const [bookmarkToast, setBookmarkToast] = useState<boolean>(false)
   const [showSearch, setShowSearch] = useState<boolean>(false)
@@ -204,60 +210,33 @@ export function QuranReader({
   )
 
   // Load Page Ayahs (Single or Two-page spread) & optional Translation
+  const pageKey = `${firstSpreadPage}:${secondSpreadPage ?? ""}:${showTranslation}`
+  const isLoading = pageData?.key !== pageKey
+  const loadFailed = !isLoading && Boolean(pageData?.failed)
   useEffect(() => {
     let isMounted = true
-    setIsLoading(true)
 
-    const promises: Promise<any>[] = [
-      fetchPage(firstSpreadPage, "quran-uthmani"),
-    ]
-    if (showTranslation) {
-      promises.push(fetchPageTranslation(firstSpreadPage, "en.sahih"))
-    }
-    if (secondSpreadPage) {
-      promises.push(fetchPage(secondSpreadPage, "quran-uthmani"))
-      if (showTranslation) {
-        promises.push(fetchPageTranslation(secondSpreadPage, "en.sahih"))
-      }
+    const withTranslation = async (pageNumber: number): Promise<ReaderAyah[]> => {
+      const [arabic, translation] = await Promise.all([
+        fetchPage(pageNumber, "quran-uthmani"),
+        showTranslation ? fetchPageTranslation(pageNumber, "en.sahih") : null,
+      ])
+      return (arabic?.ayahs || []).map((a, idx) => ({
+        ...a,
+        translation: translation?.ayahs?.[idx]?.text || undefined,
+      }))
     }
 
-    Promise.all(promises)
-      .then((results) => {
-        if (!isMounted) return
-        const p1Data = results[0]
-        const p1Trans = showTranslation ? results[1]?.ayahs || [] : []
-        if (p1Data?.ayahs) {
-          setPage1Ayahs(
-            p1Data.ayahs.map((a: any, idx: number) => ({
-              ...a,
-              translation: p1Trans[idx]?.text || undefined,
-            }))
-          )
-        }
-
-        if (secondSpreadPage) {
-          const p2Idx = showTranslation ? 2 : 1
-          const p2Data = results[p2Idx]
-          const p2Trans = showTranslation ? results[p2Idx + 1]?.ayahs || [] : []
-          if (p2Data?.ayahs) {
-            setPage2Ayahs(
-              p2Data.ayahs.map((a: any, idx: number) => ({
-                ...a,
-                translation: p2Trans[idx]?.text || undefined,
-              }))
-            )
-          } else {
-            setPage2Ayahs([])
-          }
-        } else {
-          setPage2Ayahs([])
-        }
+    Promise.all([
+      withTranslation(firstSpreadPage),
+      secondSpreadPage ? withTranslation(secondSpreadPage) : Promise.resolve([]),
+    ])
+      .then(([page1, page2]) => {
+        if (isMounted) setPageData({ key: pageKey, page1, page2, failed: false })
       })
       .catch((err) => {
         console.error("Failed to load page text:", err)
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false)
+        if (isMounted) setPageData({ key: pageKey, page1: [], page2: [], failed: true })
       })
 
     // Sync URL query without page reload
@@ -270,7 +249,7 @@ export function QuranReader({
     return () => {
       isMounted = false
     }
-  }, [firstSpreadPage, secondSpreadPage, showTranslation, isModalMode, currentPage])
+  }, [firstSpreadPage, secondSpreadPage, showTranslation, isModalMode, currentPage, pageKey])
 
   // Scroll reader container to top on page navigation
   useEffect(() => {
@@ -408,7 +387,7 @@ export function QuranReader({
   // Render page interior content (Header, Surahs/Bismillahs, continuous Ayah text, Footer)
   const renderPageContent = (
     pageNum: number,
-    ayahs: any[]
+    ayahs: ReaderAyah[]
   ) => {
     const pageSurahNum = ayahs[0]?.surah?.number || 1
     const pageJuzNum = ayahs[0]?.juz || 1
@@ -759,7 +738,21 @@ export function QuranReader({
         ref={pageContainerRef}
         className="flex-1 overflow-y-auto px-2 py-3 sm:px-6 sm:py-8 lg:px-10 pb-40 sm:pb-36"
       >
-        {isLoading && page1Ayahs.length === 0 ? (
+        {loadFailed ? (
+          <div className="flex h-96 flex-col items-center justify-center gap-2 px-6 text-center">
+            {/* Inherits the reader theme's text color. */}
+            <p className="text-sm font-bold">
+              {language === "ar"
+                ? `تعذر تحميل صفحة ${toArabicNumerals(currentPage)}`
+                : `Could not load page ${currentPage}`}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {language === "ar"
+                ? "الصفحات التي فتحتها من قبل تعمل دون اتصال. اتصل بالإنترنت لتحميل هذه الصفحة."
+                : "Pages you opened before work offline. Connect to the internet to load this one."}
+            </p>
+          </div>
+        ) : isLoading && page1Ayahs.length === 0 ? (
           <div className="flex h-96 flex-col items-center justify-center gap-3">
             <div className="h-9 w-9 animate-spin rounded-full border-3 border-primary border-t-transparent" />
             <p className="text-xs font-bold text-muted-foreground">

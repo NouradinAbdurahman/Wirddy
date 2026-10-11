@@ -480,6 +480,13 @@ export type Database = {
       schedule_plans: {
         Row: {
           created_at: string
+          range_end_ayah: number | null
+          range_end_surah: number | null
+          range_start_ayah: number | null
+          range_start_surah: number | null
+          range_type: string
+          rotation_style: string
+          start_juz: number
           daily_division_enabled: boolean
           description: string | null
           group_id: string
@@ -497,6 +504,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          range_end_ayah?: number | null
+          range_end_surah?: number | null
+          range_start_ayah?: number | null
+          range_start_surah?: number | null
+          range_type?: string
+          rotation_style?: string
+          start_juz?: number
           daily_division_enabled?: boolean
           description?: string | null
           group_id: string
@@ -514,6 +528,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          range_end_ayah?: number | null
+          range_end_surah?: number | null
+          range_start_ayah?: number | null
+          range_start_surah?: number | null
+          range_type?: string
+          rotation_style?: string
+          start_juz?: number
           daily_division_enabled?: boolean
           description?: string | null
           group_id?: string
@@ -576,7 +597,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_rate_limit: {
+        Args: { p_key: string; p_max: number; p_window_seconds: number }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

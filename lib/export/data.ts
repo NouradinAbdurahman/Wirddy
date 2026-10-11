@@ -14,10 +14,7 @@ import {
   ExportWeek,
 } from "./types"
 
-export function normalizeMemberAssignment(
-  assignment: MemberAssignment,
-  language: ExportLanguage
-): ExportMember {
+export function normalizeMemberAssignment(assignment: MemberAssignment): ExportMember {
   return {
     name: assignment.memberName,
     amountInJuz: assignment.weeklyAmount,
@@ -59,7 +56,7 @@ export function normalizeWeekSchedule(
     view,
     branding,
     members: week.assignments.map((assignment) =>
-      normalizeMemberAssignment(assignment, language)
+      normalizeMemberAssignment(assignment)
     ),
   }
 }

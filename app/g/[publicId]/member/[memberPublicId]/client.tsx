@@ -3,7 +3,7 @@
 import React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { IconArrowRight, IconFileOff, IconPlus } from "@tabler/icons-react"
+import { IconFileOff, IconPlus } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { LoadedPublicGroup } from "@/lib/groups/service"
 import { Header } from "@/components/layout/header"
@@ -11,8 +11,6 @@ import { Footer } from "@/components/layout/footer"
 import { PersonalMemberView } from "@/components/schedule/personal-member-view"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { renderMemberPersonalSchedulePngBlob } from "@/lib/export/render-week"
-import { exportMemberScheduleAsPdf } from "@/lib/export/render-pdf"
 import { triggerBrowserDownload } from "@/lib/export/download"
 import { sanitizeFilename } from "@/lib/export/filenames"
 
@@ -87,6 +85,7 @@ export function MemberScheduleClient({
           : "https://wirddy.app"
       const memberQrUrl = `${origin}/g/${groupPublicId}/member/${member.publicId || member.id}`
 
+      const { renderMemberPersonalSchedulePngBlob } = await import("@/lib/export/render-week")
       const blob = await renderMemberPersonalSchedulePngBlob(
         member,
         initialGroupData.schedule,
@@ -109,6 +108,7 @@ export function MemberScheduleClient({
           : "https://wirddy.app"
       const memberQrUrl = `${origin}/g/${groupPublicId}/member/${member.publicId || member.id}`
 
+      const { exportMemberScheduleAsPdf } = await import("@/lib/export/render-pdf")
       await exportMemberScheduleAsPdf(
         member,
         initialGroupData.schedule,

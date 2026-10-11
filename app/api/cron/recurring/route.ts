@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
-import { processRecurringCycle } from "@/lib/groups/service"
+import { advanceRecurringGroupIfDue } from "@/lib/groups/service"
+import { isAuthorizedCronRequest } from "@/lib/auth/cron"
 
 export const runtime = "nodejs"
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization")
-  const cronSecret = process.env.CRON_SECRET
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!isAuthorizedCronRequest(req.headers.get("authorization"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -17,30 +15,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Database unavailable" }, { status: 503 })
   }
 
-  // Fetch active recurring groups
-  const { data: recurringGroups, error } = await supabase
+  const now = new Date()
+  const { data: dueGroups, error } = await supabase
     .from("groups")
-    .select("public_id, owner_user_id, recurrence, status, is_archived")
+    .select("public_id")
     .eq("is_archived", false)
-    .eq("status", "active")
-    .not("recurrence", "is", null)
+    .not("next_cycle_due_at", "is", null)
+    .lte("next_cycle_due_at", now.toISOString())
 
-  if (error || !recurringGroups) {
-    return NextResponse.json(
-      { processed: 0, error: error?.message },
-      { status: 500 }
-    )
+  if (error || !dueGroups) {
+    return NextResponse.json({ processed: 0, error: error?.message }, { status: 500 })
   }
 
   let cyclesProcessed = 0
-
-  for (const g of recurringGroups as any[]) {
+  for (const g of dueGroups as Array<{ public_id: string }>) {
     try {
-      const recurrence = g.recurrence
-      if (recurrence?.autoAdvance && recurrence?.frequency !== "none") {
-        await processRecurringCycle(g.public_id, g.owner_user_id)
-        cyclesProcessed++
-      }
+      if (await advanceRecurringGroupIfDue(g.public_id, now)) cyclesProcessed++
     } catch (err) {
       console.error(`Error auto-advancing group ${g.public_id}:`, err)
     }

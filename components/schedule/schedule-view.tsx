@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "motion/react"
 import {
   IconArrowLeft,
   IconArrowRight,
-  IconCalendar,
   IconCalendarEvent,
   IconCheck,
   IconChevronRight,
@@ -17,11 +16,9 @@ import {
   IconHistory,
   IconLayoutGrid,
   IconLoader2,
-  IconMoon,
   IconPrinter,
   IconRotate,
   IconShare,
-  IconSparkles,
   IconTable,
   IconUser,
   IconUsers,
@@ -29,12 +26,7 @@ import {
 } from "@tabler/icons-react"
 import { InviteMemberModal } from "@/components/dashboard/invite-member-modal"
 import { useI18n } from "@/lib/i18n/context"
-import {
-  GeneratedSchedule,
-  MemberConfig,
-  ScheduleInput,
-} from "@/lib/scheduler/types"
-import { ExportViewMode } from "@/lib/export"
+import { GeneratedSchedule, ScheduleInput } from "@/lib/scheduler/types"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -46,15 +38,22 @@ import { WeekNav } from "./week-nav"
 import { SavedGroupResult } from "@/lib/groups/service"
 import { duplicateGroupAction } from "@/lib/groups/actions"
 import { RegenerateDialog } from "./regenerate-dialog"
-import { ExportModal } from "./export-modal"
+import dynamic from "next/dynamic"
 import { SaveShareDialog } from "./save-share-dialog"
 import { PrintableSchedule } from "./printable-schedule"
 import { VersionHistoryModal } from "./version-history-modal"
 import { toArabicNumerals } from "@/lib/dates/calendar"
-import { renderMemberPersonalSchedulePngBlob } from "@/lib/export/render-week"
-import { exportMemberScheduleAsPdf } from "@/lib/export/render-pdf"
 import { triggerBrowserDownload } from "@/lib/export/download"
 import { sanitizeFilename } from "@/lib/export/filenames"
+
+// PNG, PDF and ZIP export code (jsPDF, html2canvas, JSZip) is several hundred
+// KB, so the modal and its libraries load the first time it opens.
+const ExportModal = dynamic(
+  () => import("./export-modal").then((m) => m.ExportModal),
+  {
+    ssr: false,
+  }
+)
 
 interface ScheduleViewProps {
   schedule: GeneratedSchedule
@@ -83,9 +82,9 @@ export function ScheduleView({
   const { language, dir, t, formatNumber } = useI18n()
   const [activeWeekNum, setActiveWeekNum] = useState<number>(1)
   const [viewTab, setViewTab] = useState<"cards" | "table" | "daily">("cards")
-  const [activeMode, setActiveMode] = useState<"group" | "personal" | "members">(
-    initialSelectedMemberId ? "personal" : "group"
-  )
+  const [activeMode, setActiveMode] = useState<
+    "group" | "personal" | "members"
+  >(initialSelectedMemberId ? "personal" : "group")
   const [selectedMemberId, setSelectedMemberId] = useState<string>(
     initialSelectedMemberId || schedule.members[0]?.id || ""
   )
@@ -151,6 +150,9 @@ export function ScheduleView({
         ? `${origin}/g/${savedData.publicId}/member/${selectedMember.publicId || selectedMember.id}`
         : undefined
 
+      // Export libraries load only when someone exports.
+      const { renderMemberPersonalSchedulePngBlob } =
+        await import("@/lib/export/render-week")
       const blob = await renderMemberPersonalSchedulePngBlob(
         selectedMember,
         schedule,
@@ -177,6 +179,8 @@ export function ScheduleView({
         ? `${origin}/g/${savedData.publicId}/member/${selectedMember.publicId || selectedMember.id}`
         : undefined
 
+      const { exportMemberScheduleAsPdf } =
+        await import("@/lib/export/render-pdf")
       await exportMemberScheduleAsPdf(
         selectedMember,
         schedule,
@@ -246,7 +250,9 @@ export function ScheduleView({
                 className="h-8.5 gap-1.5 rounded-xl border-border/70 px-3 text-xs font-semibold hover:bg-muted"
               >
                 <IconEdit className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>{language === "ar" ? "تعديل الجدول" : "Edit Schedule"}</span>
+                <span>
+                  {language === "ar" ? "تعديل الجدول" : "Edit Schedule"}
+                </span>
               </Button>
             )}
 
@@ -324,7 +330,7 @@ export function ScheduleView({
 
         {/* Group View vs My Personal Schedule vs Members & Invites Mode Toggle */}
         <div className="flex items-center justify-between gap-3 border-b border-border/30 pb-2">
-          <div className="flex flex-wrap items-center rounded-xl bg-muted/60 p-1 gap-1">
+          <div className="flex flex-wrap items-center gap-1 rounded-xl bg-muted/60 p-1">
             <button
               type="button"
               onClick={() => setActiveMode("group")}
@@ -361,18 +367,22 @@ export function ScheduleView({
               }`}
             >
               <IconUsersGroup className="h-3.5 w-3.5" />
-              <span>{language === "ar" ? "الأعضاء والدعوات" : "Members & Invites"}</span>
+              <span>
+                {language === "ar" ? "الأعضاء والدعوات" : "Members & Invites"}
+              </span>
             </button>
           </div>
         </div>
 
         {/* Conditional View: Members Hub vs Personal View vs Full Group View */}
         {activeMode === "members" ? (
-          <Card className="space-y-6 rounded-2xl border border-border/70 bg-card/80 p-5 sm:p-6 shadow-xs text-start">
+          <Card className="space-y-6 rounded-2xl border border-border/70 bg-card/80 p-5 text-start shadow-xs sm:p-6">
             <div className="flex flex-col justify-between gap-4 border-b border-border/60 pb-4 sm:flex-row sm:items-center">
               <div>
                 <h3 className="text-base font-extrabold text-foreground">
-                  {language === "ar" ? "أعضاء المجموعة وروابط الورد" : "Group Members & Reading Links"}
+                  {language === "ar"
+                    ? "أعضاء المجموعة وروابط الورد"
+                    : "Group Members & Reading Links"}
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   {language === "ar"
@@ -382,7 +392,10 @@ export function ScheduleView({
               </div>
 
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs font-bold text-primary">
+                <Badge
+                  variant="outline"
+                  className="text-xs font-bold text-primary"
+                >
                   {formatNumber(schedule.members.length)} {t.summaryMembers}
                 </Badge>
               </div>
@@ -394,10 +407,10 @@ export function ScheduleView({
                 return (
                   <div
                     key={m.id || idx}
-                    className="flex flex-col justify-between rounded-xl border border-border/70 bg-card/90 p-4 space-y-3 shadow-2xs hover:border-primary/40 transition-colors"
+                    className="flex flex-col justify-between space-y-3 rounded-xl border border-border/70 bg-card/90 p-4 shadow-2xs transition-colors hover:border-primary/40"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex min-w-0 items-center gap-2.5">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-xs font-black text-primary">
                           {(m.name?.[0] || "U").toUpperCase()}
                         </div>
@@ -413,10 +426,17 @@ export function ScheduleView({
                         </div>
                       </div>
 
-                      <Badge variant="secondary" className="text-[10px] font-bold shrink-0">
+                      <Badge
+                        variant="secondary"
+                        className="shrink-0 text-[10px] font-bold"
+                      >
                         {m.knowledgeType === "entire"
-                          ? (language === "ar" ? "كامل القرآن" : "Entire Quran")
-                          : (language === "ar" ? `الأجزاء ${toArabicNumerals(m.startJuz)}-${toArabicNumerals(m.endJuz)}` : `Juz ${m.startJuz}-${m.endJuz}`)}
+                          ? language === "ar"
+                            ? "كامل القرآن"
+                            : "Entire Quran"
+                          : language === "ar"
+                            ? `الأجزاء ${toArabicNumerals(m.startJuz)}-${toArabicNumerals(m.endJuz)}`
+                            : `Juz ${m.startJuz}-${m.endJuz}`}
                       </Badge>
                     </div>
 
@@ -436,11 +456,17 @@ export function ScheduleView({
                           className="h-8 gap-1.5 rounded-xl border-primary/30 text-xs font-bold text-primary hover:bg-primary/10"
                         >
                           <IconShare className="h-3.5 w-3.5" />
-                          <span>{language === "ar" ? "إرسال رابط الورد" : "Invite Member"}</span>
+                          <span>
+                            {language === "ar"
+                              ? "إرسال رابط الورد"
+                              : "Invite Member"}
+                          </span>
                         </Button>
                       ) : (
-                        <span className="text-muted-foreground text-[10px]">
-                          {language === "ar" ? "احفظ المجموعة لمشاركة الروابط" : "Save group to share"}
+                        <span className="text-[10px] text-muted-foreground">
+                          {language === "ar"
+                            ? "احفظ المجموعة لمشاركة الروابط"
+                            : "Save group to share"}
                         </span>
                       )}
 
@@ -453,7 +479,9 @@ export function ScheduleView({
                         }}
                         className="h-8 gap-1 text-xs font-bold text-muted-foreground hover:text-foreground"
                       >
-                        <span>{language === "ar" ? "عرض الورد" : "View Schedule"}</span>
+                        <span>
+                          {language === "ar" ? "عرض الورد" : "View Schedule"}
+                        </span>
                         <IconChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
                       </Button>
                     </div>
@@ -713,14 +741,16 @@ export function ScheduleView({
         />
       )}
 
-      <ExportModal
-        open={showExportModal}
-        onOpenChange={setShowExportModal}
-        schedule={schedule}
-        activeWeek={activeWeekNum}
-        viewMode={viewTab === "table" ? "table" : "cards"}
-        groupPublicId={savedData?.publicId}
-      />
+      {showExportModal && (
+        <ExportModal
+          open={showExportModal}
+          onOpenChange={setShowExportModal}
+          schedule={schedule}
+          activeWeek={activeWeekNum}
+          viewMode={viewTab === "table" ? "table" : "cards"}
+          groupPublicId={savedData?.publicId}
+        />
+      )}
 
       <SaveShareDialog
         isOpen={showSaveShareDialog}

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { sanitizeRedirectUrl } from "../lib/auth/redirect"
 import { translations } from "../lib/i18n/dictionary"
 import {
@@ -160,7 +160,7 @@ describe("Google Authentication Only & Security Invariants", () => {
     it("returns null for null or invalid user object", () => {
       expect(extractUserProfile(null)).toBeNull()
       expect(extractUserProfile(undefined)).toBeNull()
-      expect(extractUserProfile("invalid" as any)).toBeNull()
+      expect(extractUserProfile("invalid" as never)).toBeNull()
     })
   })
 

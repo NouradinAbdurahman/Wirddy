@@ -8,18 +8,9 @@ import {
   RotationStyle,
   ScheduleInput,
 } from "../lib/scheduler/types"
-import {
-  paginateWeeksForA4,
-  estimateWeekHeight,
-} from "../lib/export/render-pdf"
-import {
-  buildPdfPageHtml,
-  buildStandaloneWeekExportHtml,
-} from "../lib/export/render-week"
-import {
-  normalizeScheduleToExport,
-  normalizeWeekSchedule,
-} from "../lib/export/data"
+import { paginateWeeksForA4 } from "../lib/export/render-pdf"
+import { buildPdfPageHtml } from "../lib/export/render-week"
+import { normalizeScheduleToExport } from "../lib/export/data"
 import {
   generateEditToken,
   generatePublicId,

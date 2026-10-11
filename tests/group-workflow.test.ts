@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import {
+  describe,
+  it,
+  expect,
+  vi,
+} from "vitest"
 import { generateQuranSchedule } from "../lib/scheduler/engine"
 import { GroupConfig, MemberConfig } from "../lib/scheduler/types"
-import {
-  fetchGroupProgressSummary,
-  fetchUserTodaysReading,
-} from "../lib/groups/service"
 
 // Mock Supabase Server Client
 vi.mock("../lib/supabase/server", () => {

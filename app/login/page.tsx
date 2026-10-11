@@ -56,7 +56,7 @@ function GoogleIcon({ className = "h-5 w-5" }: { className?: string }) {
 }
 
 function LoginForm() {
-  const { language, dir, t } = useI18n()
+  const { dir, t } = useI18n()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -67,19 +67,16 @@ function LoginForm() {
   const rawError = searchParams.get("error")
   const safeNext = sanitizeRedirectUrl(rawNext)
 
-  // Check for error parameters in URL upon mount
-  useEffect(() => {
-    if (rawError) {
-      if (
-        rawError.toLowerCase().includes("cancel") ||
-        rawError.toLowerCase().includes("closed")
-      ) {
-        setErrorMessage(t.authCancelled)
-      } else {
-        setErrorMessage(t.authFailedGeneric)
-      }
-    }
-  }, [rawError, t])
+  // An error passed back in the URL by the OAuth callback, shown until the
+  // user tries again.
+  const [urlErrorDismissed, setUrlErrorDismissed] = useState(false)
+  const urlError =
+    rawError && !urlErrorDismissed
+      ? /cancel|closed/i.test(rawError)
+        ? t.authCancelled
+        : t.authFailedGeneric
+      : null
+  const shownError = errorMessage ?? urlError
 
   // Check if user is already logged in upon mount
   useEffect(() => {
@@ -98,6 +95,7 @@ function LoginForm() {
 
     setIsLoading(true)
     setErrorMessage(null)
+    setUrlErrorDismissed(true)
 
     try {
       if (!isSupabaseConfigured()) {
@@ -121,11 +119,11 @@ function LoginForm() {
       if (error) {
         throw error
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Google OAuth error:", err)
       setIsLoading(false)
       setErrorMessage(
-        err?.message && !err.message.includes("Supabase")
+        err instanceof Error && err.message && !err.message.includes("Supabase")
           ? err.message
           : t.authFailedGeneric
       )
@@ -189,7 +187,7 @@ function LoginForm() {
             </div>
 
             {/* Error Alert Message */}
-            {errorMessage && (
+            {shownError && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -197,7 +195,7 @@ function LoginForm() {
               >
                 <IconAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <div className="flex-1 space-y-1">
-                  <p>{errorMessage}</p>
+                  <p>{shownError}</p>
                   <button
                     type="button"
                     onClick={() => {

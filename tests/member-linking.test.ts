@@ -1,368 +1,380 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import {
-  fetchGroupProgressSummary,
-  getMemberLinkStatus,
-  linkMemberAccount,
-  fetchUserTodaysReading,
-} from "../lib/groups/service"
-import { getSupabaseServerClient } from "../lib/supabase/server"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { FakeSupabase } from "./helpers/fake-supabase"
 
-// Mock Supabase Server Client
-vi.mock("../lib/supabase/server", () => {
+const state = vi.hoisted(() => ({ db: null as unknown }))
+
+vi.mock("../lib/supabase/server", () => ({
+  getSupabaseServerClient: () => state.db,
+  createSupabaseServerClient: async () => null,
+  isSupabaseServerConfigured: () => true,
+}))
+
+import {
+  advanceRecurringGroupIfDue,
+  deleteUserAccount,
+  fetchGroupProgressSummary,
+  fetchUserTodaysReading,
+  getGroupByPublicId,
+  getMemberLinkStatus,
+  getMemberScheduleByPublicId,
+  linkMemberAccount,
+  processRecurringCycle,
+  saveReadingProgress,
+  saveScheduleGroup,
+  updateGroupAndRegenerate,
+} from "../lib/groups/service"
+import { generateQuranSchedule } from "../lib/scheduler/engine"
+import { MemberConfig, ScheduleInput } from "../lib/scheduler/types"
+
+const OWNER = "11111111-1111-4111-8111-111111111111"
+const ALICE = "22222222-2222-4222-8222-222222222222"
+const BOB = "33333333-3333-4333-8333-333333333333"
+
+let db: FakeSupabase
+
+function member(id: string, name: string, weeklyAmount: number): MemberConfig {
+  return { id, name, knowledgeType: "entire", startJuz: 1, endJuz: 30, weeklyAmount }
+}
+
+function familyInput(overrides: Partial<ScheduleInput["group"]> = {}): ScheduleInput {
   return {
-    getSupabaseServerClient: vi.fn(),
-    createSupabaseServerClient: vi.fn(),
-    isSupabaseServerConfigured: vi.fn(() => true),
+    group: { name: "Family", weeksCount: 3, dailyDivisionEnabled: true, ...overrides },
+    members: [member("a", "Ahmed", 10), member("b", "Ahmed", 10), member("c", "Fatima", 10)],
   }
+}
+
+async function saveFamily(owner: string | null = OWNER, overrides = {}) {
+  const input = familyInput(overrides)
+  const saved = await saveScheduleGroup(input, generateQuranSchedule(input), "en", owner)
+  const loaded = await getGroupByPublicId(saved.publicId)
+  return { saved, loaded: loaded!, input }
+}
+
+beforeEach(() => {
+  db = new FakeSupabase()
+  state.db = db
 })
 
-describe("Member Account Linking & Group Progress Privacy", () => {
-  const mockGroupId = "grp-uuid-1"
-  const mockGroupPublicId = "test-group-123"
-  const mockOwnerId = "owner-uuid-456"
-  const mockMemberId = "mem-uuid-1"
-  const mockMemberPublicId = "mem_pub_1"
-  const mockOtherUserId = "other-user-uuid-789"
-
-  let mockDbMembers: any[]
-  let mockProgressRows: any[]
-
-  beforeEach(() => {
-    mockDbMembers = [
-      {
-        id: mockMemberId,
-        public_id: mockMemberPublicId,
-        name: "عبدالرحمن ادم",
-        linked_user_id: null,
-        weekly_amount: 2,
-        knowledge_type: "entire",
-        start_juz: 1,
-        end_juz: 30,
-        sort_order: 0,
-      },
-      {
-        id: "mem-uuid-2",
-        public_id: "mem_pub_2",
-        name: "زينب",
-        linked_user_id: "user-zainab-123",
-        weekly_amount: 1,
-        knowledge_type: "entire",
-        start_juz: 1,
-        end_juz: 30,
-        sort_order: 1,
-      },
-    ]
-
-    mockProgressRows = []
-
-    const mockSupabase = {
-      from: vi.fn((table: string) => {
-        if (table === "groups") {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn((col: string, val: any) => ({
-                single: vi.fn(() => {
-                  if (val === mockGroupPublicId) {
-                    return Promise.resolve({
-                      data: {
-                        id: mockGroupId,
-                        public_id: mockGroupPublicId,
-                        name: "ختمة القرآن الكريم",
-                        owner_user_id: mockOwnerId,
-                        expires_at: new Date(Date.now() + 86400000).toISOString(),
-                        language: "ar",
-                        direction: "rtl",
-                        rotation_style: "medium",
-                        range_type: "full",
-                        start_juz: 1,
-                        uses_dates: false,
-                        start_date: null,
-                        daily_division_enabled: true,
-                        occasion_type: "normal",
-                        islamic_year: null,
-                      },
-                      error: null,
-                    })
-                  }
-                  return Promise.resolve({ data: null, error: "Not found" })
-                }),
-              })),
-            })),
-          }
-        }
-
-        if (table === "group_members") {
-          return {
-            select: vi.fn((cols: string) => ({
-              eq: vi.fn((col: string, val: any) => {
-                const promise = Promise.resolve({ data: mockDbMembers, error: null })
-                return Object.assign(promise, {
-                  order: vi.fn(() => Promise.resolve({ data: mockDbMembers, error: null })),
-                  or: vi.fn((orExpr: string) => {
-                    const m = mockDbMembers.find(
-                      (item) =>
-                        orExpr.includes(item.public_id) || orExpr.includes(item.id)
-                    )
-                    return Promise.resolve({ data: m ? [m] : [], error: null })
-                  }),
-                })
-              }),
-            })),
-            update: vi.fn((payload: any) => ({
-              eq: vi.fn((col: string, val: any) => ({
-                or: vi.fn((orExpr: string) => ({
-                  select: vi.fn(() => {
-                    const m = mockDbMembers.find(
-                      (item) =>
-                        orExpr.includes(item.public_id) || orExpr.includes(item.id)
-                    )
-                    if (m) {
-                      m.linked_user_id = payload.linked_user_id
-                      return Promise.resolve({ data: [m], error: null })
-                    }
-                    return Promise.resolve({ data: [], error: null })
-                  }),
-                })),
-              })),
-            })),
-          }
-        }
-
-        if (table === "reading_progress") {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                eq: vi.fn(() => Promise.resolve({ data: mockProgressRows, error: null })),
-              })),
-            })),
-            update: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                eq: vi.fn(() => ({
-                  is: vi.fn(() => Promise.resolve({ error: null })),
-                })),
-              })),
-            })),
-          }
-        }
-
-        if (table === "schedule_plans") {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                eq: vi.fn(() => ({
-                  order: vi.fn(() => ({
-                    limit: vi.fn(() => ({
-                      single: vi.fn(() =>
-                        Promise.resolve({
-                          data: {
-                            id: "plan-1",
-                            weeks_count: 4,
-                            version_number: 1,
-                            is_active: true,
-                            rotation_style: "medium",
-                            range_type: "full",
-                            start_juz: 1,
-                            uses_dates: false,
-                            start_date: null,
-                            daily_division_enabled: true,
-                          },
-                          error: null,
-                        })
-                      ),
-                    })),
-                  })),
-                })),
-                order: vi.fn(() =>
-                  Promise.resolve({
-                    data: [
-                      {
-                        id: "plan-1",
-                        weeks_count: 4,
-                        version_number: 1,
-                        is_active: true,
-                        rotation_style: "medium",
-                        range_type: "full",
-                        start_juz: 1,
-                        uses_dates: false,
-                        start_date: null,
-                        daily_division_enabled: true,
-                      },
-                    ],
-                    error: null,
-                  })
-                ),
-              })),
-            })),
-          }
-        }
-
-        if (table === "schedule_weeks") {
-          return {
-            select: vi.fn(() => ({
-              eq: vi.fn(() => ({
-                order: vi.fn(() =>
-                  Promise.resolve({
-                    data: [
-                      {
-                        id: "week-1",
-                        week_number: 1,
-                        total_juz: 30,
-                      },
-                    ],
-                    error: null,
-                  })
-                ),
-              })),
-            })),
-          }
-        }
-
-        if (table === "schedule_assignments") {
-          return {
-            select: vi.fn(() => ({
-              in: vi.fn(() => ({
-                order: vi.fn(() =>
-                  Promise.resolve({
-                    data: [
-                      {
-                        id: "assign-1",
-                        schedule_week_id: "week-1",
-                        member_id: mockMemberId,
-                        member_public_id: mockMemberPublicId,
-                        member_name: "عبدالرحمن ادم",
-                        weekly_amount: 2,
-                        start_juz: 1,
-                        end_juz: 2,
-                        start_surah: 1,
-                        start_surah_name_ar: "الفاتحة",
-                        start_surah_name_en: "Al-Fatihah",
-                        start_ayah: 1,
-                        end_surah: 2,
-                        end_surah_name_ar: "البقرة",
-                        end_surah_name_en: "Al-Baqarah",
-                        end_ayah: 252,
-                        start_global_ayah: 1,
-                        end_global_ayah: 259,
-                        daily_breakdown: [],
-                        sort_order: 0,
-                      },
-                    ],
-                    error: null,
-                  })
-                ),
-              })),
-              eq: vi.fn(() => ({
-                order: vi.fn(() =>
-                  Promise.resolve({
-                    data: [
-                      {
-                        id: "assign-1",
-                        schedule_week_id: "week-1",
-                        member_id: mockMemberId,
-                        member_public_id: mockMemberPublicId,
-                        member_name: "عبدالرحمن ادم",
-                        weekly_amount: 2,
-                        start_juz: 1,
-                        end_juz: 2,
-                        start_surah: 1,
-                        start_surah_name_ar: "الفاتحة",
-                        start_surah_name_en: "Al-Fatihah",
-                        start_ayah: 1,
-                        end_surah: 2,
-                        end_surah_name_ar: "البقرة",
-                        end_surah_name_en: "Al-Baqarah",
-                        end_ayah: 252,
-                        start_global_ayah: 1,
-                        end_global_ayah: 259,
-                        daily_breakdown: [],
-                        sort_order: 0,
-                      },
-                    ],
-                    error: null,
-                  })
-                ),
-              })),
-            })),
-          }
-        }
-
-        return {}
-      }),
-    }
-
-    vi.mocked(getSupabaseServerClient).mockReturnValue(mockSupabase as any)
-  })
-
-  it("1. Reports member as unlinked when linked_user_id is null", async () => {
-    const status = await getMemberLinkStatus(
-      mockGroupPublicId,
-      mockMemberPublicId,
-      mockOtherUserId
-    )
-    expect(status).toBeDefined()
+describe("member account linking", () => {
+  it("reports an unlinked slot", async () => {
+    const { saved, loaded } = await saveFamily()
+    const status = await getMemberLinkStatus(saved.publicId, loaded.membersConfig[0].publicId!, ALICE)
+    expect(status).not.toBeNull()
     expect(status?.isLinked).toBe(false)
     expect(status?.isLinkedToCurrentUser).toBe(false)
     expect(status?.isOwner).toBe(false)
   })
 
-  it("2. Successfully links member slot to user account", async () => {
-    const success = await linkMemberAccount(
-      mockGroupPublicId,
-      mockMemberPublicId,
-      mockOtherUserId
-    )
-    expect(success).toBe(true)
+  it("links a slot by its public ID (not a uuid) and reports it", async () => {
+    const { saved, loaded } = await saveFamily()
+    const memberPublicId = loaded.membersConfig[0].publicId!
+    expect(memberPublicId).toMatch(/^m_/)
 
-    // Verify status is now linked to this user
-    const status = await getMemberLinkStatus(
-      mockGroupPublicId,
-      mockMemberPublicId,
-      mockOtherUserId
-    )
+    expect(await linkMemberAccount(saved.publicId, memberPublicId, ALICE)).toEqual({ success: true })
+    const status = await getMemberLinkStatus(saved.publicId, memberPublicId, ALICE)
     expect(status?.isLinked).toBe(true)
     expect(status?.isLinkedToCurrentUser).toBe(true)
-    expect(status?.linkedUserId).toBe(mockOtherUserId)
   })
 
-  it("3. Group Progress Summary reflects linked member status (isLinked: true)", async () => {
-    // Link member 1 to mockOtherUserId
-    await linkMemberAccount(
-      mockGroupPublicId,
-      mockMemberPublicId,
-      mockOtherUserId
-    )
+  it("never lets another account take over a linked slot", async () => {
+    const { saved, loaded } = await saveFamily()
+    const memberPublicId = loaded.membersConfig[0].publicId!
+    await linkMemberAccount(saved.publicId, memberPublicId, ALICE)
 
-    const summary = await fetchGroupProgressSummary(
-      mockGroupPublicId,
-      mockOwnerId // requesting as owner
-    )
-    expect(summary).toBeDefined()
-    expect(summary?.members.length).toBe(2)
+    const result = await linkMemberAccount(saved.publicId, memberPublicId, BOB)
+    expect(result).toEqual({ success: false, reason: "already_linked" })
+    const row = db.table("group_members").find((r) => r.public_id === memberPublicId)
+    expect(row?.linked_user_id).toBe(ALICE)
 
-    const abdulrahman = summary?.members.find(
-      (m) => m.memberName === "عبدالرحمن ادم"
-    )
-    expect(abdulrahman?.isLinked).toBe(true)
-    expect(abdulrahman?.linkedUserId).toBe(mockOtherUserId)
-
-    const zainab = summary?.members.find((m) => m.memberName === "زينب")
-    expect(zainab?.isLinked).toBe(true)
+    const bobView = await getMemberLinkStatus(saved.publicId, memberPublicId, BOB)
+    expect(bobView?.isLinked).toBe(true)
+    expect(bobView?.linkedUserId).toBeNull()
   })
 
-  it("4. Group Progress Summary is strictly blocked for non-owners", async () => {
-    // Non-owner requesting summary
-    const unauthorizedSummary = await fetchGroupProgressSummary(
-      mockGroupPublicId,
-      "unauthorized-random-user"
-    )
-    expect(unauthorizedSummary).toBeNull()
+  it("allows one slot per account in a group", async () => {
+    const { saved, loaded } = await saveFamily()
+    await linkMemberAccount(saved.publicId, loaded.membersConfig[0].publicId!, ALICE)
+    const second = await linkMemberAccount(saved.publicId, loaded.membersConfig[1].publicId!, ALICE)
+    expect(second).toEqual({ success: false, reason: "already_member" })
+  })
 
-    // Owner requesting summary succeeds
-    const ownerSummary = await fetchGroupProgressSummary(
-      mockGroupPublicId,
-      mockOwnerId
+  it("treats a crafted member ID as plain text", async () => {
+    const { saved } = await saveFamily()
+    const result = await linkMemberAccount(saved.publicId, "x,name.neq.zzz", ALICE)
+    expect(result).toEqual({ success: false, reason: "not_found" })
+    expect(db.table("group_members").every((r) => r.linked_user_id === null)).toBe(true)
+  })
+})
+
+describe("saving schedules", () => {
+  it("keeps two members with the same name apart", async () => {
+    const { loaded } = await saveFamily()
+    const [ahmed1, ahmed2] = loaded.membersConfig
+    expect(ahmed1.name).toBe(ahmed2.name)
+    expect(ahmed1.id).not.toBe(ahmed2.id)
+    for (const week of loaded.schedule.weeks) {
+      const ids = week.assignments.map((a) => a.memberId)
+      expect(new Set(ids).size).toBe(3)
+      expect(ids).toContain(ahmed1.id)
+      expect(ids).toContain(ahmed2.id)
+    }
+  })
+
+  it("ignores assignments sent by a modified client", async () => {
+    const input = familyInput()
+    const tampered = generateQuranSchedule(input)
+    for (const week of tampered.weeks) {
+      for (const a of week.assignments) {
+        a.startJuz = 1
+        a.endJuz = 1
+        a.startAyah = { ...a.startAyah, surahNumber: 1, ayahNumber: 1 }
+      }
+    }
+    const saved = await saveScheduleGroup(input, tampered, "en", OWNER)
+    const loaded = await getGroupByPublicId(saved.publicId)
+    for (const week of loaded!.schedule.weeks) {
+      const starts = week.assignments.map((a) => a.startJuz).sort((x, y) => x - y)
+      expect(starts).toEqual([1, 11, 21])
+    }
+  })
+
+  it("does not expose account IDs to people holding the link", async () => {
+    const { saved, loaded } = await saveFamily()
+    await linkMemberAccount(saved.publicId, loaded.membersConfig[0].publicId!, ALICE)
+    const reloaded = await getGroupByPublicId(saved.publicId)
+    const json = JSON.stringify(reloaded)
+    expect(json).not.toContain(ALICE)
+    expect(json).not.toContain(OWNER)
+    expect(reloaded!.membersConfig[0].isLinked).toBe(true)
+  })
+
+  it("rebuilds week date ranges when loading a dated plan", async () => {
+    const { loaded } = await saveFamily(OWNER, { usesDates: true, startDate: "2026-11-07" })
+    expect(loaded.schedule.weeks[0].dateRange?.startDate).toBe("2026-11-07")
+    expect(loaded.schedule.weeks[1].dateRange?.startDate).toBe("2026-11-14")
+  })
+})
+
+describe("editing a saved group", () => {
+  it("keeps member links, public IDs and reading progress", async () => {
+    const { saved, loaded, input } = await saveFamily()
+    const fatima = loaded.membersConfig[2]
+    await linkMemberAccount(saved.publicId, fatima.publicId!, ALICE)
+    await saveReadingProgress(saved.publicId, fatima.publicId!, 1, 1, true, ALICE)
+
+    const edited: ScheduleInput = {
+      group: { ...input.group, weeksCount: 4 },
+      members: loaded.membersConfig.map((m) => ({ ...m })),
+    }
+    const updated = await updateGroupAndRegenerate(saved.publicId, saved.editToken, edited, "en")
+
+    expect(updated.schedule.weeks).toHaveLength(4)
+    expect(updated.membersConfig.map((m) => m.publicId)).toEqual(
+      loaded.membersConfig.map((m) => m.publicId)
     )
-    expect(ownerSummary).toBeDefined()
-    expect(ownerSummary?.groupPublicId).toBe(mockGroupPublicId)
+    const row = db.table("group_members").find((r) => r.public_id === fatima.publicId)
+    expect(row?.linked_user_id).toBe(ALICE)
+    expect(db.table("reading_progress")).toHaveLength(1)
+    expect(db.table("schedule_plans").filter((p) => p.is_active)).toHaveLength(1)
+  })
+
+  it("keeps members saved before public IDs existed, and gives them one", async () => {
+    const { saved, loaded, input } = await saveFamily()
+    const old = db.table("group_members").find((r) => r.public_id === loaded.membersConfig[0].publicId)!
+    old.public_id = null
+    old.linked_user_id = ALICE
+    const reloaded = await getGroupByPublicId(saved.publicId)
+    await saveReadingProgress(saved.publicId, old.id, 1, 1, true, ALICE)
+
+    await updateGroupAndRegenerate(
+      saved.publicId,
+      saved.editToken,
+      { group: input.group, members: reloaded!.membersConfig.map((m) => ({ ...m })) },
+      "en"
+    )
+
+    const row = db.table("group_members").find((r) => r.id === old.id)
+    expect(row).toBeDefined()
+    expect(row?.public_id).toMatch(/^m_/)
+    expect(row?.linked_user_id).toBe(ALICE)
+    expect(db.table("reading_progress")).toHaveLength(1)
+    expect(db.table("group_members").filter((r) => r.group_id === old.group_id)).toHaveLength(3)
+  })
+
+  it("rejects a public ID that belongs to another group", async () => {
+    const first = await saveFamily()
+    const second = await saveFamily()
+    const stolenId = first.loaded.membersConfig[0].publicId!
+    const edited: ScheduleInput = {
+      group: second.input.group,
+      members: second.loaded.membersConfig.map((m, i) => (i === 0 ? { ...m, publicId: stolenId } : m)),
+    }
+    const updated = await updateGroupAndRegenerate(
+      second.saved.publicId,
+      second.saved.editToken,
+      edited,
+      "en"
+    )
+    expect(updated.membersConfig.map((m) => m.publicId)).not.toContain(stolenId)
+  })
+})
+
+describe("reading progress", () => {
+  it("rejects week and day numbers outside the plan", async () => {
+    const { saved, loaded } = await saveFamily()
+    const pid = loaded.membersConfig[0].publicId!
+    for (const [week, day] of [
+      [0, 1],
+      [4, 1],
+      [1, 0],
+      [1, 8],
+      [1.5, 1],
+    ]) {
+      const res = await saveReadingProgress(saved.publicId, pid, week, day, true, null)
+      expect(res).toEqual({ success: false, reason: "invalid" })
+    }
+    expect(db.table("reading_progress")).toHaveLength(0)
+  })
+
+  it("lets the link holder update an unlinked slot", async () => {
+    const { saved, loaded } = await saveFamily()
+    const res = await saveReadingProgress(saved.publicId, loaded.membersConfig[0].publicId!, 1, 2, true, null)
+    expect(res.success).toBe(true)
+  })
+
+  it("only lets the linked account or the owner update a linked slot", async () => {
+    const { saved, loaded } = await saveFamily()
+    const pid = loaded.membersConfig[0].publicId!
+    await linkMemberAccount(saved.publicId, pid, ALICE)
+
+    expect(await saveReadingProgress(saved.publicId, pid, 1, 1, true, null)).toEqual({
+      success: false,
+      reason: "forbidden",
+    })
+    expect(await saveReadingProgress(saved.publicId, pid, 1, 1, true, BOB)).toEqual({
+      success: false,
+      reason: "forbidden",
+    })
+    expect((await saveReadingProgress(saved.publicId, pid, 1, 1, true, ALICE)).success).toBe(true)
+    expect((await saveReadingProgress(saved.publicId, pid, 1, 2, true, OWNER)).success).toBe(true)
+  })
+})
+
+describe("group progress summary", () => {
+  it("reflects linked members for the owner", async () => {
+    const { saved, loaded } = await saveFamily()
+    await linkMemberAccount(saved.publicId, loaded.membersConfig[0].publicId!, ALICE)
+    const summary = await fetchGroupProgressSummary(saved.publicId, OWNER)
+    expect(summary?.members).toHaveLength(3)
+    expect(summary?.members[0].isLinked).toBe(true)
+    expect(summary?.members[1].isLinked).toBe(false)
+  })
+
+  it("is hidden from anonymous visitors and other accounts", async () => {
+    const { saved } = await saveFamily()
+    expect(await fetchGroupProgressSummary(saved.publicId, null)).toBeNull()
+    expect(await fetchGroupProgressSummary(saved.publicId, BOB)).toBeNull()
+  })
+})
+
+describe("member page and today's reading", () => {
+  it("shows only the member's own assignments", async () => {
+    const { saved, loaded } = await saveFamily()
+    const target = loaded.membersConfig[1]
+    const page = await getMemberScheduleByPublicId(saved.publicId, target.publicId!)
+    expect(page?.weeks).toHaveLength(3)
+    for (const w of page!.weeks) expect(w.assignment.memberId).toBe(target.id)
+  })
+
+  it("gives an owner who is not a member no reading", async () => {
+    await saveFamily()
+    expect(await fetchUserTodaysReading(OWNER)).toBeNull()
+  })
+})
+
+describe("account deletion", () => {
+  it("removes personal data, releases slots and deletes the login", async () => {
+    const { saved, loaded } = await saveFamily(BOB)
+    const pid = loaded.membersConfig[0].publicId!
+    await linkMemberAccount(saved.publicId, pid, ALICE)
+    await saveReadingProgress(saved.publicId, pid, 1, 1, true, ALICE)
+    db.table("push_subscriptions").push({ id: crypto.randomUUID(), user_id: ALICE, endpoint: "e" })
+    db.table("bookmarks").push({ id: crypto.randomUUID(), user_id: ALICE })
+    await saveFamily(ALICE)
+
+    expect(await deleteUserAccount(ALICE)).toBe(true)
+    expect(db.deletedAuthUsers).toEqual([ALICE])
+    expect(db.table("groups").some((g) => g.owner_user_id === ALICE)).toBe(false)
+    expect(db.table("groups").some((g) => g.owner_user_id === BOB)).toBe(true)
+    expect(db.table("push_subscriptions")).toHaveLength(0)
+    expect(db.table("bookmarks")).toHaveLength(0)
+    expect(db.table("group_members").some((m) => m.linked_user_id === ALICE)).toBe(false)
+    expect(db.table("reading_progress").some((p) => p.user_id === ALICE)).toBe(false)
+    expect(db.table("reading_progress")).toHaveLength(1)
+  })
+
+  it("reports failure when a step fails", async () => {
+    db.auth.admin.deleteUser = async () => ({ data: {}, error: { message: "boom" } as never })
+    expect(await deleteUserAccount(ALICE)).toBe(false)
+  })
+})
+
+describe("recurring cycles", () => {
+  async function saveRecurring(owner: string | null) {
+    const input = familyInput({
+      usesDates: true,
+      startDate: "2026-11-07",
+      recurrence: { frequency: "weekly", autoAdvance: true },
+    })
+    return saveScheduleGroup(input, null, "en", owner)
+  }
+
+  it("stores the recurrence setting and when the next cycle is due", async () => {
+    const saved = await saveRecurring(OWNER)
+    const row = db.table("groups").find((g) => g.public_id === saved.publicId)!
+    expect(row.recurrence).toEqual({ frequency: "weekly", autoAdvance: true })
+    // 3 weeks from 2026-11-07 is 2026-11-28; due the day before.
+    expect(row.next_cycle_due_at).toBe("2026-11-27T00:00:00.000Z")
+  })
+
+  it("does not auto-renew groups without an owner account", async () => {
+    const saved = await saveRecurring(null)
+    const row = db.table("groups").find((g) => g.public_id === saved.publicId)!
+    expect(row.recurrence.autoAdvance).toBe(false)
+    expect(await advanceRecurringGroupIfDue(saved.publicId, new Date("2027-01-01"))).toBe(false)
+  })
+
+  it("waits until the cycle is due, then creates exactly one next cycle", async () => {
+    const saved = await saveRecurring(OWNER)
+    const loaded = await getGroupByPublicId(saved.publicId)
+    await linkMemberAccount(saved.publicId, loaded!.membersConfig[0].publicId!, ALICE)
+
+    expect(await advanceRecurringGroupIfDue(saved.publicId, new Date("2026-11-20"))).toBe(false)
+    expect(db.table("groups")).toHaveLength(1)
+
+    expect(await advanceRecurringGroupIfDue(saved.publicId, new Date("2026-11-27T01:00:00Z"))).toBe(true)
+    expect(await advanceRecurringGroupIfDue(saved.publicId, new Date("2026-11-28"))).toBe(false)
+    expect(db.table("groups")).toHaveLength(2)
+
+    const parent = db.table("groups").find((g) => g.public_id === saved.publicId)!
+    const child = db.table("groups").find((g) => g.public_id !== saved.publicId)!
+    expect(child.recurring_source_group_id).toBe(parent.id)
+    expect(child.cycle_index).toBe(2)
+    expect(child.start_date).toBe("2026-11-28")
+    expect(child.recurrence.autoAdvance).toBe(true)
+    expect(parent.recurrence.autoAdvance).toBe(false)
+
+    const childMembers = db.table("group_members").filter((m) => m.group_id === child.id)
+    expect(childMembers.find((m) => m.public_id === loaded!.membersConfig[0].publicId)?.linked_user_id).toBe(
+      ALICE
+    )
+  })
+
+  it("returns the existing cycle when started twice by hand", async () => {
+    const saved = await saveRecurring(OWNER)
+    const first = await processRecurringCycle(saved.publicId, OWNER, undefined, "en")
+    const second = await processRecurringCycle(saved.publicId, OWNER, undefined, "en")
+    expect(second.publicId).toBe(first.publicId)
+    expect(db.table("groups")).toHaveLength(2)
   })
 })

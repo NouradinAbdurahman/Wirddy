@@ -129,4 +129,6 @@ export interface SchedulerValidationError {
 export interface SchedulerValidationResult {
   isValid: boolean
   errors: SchedulerValidationError[]
+  /** Non-blocking notices, such as a Ramadan plan longer than the month. */
+  warnings?: SchedulerValidationError[]
 }

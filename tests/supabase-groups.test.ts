@@ -6,10 +6,7 @@ import {
   verifyEditToken,
 } from "../lib/groups/crypto"
 import { checkRateLimit, resetRateLimitStore } from "../lib/groups/rate-limit"
-import {
-  saveScheduleAction,
-  getPublicScheduleAction,
-} from "../lib/groups/actions"
+import { saveScheduleAction } from "../lib/groups/actions"
 import { ScheduleInput } from "../lib/scheduler/types"
 import { generateQuranSchedule } from "../lib/scheduler/engine"
 

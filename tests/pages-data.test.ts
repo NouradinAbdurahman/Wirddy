@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
   PAGE_START_AYAH_TABLE,
-  SURAH_START_PAGES,
   JUZ_START_PAGES,
   getPageForSurahAyah,
   getSurahStartPage,

@@ -2,15 +2,11 @@
 
 import React from "react"
 import {
-  IconBell,
   IconBook,
   IconBookmark,
   IconChartBar,
-  IconCheck,
   IconCompass,
-  IconLayoutDashboard,
   IconSpeakerphone,
-  IconUsers,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Card } from "@/components/ui/card"
@@ -18,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 export function DashboardPreview() {
-  const { language, t, formatNumber } = useI18n()
+  const { language, t } = useI18n()
 
   const features = [
     {

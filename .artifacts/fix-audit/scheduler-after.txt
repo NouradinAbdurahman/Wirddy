@@ -1,0 +1,23 @@
+
+ Test Files  1 passed (1)
+      Tests  17 passed (17)
+   Start at  08:52:30
+   Duration  2.20s (transform 660ms, setup 0ms, import 764ms, tests 1.19s, environment 0ms)
+
+ ✓ tests/scheduler-regressions.test.ts > knowledge bounds in full Quran mode > never assigns a wrapped range (28 -> 2) to a member who knows only Juz 1-15 15ms
+ ✓ tests/scheduler-regressions.test.ts > knowledge bounds in full Quran mode > enforces surah_range knowledge (Juz 'Amma only) 2ms
+ ✓ tests/scheduler-regressions.test.ts > knowledge bounds in full Quran mode > maps known surahs only to Juz that are fully covered 2ms
+ ✓ tests/scheduler-regressions.test.ts > knowledge bounds in full Quran mode > rejects a surah_range member whose surahs do not cover a whole Juz 1ms
+ ✓ tests/scheduler-regressions.test.ts > knowledge bounds in full Quran mode > fails fast with a bilingual error when no valid split exists 2ms
+ ✓ tests/scheduler-regressions.test.ts > knowledge bounds in full Quran mode > fails fast when every Juz is covered but no split works 1ms
+ ✓ tests/scheduler-regressions.test.ts > generation speed > handles 15 members with mixed knowledge on random rotation quickly 353ms
+ ✓ tests/scheduler-regressions.test.ts > generation speed > generates 52 weeks for 30 one-Juz members quickly 775ms
+ ✓ tests/scheduler-regressions.test.ts > generation speed > rotates every member through new Juz before repeating 2ms
+ ✓ tests/scheduler-regressions.test.ts > custom Quran range mode > rejects a backwards range 1ms
+ ✓ tests/scheduler-regressions.test.ts > custom Quran range mode > rejects an ayah number past the end of the surah 0ms
+ ✓ tests/scheduler-regressions.test.ts > custom Quran range mode > rejects a range smaller than one ayah per member 0ms
+ ✓ tests/scheduler-regressions.test.ts > custom Quran range mode > rejects daily division when a member would get fewer than 7 ayahs 0ms
+ ✓ tests/scheduler-regressions.test.ts > custom Quran range mode > splits the range with no gaps, overlaps, or reversed portions 6ms
+ ✓ tests/scheduler-regressions.test.ts > custom Quran range mode > keeps each member inside their known Juz 1ms
+ ✓ tests/scheduler-regressions.test.ts > custom Quran range mode > gives every member a public ID 1ms
+ ✓ tests/scheduler-regressions.test.ts > Ramadan length > warns when a Ramadan plan runs past 30 days 0ms

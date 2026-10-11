@@ -12,7 +12,11 @@ import {
 import { useI18n } from "@/lib/i18n/context"
 import { KnowledgeType, MemberConfig } from "@/lib/scheduler/types"
 import { SURAHS } from "@/lib/quran/data"
-import { resolveSurahToJuzRange } from "@/lib/quran/resolver"
+import {
+  resolveSurahToJuzRange,
+  resolveSurahToKnownJuzRange,
+} from "@/lib/quran/resolver"
+import { getFullyKnownJuz } from "@/lib/scheduler/knowledge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -32,6 +36,18 @@ interface MemberCardProps {
   onUpdate: (updated: MemberConfig) => void
   onRemove: () => void
   canRemove: boolean
+}
+
+/**
+ * Juz bounds to store for a Surah range. Uses the Juz the member fully knows,
+ * and falls back to the covering Juz when no whole Juz is known (the
+ * validator then explains the problem).
+ */
+function juzBoundsForSurahs(startSurah: number, endSurah: number) {
+  return (
+    resolveSurahToKnownJuzRange(startSurah, endSurah) ??
+    resolveSurahToJuzRange(startSurah, endSurah)
+  )
 }
 
 export function MemberCard({
@@ -69,7 +85,7 @@ export function MemberCard({
     } else if (type === "surah_range") {
       const sSurah = member.startSurah || 1
       const eSurah = member.endSurah || 114
-      const juzSpan = resolveSurahToJuzRange(sSurah, eSurah)
+      const juzSpan = juzBoundsForSurahs(sSurah, eSurah)
       onUpdate({
         ...member,
         knowledgeType: "surah_range",
@@ -102,7 +118,7 @@ export function MemberCard({
     const s = parseInt(val, 10)
     const currentEnd = member.endSurah || 114
     const newEnd = Math.max(s, currentEnd)
-    const juzSpan = resolveSurahToJuzRange(s, newEnd)
+    const juzSpan = juzBoundsForSurahs(s, newEnd)
     onUpdate({
       ...member,
       startSurah: s,
@@ -117,7 +133,7 @@ export function MemberCard({
     const e = parseInt(val, 10)
     const currentStart = member.startSurah || 1
     const newStart = Math.min(e, currentStart)
-    const juzSpan = resolveSurahToJuzRange(newStart, e)
+    const juzSpan = juzBoundsForSurahs(newStart, e)
     onUpdate({
       ...member,
       startSurah: newStart,
@@ -132,7 +148,10 @@ export function MemberCard({
     onUpdate({ ...member, weeklyAmount: next })
   }
 
-  const knownSpan = (member.endJuz || 30) - (member.startJuz || 1) + 1
+  const knownSpan =
+    member.knowledgeType === "surah_range"
+      ? getFullyKnownJuz(member).length
+      : (member.endJuz || 30) - (member.startJuz || 1) + 1
   const isAmountExceeding = member.weeklyAmount > knownSpan
 
   const getKnowledgeDescription = () => {
@@ -153,6 +172,11 @@ export function MemberCard({
     ) {
       const s1 = SURAHS.find((s) => s.number === member.startSurah)
       const s2 = SURAHS.find((s) => s.number === member.endSurah)
+      if (knownSpan === 0) {
+        return language === "ar"
+          ? `من سورة ${s1?.nameAr} إلى سورة ${s2?.nameAr} (لا تغطي جزءًا كاملًا)`
+          : `Surah ${s1?.transliteration} to ${s2?.transliteration} (does not cover a whole Juz)`
+      }
       return language === "ar"
         ? `من سورة ${s1?.nameAr} إلى سورة ${s2?.nameAr} (الجزء ${formatNumber(member.startJuz)} - ${formatNumber(member.endJuz)})`
         : `Surah ${s1?.transliteration} to ${s2?.transliteration} (Juz ${member.startJuz} - ${member.endJuz})`

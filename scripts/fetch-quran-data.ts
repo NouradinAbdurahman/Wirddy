@@ -1,3 +1,4 @@
+import type { ApiSurahReference } from "../lib/quran/types"
 /**
  * Development script to fetch and verify the complete Quran metadata and 30 Juz boundaries
  * directly from AlQuran Cloud API (https://api.alquran.cloud/v1) according to OpenAPI spec.
@@ -36,7 +37,7 @@ async function main() {
   const surahsData = await fetchJson(`${API_BASE}/surah`)
   console.log(`✓ Fetched ${surahsData.length} Surahs`)
 
-  const surahs = surahsData.map((s: any) => ({
+  const surahs = (surahsData as ApiSurahReference[]).map((s) => ({
     number: s.number,
     nameAr: cleanSurahNameAr(s.name),
     nameEn: s.englishNameTranslation || s.englishName,

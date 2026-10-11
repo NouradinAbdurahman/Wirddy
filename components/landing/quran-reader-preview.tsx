@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
 export function QuranReaderPreview() {
-  const { language, t } = useI18n()
+  const { t } = useI18n()
 
   const features = [
     {

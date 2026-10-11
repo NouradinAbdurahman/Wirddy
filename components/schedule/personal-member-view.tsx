@@ -7,33 +7,21 @@ import {
   IconArrowLeft,
   IconArrowRight,
   IconBook,
-  IconCalendar,
   IconCheck,
   IconChevronDown,
   IconChevronUp,
   IconCopy,
-  IconDownload,
   IconFileTypePdf,
   IconMoon,
   IconPhoto,
   IconQrcode,
-  IconShare,
   IconSparkles,
   IconUserCheck,
-  IconUsersGroup,
   IconLayoutDashboard,
   IconAlertCircle,
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
-import {
-  CustomQuranRange,
-  DailyPortion,
-  GeneratedSchedule,
-  MemberAssignment,
-  MemberConfig,
-  OccasionType,
-  RotationStyle,
-} from "@/lib/scheduler/types"
+import { DailyPortion, GeneratedSchedule, MemberConfig } from "@/lib/scheduler/types"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -42,10 +30,10 @@ import { QuranReader } from "@/components/reader/quran-reader"
 import {
   getMemberLinkStatusAction,
   linkMemberAccountAction,
-  saveReadingProgressAction,
 } from "@/lib/groups/actions"
 import { getSupabaseBrowserClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import { saveProgressOrQueue } from "@/lib/storage/offline-sync"
 
 interface PersonalMemberViewProps {
   groupPublicId?: string
@@ -113,59 +101,12 @@ export function PersonalMemberView({
     ? `${origin}/g/${groupPublicId}/member/${memberPublicId}`
     : ""
 
-  const checkLinkStatus = async () => {
-    if (!groupPublicId) return
-    try {
-      const res = await getMemberLinkStatusAction(groupPublicId, memberPublicId)
-      if (res.success && res.data) {
-        const data = res.data
-        setLinkStatus({
-          isLinked: data.isLinked,
-          isLinkedToCurrentUser: data.isLinkedToCurrentUser,
-          isOwner: data.isOwner,
-          currentUserId: data.currentUserId,
-          isLoading: false,
-        })
-
-        // Auto-link if redirected from login with autolink param
-        if (
-          typeof window !== "undefined" &&
-          window.location.search.includes("autolink=true") &&
-          data.currentUserId &&
-          !data.isLinked
-        ) {
-          window.history.replaceState({}, document.title, window.location.pathname)
-          executeLink()
-        }
-      } else {
-        setLinkStatus((prev) => ({ ...prev, isLoading: false }))
-      }
-    } catch {
-      setLinkStatus((prev) => ({ ...prev, isLoading: false }))
-    }
-  }
-
-  useEffect(() => {
-    checkLinkStatus()
-    const supabase = getSupabaseBrowserClient()
-    if (supabase) {
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange(() => {
-        checkLinkStatus()
-      })
-      return () => {
-        subscription.unsubscribe()
-      }
-    }
-  }, [groupPublicId, memberPublicId])
-
   const executeLink = async () => {
     if (!groupPublicId || isLinking) return
     setIsLinking(true)
     setLinkError(null)
     try {
-      const res = await linkMemberAccountAction(groupPublicId, memberPublicId)
+      const res = await linkMemberAccountAction(groupPublicId, memberPublicId, language)
       if (res.success) {
         setLinkStatus((prev) => ({
           ...prev,
@@ -182,12 +123,59 @@ export function PersonalMemberView({
               : "Failed to link account. Please try again.")
         )
       }
-    } catch (err: any) {
-      setLinkError(err?.message || "Failed to link account.")
+    } catch {
+      setLinkError(
+        language === "ar"
+          ? "تعذر ربط الحساب. يرجى المحاولة مرة أخرى."
+          : "Failed to link account. Please try again."
+      )
     } finally {
       setIsLinking(false)
     }
   }
+
+  // Load link status now and whenever the user signs in or out.
+  useEffect(() => {
+    if (!groupPublicId) return
+
+    const refresh = () => {
+      getMemberLinkStatusAction(groupPublicId, memberPublicId)
+        .then((res) => {
+          if (!res.success || !res.data) {
+            setLinkStatus((prev) => ({ ...prev, isLoading: false }))
+            return
+          }
+          const data = res.data
+          setLinkStatus({
+            isLinked: data.isLinked,
+            isLinkedToCurrentUser: data.isLinkedToCurrentUser,
+            isOwner: data.isOwner,
+            currentUserId: data.currentUserId,
+            isLoading: false,
+          })
+
+          // Link automatically after returning from login with autolink=true
+          if (
+            window.location.search.includes("autolink=true") &&
+            data.currentUserId &&
+            !data.isLinked
+          ) {
+            window.history.replaceState({}, document.title, window.location.pathname)
+            executeLink()
+          }
+        })
+        .catch(() => setLinkStatus((prev) => ({ ...prev, isLoading: false })))
+    }
+
+    refresh()
+    const supabase = getSupabaseBrowserClient()
+    if (!supabase) return
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => refresh())
+    return () => subscription.unsubscribe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupPublicId, memberPublicId])
 
   const handleLinkAccount = () => {
     if (!linkStatus.currentUserId) {
@@ -210,13 +198,25 @@ export function PersonalMemberView({
     setCompletedDays((prev) => ({ ...prev, [key]: nextState }))
 
     if (groupPublicId) {
-      await saveReadingProgressAction(
+      const res = await saveProgressOrQueue({
         groupPublicId,
         memberPublicId,
-        weekNum,
-        dayIdx,
-        nextState
-      )
+        weekNumber: weekNum,
+        dayNumber: dayIdx,
+        isCompleted: nextState,
+      })
+      if (!res.success) {
+        setCompletedDays((prev) => ({ ...prev, [key]: !nextState }))
+        setLinkError(
+          res.reason === "forbidden"
+            ? language === "ar"
+              ? "هذا العضو مرتبط بحساب. سجّل الدخول بذلك الحساب لتحديث التقدم."
+              : "This member is linked to an account. Sign in with that account to update progress."
+            : language === "ar"
+              ? "تعذر حفظ التقدم. يرجى المحاولة مرة أخرى."
+              : "Could not save progress. Please try again."
+        )
+      }
     }
   }
 

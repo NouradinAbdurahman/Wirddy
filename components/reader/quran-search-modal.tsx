@@ -2,14 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
-import {
-  IconSearch,
-  IconX,
-  IconBook,
-  IconArrowRight,
-  IconArrowLeft,
-  IconLoader2,
-} from "@tabler/icons-react"
+import { IconSearch, IconX, IconLoader2 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -28,26 +21,23 @@ export function QuranSearchModal({
   onClose,
   onSelectAyah,
 }: QuranSearchModalProps) {
-  const { language, dir, t, formatNumber } = useI18n()
+  const { language, formatNumber } = useI18n()
   const [query, setQuery] = useState("")
-  const [results, setResults] = useState<QuranSearchResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
+  // Results are tagged with the query they answer; anything else is stale.
+  const [searched, setSearched] = useState<{ query: string; results: QuranSearchResult[] }>({
+    query: "",
+    results: [],
+  })
+  const trimmed = query.trim()
+  const isSearching = trimmed !== "" && searched.query !== query
+  const results = trimmed && searched.query === query ? searched.results : []
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults([])
-      setIsSearching(false)
-      return
-    }
-
-    setIsSearching(true)
+    if (!query.trim()) return
+    // Wait for typing to pause before searching.
     const timeout = setTimeout(() => {
-      searchQuran(query).then((res) => {
-        setResults(res)
-        setIsSearching(false)
-      })
+      searchQuran(query).then((res) => setSearched({ query, results: res }))
     }, 250)
-
     return () => clearTimeout(timeout)
   }, [query])
 

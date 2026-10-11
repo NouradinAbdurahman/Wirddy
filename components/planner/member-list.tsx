@@ -2,7 +2,7 @@
 
 import React from "react"
 import { motion, AnimatePresence } from "motion/react"
-import { IconPlus, IconUserPlus, IconUsers } from "@tabler/icons-react"
+import { IconPlus, IconUserPlus } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { MemberConfig } from "@/lib/scheduler/types"
 import { Button } from "@/components/ui/button"

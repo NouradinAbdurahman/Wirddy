@@ -1,76 +1,109 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file guides Claude Code (claude.ai/code) and other agents working in this repository.
+
+## Read first: project skills (`npx skills add michaelshimeles/skills`)
+
+This project uses the skills installed by `npx skills add michaelshimeles/skills`. They live in `.claude/skills/` and `.agents/skills/` and are committed, so every checkout has them. If either folder is missing, run `npx skills add michaelshimeles/skills -s '*' -y` from the repo root.
+
+Every agent, on every task, must read and follow these skills:
+
+- **`new-feature`** (`.claude/skills/new-feature/SKILL.md`): sync with `origin/main`, check open PRs for overlapping files, and work on your own branch or worktree. Claude Code manages worktrees under `.claude/worktrees/`; keep a branch the harness assigned you.
+- **`code-structure`** (`.claude/skills/code-structure/SKILL.md`): actions own business rules and authorization; services hold shared mechanics. Example: `lib/groups/actions.ts` (actions), `lib/groups/service.ts` (domain rules), `lib/groups/persistence.ts` (shared DB mechanics).
+- **`unslop`** (`.claude/skills/unslop/SKILL.md`): plain language in commits, PRs, docs, comments, and replies. No em dashes, puffery, or decorative emoji.
+- **`evidence-driven-testing`** (`.claude/skills/evidence-driven-testing/SKILL.md`): prove behavior. Capture the failure before a fix and the passing result after. Put evidence in `.artifacts/<task>/`.
+- **`before-and-after`** (`.claude/skills/before-and-after/SKILL.md`): screenshot comparisons for UI changes.
+- **`greploop` / `greploop-apps`** (`.claude/skills/greploop/`): iterate on PR review feedback until it is resolved.
 
 ## What this is
 
-Wirddy (وِردي) is a Quran reading-division planner for groups (family, friends, mosque groups, etc.). A user creates a group, adds members with their Quran knowledge bounds and weekly reading capacity, picks a number of weeks, and the app generates a rotating weekly schedule that partitions the full Quran (Juz 1–30) across members — output as on-screen cards/table and exportable PNG/PDF/ZIP. It's a Next.js PWA, Arabic-first (RTL) with English support, fully client-side (no backend calls at runtime; a `supabase/schema.sql` exists for a possible future backend but nothing in the app currently talks to Supabase).
+Wirddy (وِردي) is a Quran reading planner for groups (family, friends, mosque circles). A user creates a group, adds members with the part of the Quran each knows and how much each reads per week, picks a number of weeks, and the app builds a rotating schedule that splits the Quran across members. It shows the schedule as cards and a table and exports PNG, PDF, and ZIP files. It is a Next.js PWA, Arabic first (RTL) with English support.
 
-The full spec is in `Docs/Product Requirements Document` — read it when working on scheduling rules, terminology, or UX flow, since it defines invariants (e.g. "weekly reading allocation must equal exactly 30 Juz") that the code enforces.
+Generating a schedule runs entirely in the browser. Saving, sharing, accounts, reading progress, reminders, and recurring cycles use Supabase through server actions.
 
-## Important: this Next.js version is unfamiliar territory
+The product spec is in `Docs/Product Requirements Document`. Read it before changing scheduling rules or terminology.
 
-`package.json` pins `next@16.2.6`, a version newer than most training data. Per `AGENTS.md`, treat this as **not** the Next.js you know — APIs, conventions, and file structure may differ. Before writing App Router code, config, or anything Next-specific, check `node_modules/next/dist/docs/` for the current APIs rather than relying on memorized conventions.
+## This Next.js version is newer than your training data
+
+`package.json` pins `next@16.2.6`. Per `AGENTS.md`, check `node_modules/next/dist/docs/` before writing App Router code or config.
 
 ## Commands
 
 ```bash
-npm run dev         # start dev server
+npm run dev          # dev server
 npm run build        # production build
-npm run start        # run production build
-npm run lint          # eslint
+npm run start        # serve the production build
+npm run lint         # eslint (must report 0 errors)
 npm run typecheck    # tsc --noEmit
-npm run format        # prettier --write on **/*.{ts,tsx}
-npm test               # vitest run (all tests)
-npx vitest run tests/scheduler.test.ts   # run a single test file
-npx vitest run -t "resolves Juz 1"          # run tests matching a name
+npm test             # vitest run
+npx vitest run tests/scheduler-regressions.test.ts   # one file
+npx vitest run -t "links a slot"                     # tests by name
 ```
 
-There is no vitest config file; it runs with Vitest defaults directly against `tests/*.test.ts`.
+There is no vitest config file; Vitest runs `tests/*.test.ts` with defaults (use relative imports in tests, the `@/` alias is not set up for Vitest).
 
-Note: `.prettierrc` is configured for no semicolons and double quotes, but the existing codebase is written with semicolons and single quotes throughout. Running `npm run format` against the whole tree will produce a large, unrelated diff — don't run it repo-wide as a side effect of an unrelated task.
+`.prettierrc` says no semicolons and double quotes; most files follow it. Do not run `npm run format` across the whole tree as a side effect of another task.
 
 ## Architecture
 
-**Data flow is entirely client-side and single-page.** `app/page.tsx` (`'use client'`) is a state machine with one `AppStep` (`landing → group_name → members → schedule`) held in local React state, persisted to `localStorage` under `wirddy_planner_state_v1`. There is no routing between steps and no server state.
+### Planner page (`app/page.tsx`)
 
-**Scheduling core (`lib/scheduler/`)** is pure and framework-agnostic:
-- `types.ts` — `MemberConfig`, `ScheduleInput`, `GeneratedSchedule`, etc.
-- `validator.ts` — `validateScheduleInput` (pre-generation) and `validateGeneratedSchedule` (post-generation invariant check), each returning bilingual (`messageAr`/`messageEn`) errors.
-- `engine.ts` — `generateQuranSchedule(input)` is the entry point. For each week it runs a backtracking search (`solveWeekPermutation`) that finds an ordering of members partitioning Juz 1–30 that respects each member's knowledge bounds (`startJuz`/`endJuz`), preferring assignments that minimize overlap with a member's own reading history in prior weeks (exponential recency-weighted penalty, so rotation avoids repeats). This is the trickiest part of the codebase — changes here affect correctness of the core product guarantee (every week sums to exactly 30 Juz, only within each member's known range).
+A client component holding one `AppStep` (`landing`, `planner`, `schedule`) in React state. The whole plan is saved to `localStorage` under `wirddy_planner_state_v3` and restored on the first render after hydration (see `hooks/use-hydrated.ts`). Validation errors and warnings appear live through `components/planner/validation-notice.tsx`, because the Generate button stays disabled while input is invalid.
 
-**Quran reference data (`lib/quran/`)** turns abstract Juz numbers into exact Ayah/Surah locations:
-- `data.ts` holds the static dataset (Juz boundaries, Surah list, Surah→Juz map), derived from the AlQuran Cloud API (see `yaml.yml`, its OpenAPI spec, and `scripts/fetch-quran-data.ts` which regenerates `data.ts`).
-- `service.ts` (`quranService`, a singleton `QuranDataService`) is the lookup layer over that static data — offline, deterministic, no network calls at runtime.
-- `resolver.ts` is the public-facing API used by the scheduler (`resolveJuzRange`, `resolveSurahToJuzRange`, `formatAyahReference`) — wraps `quranService` and produces `AyahRef`/`ExactQuranRange`.
-- `types.ts` distinguishes raw AlQuran Cloud API shapes (`Api*`) from normalized internal models (`QuranLocation`, `SurahInfo`, `JuzBoundary`).
+### Scheduling core (`lib/scheduler/`)
 
-**i18n (`lib/i18n/`)** is a from-scratch context provider, not a library: `dictionary.ts` holds `translations` keyed by `Language` (`'ar' | 'en'`), `context.tsx` exposes `useI18n()` giving `{ language, dir, t, setLanguage, formatNumber }`. `formatNumber` converts digits to Arabic-Indic numerals when `language === 'ar'`. Language/direction are also written to `document.documentElement` and persisted to `localStorage` (`wirddy_language`). Arabic is the default language and RTL is the default document direction (set in `app/layout.tsx`); English/LTR is the alternate, not the default — keep that direction when adding UI strings or layout logic.
+Pure, framework free, and unit tested.
 
-**Export pipeline (`lib/export/`)** turns a `GeneratedSchedule` into shareable artifacts, re-exported as a flat barrel from `index.ts`:
-- `render-week.ts` builds raw HTML strings for schedule cards/table (per-language, per-theme), rendered off-DOM.
-- `render-png.ts` / `render-pdf.ts` use `html-to-image` (`toBlob`) and `jspdf` to rasterize that HTML into images/PDF pages.
-- `create-zip.ts` (via `jszip`) bundles multiple week exports into one archive.
-- `assets.ts` handles font preloading/readiness before rendering (`ensureFontsReady`) so exported images don't clip Arabic glyphs.
-- `filenames.ts`, `validate-file.ts`, `download.ts` handle naming, validation, and triggering browser downloads.
-- `types.ts` defines the export-specific shapes (`ExportSchedule`, `ExportWeek`, `ExportMember`) — these are display/render models, separate from the scheduler's `GeneratedSchedule`/`MemberAssignment`, so exporting means mapping one to the other.
+- `types.ts`: `MemberConfig`, `ScheduleInput`, `GeneratedSchedule`, and so on.
+- `knowledge.ts`: turns a member's knowledge (`entire`, `juz_range`, `surah_range`) into an exact global ayah interval, and lists the Juz a member fully knows. A Surah range only counts a Juz when every ayah of that Juz is in a known Surah.
+- `validator.ts`: `validateScheduleInput` returns bilingual errors (and `warnings`, such as a Ramadan plan longer than 30 days). It checks custom ranges ayah by ayah, that every Juz is known by some member, and that each member's amount fits what they know.
+- `engine.ts`: `generateQuranSchedule(input)`. Both modes share one solver over "units" (Juz in full mode, starting at `startJuz` and wrapping from 30 to 1; ayahs in custom mode). For each week, a depth-first search orders members into consecutive blocks so each block is fully inside its member's known range. Dead ends are memoized by the multiset of remaining member types, and a fixed node budget caps the time spent improving rotation, so generation stays fast (30 members over 52 weeks takes under 100 ms). Repetition cost is the overlap with each member's earlier portions, weighted by 1/age so recent repeats cost more. Failures throw `SchedulerError` with `messageAr` and `messageEn`.
 
-**UI components** are organized by feature area under `components/`: `landing/` (marketing sections), `planner/` (group/member setup form steps), `schedule/` (generated schedule display + export modal), `layout/` (header/footer), `pwa/` (service worker registration), and `ui/` (shadcn/ui primitives — add more via `npx shadcn@latest add <component>`, configured in `components.json` with `style: base-maia`, `baseColor: mist`, `iconLibrary: tabler`, and `rtl: true`).
+Changes here affect the product guarantee: every week covers the whole range with no gaps or overlaps, and every member reads only what they know. `tests/scheduler-regressions.test.ts` checks this.
 
-## Conventions worth knowing
+### Quran data (`lib/quran/`)
 
-- Path alias `@/*` maps to the repo root (see `tsconfig.json`), matching the `components.json` aliases (`@/components`, `@/lib`, `@/hooks`, `@/components/ui`).
-- Icons come from `@tabler/icons-react` (per `components.json`'s `iconLibrary`), and directional icons (arrows, chevrons) should be swapped based on `dir` from `useI18n()` rather than hard-coded, since the app is RTL-first.
-- Motion/animation uses the `motion` package (`motion/react`), not `framer-motion`.
-- Scheduler and Quran-resolution logic is pure and unit-tested in `tests/` (`scheduler.test.ts`, `quran-api.test.ts`) independent of React — keep new logic there similarly pure/testable rather than embedding it in components.
+- `data.ts` and `pages-data.ts`: static datasets (114 Surahs, 6236 ayahs, Juz boundaries, Mushaf pages), generated by `scripts/fetch-quran-data.ts` from the AlQuran Cloud API.
+- `service.ts` (`quranService`): offline lookups. `getGlobalAyahNumber` clamps out-of-range input, so validate user input before calling it.
+- `resolver.ts`: public API (`resolveJuzRange`, `resolveSurahToJuzRange`, `resolveSurahToKnownJuzRange`, `formatAyahReference`).
+- `api.ts`: the Quran reader fetches page text from AlQuran Cloud at runtime. The service worker caches those responses cache-first in `wirddy-quran-text-v1`, so pages read once work offline.
 
-## Project Skills (`michaelshimeles/skills`)
+### Groups backend (`lib/groups/`, `lib/supabase/`, `supabase/`)
 
-The project has skills installed via `npx skills add michaelshimeles/skills` under `.claude/skills/` and `.agents/skills/`. Whenever working on this repository, you must adhere to these skills:
+- `actions.ts`: server actions. Authentication, rate limits (`checkSharedRateLimit`, backed by the `check_rate_limit` Postgres function, with an in-memory fallback), and user-facing errors.
+- `service.ts`: domain rules. Saving regenerates the schedule on the server from validated input and ignores any schedule the browser sends. Editing updates member rows in place so public IDs, linked accounts, and reading progress survive. Linking never takes over a slot linked to another account, and an account can hold one slot per group. Progress on a linked slot can only be changed by that account or the group owner. Recurring groups store `recurrence` and `next_cycle_due_at`; the cron job creates the next cycle when due, points it back with `recurring_source_group_id`, and hands auto renewal to the new cycle.
+- `persistence.ts`: shared DB mechanics (member lookup by public ID with `eq` filters only, batched plan inserts).
+- `lib/supabase/types.ts`: generated `Database` types. Update them when a migration adds columns, instead of casting queries to `any`.
+- `supabase/migrations/`: the source of truth for the schema. `supabase/schema.sql` is the migrations concatenated in order; regenerate it after adding a migration (command in its header).
+- Cron routes in `app/api/cron/` require `Authorization: Bearer $CRON_SECRET` and refuse every request when `CRON_SECRET` is unset (`lib/auth/cron.ts`). Reminders run every 15 minutes and match each user's local reminder time to one run.
 
-- **`new-feature`** (`.claude/skills/new-feature/`): Claude Code manages worktrees under `.claude/worktrees/`. Always branch tasks from latest `origin/main`.
-- **`code-structure`** (`.claude/skills/code-structure/`): Maintain two-layer separation (Actions orchestrate domain rules; services centralize shared mechanics).
-- **`unslop`** (`.claude/skills/unslop/`): Cut AI tells, puffery, em dashes, and decorative emojis. Use active voice, plain language, and concrete numbers.
-- **`evidence-driven-testing`** (`.claude/skills/evidence-driven-testing/`): Verifiable proof of behavior instead of prose claims.
-- **`before-and-after`** (`.claude/skills/before-and-after/`): Capture visual comparisons using `@vercel/before-and-after`.
-- **`greploop` / `greploop-apps`** (`.claude/skills/greploop/`): Iterative PR review loops to achieve a 5/5 score.
+### Browser state helpers (`hooks/`, `lib/storage/`)
+
+- `hooks/use-hydrated.ts` and `hooks/use-storage-value.ts`: read browser-only values without setting state in effects (the `react-hooks/set-state-in-effect` lint rule is on). Prefer these, derived state, or setting state in async callbacks.
+- `lib/storage/offline-sync.ts`: progress saved while offline is queued in IndexedDB and replayed when the connection returns (`saveProgressOrQueue`, flushed by `useOfflineSync` in `components/pwa/pwa-registrar.tsx`).
+- `lib/i18n/`: a small context provider. `useI18n()` returns `{ language, dir, t, setLanguage, formatNumber }`. The language is stored in `localStorage` (`wirddy_language`). Arabic and RTL are the defaults; keep that when adding UI.
+
+### Export (`lib/export/`)
+
+`render-week.ts` builds HTML per language and theme; `render-png.ts` and `render-pdf.ts` rasterize it with `html-to-image` and `jspdf`; `create-zip.ts` bundles weeks with `jszip`; `assets.ts` waits for fonts so Arabic glyphs do not clip. `types.ts` holds display models separate from the scheduler's types.
+
+### UI
+
+Components live by feature under `components/` (`landing/`, `planner/`, `schedule/`, `dashboard/`, `reader/`, `layout/`, `pwa/`, and `ui/` for shadcn/ui primitives; add more with `npx shadcn@latest add <component>`).
+
+## Keeping it fast
+
+The landing page ships only what first-time visitors need. Keep heavy code behind `next/dynamic` or `await import()`:
+
+- `components/planner/planner-step.tsx` (form, validator, Quran data) and `components/schedule/schedule-view.tsx` load from `app/page.tsx` on demand.
+- Export libraries (`jspdf`, `html-to-image`, `jszip`) load inside export handlers and the lazily loaded export modal.
+- Components that only need the signed-in user use `hooks/use-auth-user.ts`, which loads the Supabase client after hydration and shares one session listener.
+- Fonts used only by the reader and exports are declared with `preload: false` in `app/layout.tsx`.
+
+## Conventions
+
+- Path alias `@/*` maps to the repo root.
+- Icons come from `@tabler/icons-react`. Swap directional icons using `dir` from `useI18n()`.
+- Animation uses `motion/react`, never `framer-motion`.
+- Keep scheduler and Quran logic pure and tested in `tests/`. Backend tests use the in-memory Supabase fake in `tests/helpers/fake-supabase.ts`, which rejects non-UUID values in UUID columns the way Postgres does.
+- The service worker (`public/sw.js`) is registered as `/sw.js?v=<build id>`, so each deploy gets a fresh cache.
