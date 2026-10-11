@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { signOutUser, useAuthUser } from "@/hooks/use-auth-user"
 import { extractUserProfile, UserProfileInfo } from "@/lib/auth/user"
 import { useHydrated } from "@/hooks/use-hydrated"
 
@@ -34,52 +34,21 @@ export function Header({ onGoHome, onLogoClick }: HeaderProps) {
   const { language, setLanguage, t } = useI18n()
   const { theme, setTheme, resolvedTheme } = useTheme()
   const mounted = useHydrated()
-  const [user, setUser] = React.useState<UserProfileInfo | null>(null)
+  const authUser = useAuthUser().user
+  const user = React.useMemo<UserProfileInfo | null>(
+    () => (authUser ? extractUserProfile(authUser) : null),
+    [authUser]
+  )
 
+  // After an OAuth redirect, strip the code/error query from the address bar.
   React.useEffect(() => {
-    const supabase = getSupabaseBrowserClient()
-    if (!supabase) return
-
-    // Initial session & user profile check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(extractUserProfile(session.user))
-      } else {
-        setUser(null)
-      }
-
-      // If landed with code/error query param in address bar, cleanly strip it
-      if (
-        typeof window !== "undefined" &&
-        (window.location.search.includes("code=") ||
-          window.location.search.includes("error="))
-      ) {
-        const cleanUrl = window.location.pathname + (window.location.hash || "")
-        window.history.replaceState({}, "", cleanUrl)
-      }
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(extractUserProfile(session.user))
-      } else {
-        setUser(null)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
+    if (/[?&](code|error)=/.test(window.location.search)) {
+      window.history.replaceState({}, "", window.location.pathname + window.location.hash)
     }
   }, [])
 
   const handleSignOut = async () => {
-    const supabase = getSupabaseBrowserClient()
-    if (supabase) {
-      await supabase.auth.signOut()
-      setUser(null)
-    }
+    await signOutUser()
   }
 
   const isDark = mounted ? theme === "dark" || resolvedTheme === "dark" : false

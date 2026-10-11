@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 import Link from "next/link"
 import { IconArrowLeft, IconArrowRight, IconLayoutDashboard } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { useAuthUser } from "@/hooks/use-auth-user"
 
 interface FinalCtaProps {
   onCreateGroup: () => void
@@ -14,27 +14,9 @@ interface FinalCtaProps {
 
 export function FinalCta({ onCreateGroup }: FinalCtaProps) {
   const { dir, t } = useI18n()
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+  const isAuthenticated = Boolean(useAuthUser().user)
   const ArrowIcon = dir === "rtl" ? IconArrowLeft : IconArrowRight
 
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient()
-    if (!supabase) return
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session?.user)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session?.user)
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
 
   return (
     <section className="py-10 text-center">

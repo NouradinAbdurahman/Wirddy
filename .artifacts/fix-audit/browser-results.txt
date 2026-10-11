@@ -1,6 +1,6 @@
 PASS landing: html dir is rtl
 PASS planner: saved state restored after reload :: group name input = "Test"
-PASS planner: impossible split shows Arabic error quickly :: 909ms
+PASS planner: impossible split shows Arabic error quickly :: 966ms
 PASS planner: valid wrap plan generated and A stays in Juz 1-15 :: 2 weeks
 PASS planner: live validation message shown for total 29
 PASS i18n: English + LTR after reload

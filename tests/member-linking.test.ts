@@ -178,6 +178,29 @@ describe("editing a saved group", () => {
     expect(db.table("schedule_plans").filter((p) => p.is_active)).toHaveLength(1)
   })
 
+  it("keeps members saved before public IDs existed, and gives them one", async () => {
+    const { saved, loaded, input } = await saveFamily()
+    const old = db.table("group_members").find((r) => r.public_id === loaded.membersConfig[0].publicId)!
+    old.public_id = null
+    old.linked_user_id = ALICE
+    const reloaded = await getGroupByPublicId(saved.publicId)
+    await saveReadingProgress(saved.publicId, old.id, 1, 1, true, ALICE)
+
+    await updateGroupAndRegenerate(
+      saved.publicId,
+      saved.editToken,
+      { group: input.group, members: reloaded!.membersConfig.map((m) => ({ ...m })) },
+      "en"
+    )
+
+    const row = db.table("group_members").find((r) => r.id === old.id)
+    expect(row).toBeDefined()
+    expect(row?.public_id).toMatch(/^m_/)
+    expect(row?.linked_user_id).toBe(ALICE)
+    expect(db.table("reading_progress")).toHaveLength(1)
+    expect(db.table("group_members").filter((r) => r.group_id === old.group_id)).toHaveLength(3)
+  })
+
   it("rejects a public ID that belongs to another group", async () => {
     const first = await saveFamily()
     const second = await saveFamily()

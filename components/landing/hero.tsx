@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 import Link from "next/link"
 import {
   IconArrowLeft,
@@ -10,7 +10,7 @@ import {
 } from "@tabler/icons-react"
 import { useI18n } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
-import { getSupabaseBrowserClient } from "@/lib/supabase/client"
+import { useAuthUser } from "@/hooks/use-auth-user"
 
 interface HeroProps {
   onCreateGroup: () => void
@@ -18,27 +18,9 @@ interface HeroProps {
 
 export function Hero({ onCreateGroup }: HeroProps) {
   const { language, dir, t } = useI18n()
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+  const isAuthenticated = Boolean(useAuthUser().user)
   const ArrowIcon = dir === "rtl" ? IconArrowLeft : IconArrowRight
 
-  useEffect(() => {
-    const supabase = getSupabaseBrowserClient()
-    if (!supabase) return
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session?.user)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session?.user)
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
 
   return (
     <section className="relative overflow-hidden pt-4 pb-10 sm:pt-8 sm:pb-14 md:pt-12 md:pb-16">

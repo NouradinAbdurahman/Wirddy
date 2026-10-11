@@ -91,6 +91,15 @@ Changes here affect the product guarantee: every week covers the whole range wit
 
 Components live by feature under `components/` (`landing/`, `planner/`, `schedule/`, `dashboard/`, `reader/`, `layout/`, `pwa/`, and `ui/` for shadcn/ui primitives; add more with `npx shadcn@latest add <component>`).
 
+## Keeping it fast
+
+The landing page ships only what first-time visitors need. Keep heavy code behind `next/dynamic` or `await import()`:
+
+- `components/planner/planner-step.tsx` (form, validator, Quran data) and `components/schedule/schedule-view.tsx` load from `app/page.tsx` on demand.
+- Export libraries (`jspdf`, `html-to-image`, `jszip`) load inside export handlers and the lazily loaded export modal.
+- Components that only need the signed-in user use `hooks/use-auth-user.ts`, which loads the Supabase client after hydration and shares one session listener.
+- Fonts used only by the reader and exports are declared with `preload: false` in `app/layout.tsx`.
+
 ## Conventions
 
 - Path alias `@/*` maps to the repo root.

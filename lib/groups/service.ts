@@ -790,18 +790,24 @@ export async function updateGroupAndRegenerate(
     .from("group_members")
     .select("id, public_id")
     .eq("group_id", group.id)) as { data: Array<{ id: string; public_id: string | null }> | null }
-  const rowIdByPublicId = new Map<string, string>()
-  for (const r of existingRows || []) if (r.public_id) rowIdByPublicId.set(r.public_id, r.id)
+  const rows = existingRows || []
+  const rowById = new Map(rows.map((r) => [r.id, r]))
+  const rowByPublicId = new Map(rows.filter((r) => r.public_id).map((r) => [r.public_id!, r]))
 
-  // Keep a member's public ID only if it belongs to this group and is not
-  // already claimed by an earlier member in the list.
-  const claimed = new Set<string>()
+  // Match each member to its existing row: by public ID, or by row ID for
+  // members saved before public IDs existed. A row matches at most one
+  // member, and IDs from other groups never match. Matched rows keep their
+  // links and progress; members without a match become new rows.
+  const usedRowIds = new Set<string>()
+  const matchedRowIds: Array<string | undefined> = []
   const members = sanitizeMembers(input.members).map((m, i) => {
-    const requested = input.members[i]?.publicId
-    const keep = requested && rowIdByPublicId.has(requested) && !claimed.has(requested)
-    const pid = keep ? requested! : generateMemberPublicId()
-    claimed.add(pid)
-    return { ...m, publicId: pid }
+    const source = input.members[i]
+    let row = source?.publicId ? rowByPublicId.get(source.publicId) : undefined
+    if (!row && source?.id) row = rowById.get(source.id)
+    if (row && usedRowIds.has(row.id)) row = undefined
+    if (row) usedRowIds.add(row.id)
+    matchedRowIds[i] = row?.id
+    return { ...m, publicId: row?.public_id || generateMemberPublicId() }
   })
   const normalizedInput: ScheduleInput = { group: input.group, members }
   const schedule = generateValidatedSchedule(normalizedInput, lang)
@@ -847,9 +853,11 @@ export async function updateGroupAndRegenerate(
       weekly_amount: m.weeklyAmount,
       sort_order: idx,
     }
-    const rowId = rowIdByPublicId.get(m.publicId)
+    const rowId = matchedRowIds[idx]
     if (rowId) {
-      const res = await supabase.from("group_members").update(columns).eq("id", rowId)
+      // Older rows get their public ID saved here.
+      const columnsWithId = { ...columns, public_id: m.publicId }
+      const res = await supabase.from("group_members").update(columnsWithId).eq("id", rowId)
       if (res.error) throw localizedError(lang, "تعذر تحديث الأعضاء.", "Failed to update group members.")
       memberRowIdByPublicId.set(m.publicId, rowId)
     } else {
@@ -868,9 +876,7 @@ export async function updateGroupAndRegenerate(
     for (const r of inserted) memberRowIdByPublicId.set(r.public_id, r.id)
   }
 
-  const removedIds = (existingRows || [])
-    .filter((r) => !r.public_id || !claimed.has(r.public_id))
-    .map((r) => r.id)
+  const removedIds = rows.filter((r) => !usedRowIds.has(r.id)).map((r) => r.id)
   if (removedIds.length > 0) {
     await supabase.from("group_members").delete().in("id", removedIds)
   }

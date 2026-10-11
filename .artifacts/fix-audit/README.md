@@ -32,3 +32,24 @@ Covered: wrap-around knowledge (start at Juz 28), Surah knowledge enforcement, f
 6. `06-reader-offline.png`: reader explains a page that cannot load offline
 
 Cron endpoints return 401 with no secret and with a wrong secret (`curl` against the production build).
+
+## Load speed (production build, Playwright, landing page `/`, uncompressed bytes)
+
+| | Before | After |
+|---|---|---|
+| JavaScript | 2,912 KB | 1,321 KB |
+| Fonts | 588 KB | 228 KB |
+| Logo images | 1,819 KB (files) | 127 KB |
+| `load` event | 763 ms | 414 ms |
+
+How: the plan form, schedule view, scheduling engine, Quran dataset, and PNG/PDF/ZIP export code load when first used; the Supabase client loads after the page is interactive through one shared session hook; Cairo loads as one variable font; the Quran fonts load only where used.
+
+`screens/07-export-modal.png`: the lazily loaded export modal. PNG (`Wirddy-Family-Completion-Week-1.png`) and PDF (`Wirddy-Family-Completion-Full-Plan.pdf`) downloads both completed with no page errors.
+
+## Database (project `wirddy`, read-only checks after the hardening migration)
+
+- `check_rate_limit` function and `rate_limit_hits` table exist.
+- `reading_progress` has no public insert/update policies; `schedule_history` has no public read policy.
+- The public key cannot read `group_members` or `groups.owner_user_id`; it can still read `groups.expires_at` for realtime.
+- Reminder cron runs every 15 minutes.
+- The old link query (`public_id = 'm_…' or id = 'm_…'`) fails on the real database with `22P02 invalid input syntax for type uuid`, confirming the linking bug.
