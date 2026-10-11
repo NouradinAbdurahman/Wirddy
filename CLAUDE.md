@@ -8,7 +8,7 @@ This project uses the skills installed by `npx skills add michaelshimeles/skills
 
 Every agent, on every task, must read and follow these skills:
 
-- **`new-feature`** (`.claude/skills/new-feature/SKILL.md`): sync with `origin/main`, check open PRs for overlapping files, and work on your own branch or worktree. Claude Code manages worktrees under `.claude/worktrees/`; keep a branch the harness assigned you.
+- **`new-feature`** (`.claude/skills/new-feature/SKILL.md`): sync with `origin/master`, check open PRs for overlapping files, and work on your own branch or worktree. In this repo the skill's `origin/main` means `origin/master`: `master` is the default and production branch, and `main` is an old branch that `master` already contains. Claude Code manages worktrees under `.claude/worktrees/`; keep a branch the harness assigned you.
 - **`code-structure`** (`.claude/skills/code-structure/SKILL.md`): actions own business rules and authorization; services hold shared mechanics. Example: `lib/groups/actions.ts` (actions), `lib/groups/service.ts` (domain rules), `lib/groups/persistence.ts` (shared DB mechanics).
 - **`unslop`** (`.claude/skills/unslop/SKILL.md`): plain language in commits, PRs, docs, comments, and replies. No em dashes, puffery, or decorative emoji.
 - **`evidence-driven-testing`** (`.claude/skills/evidence-driven-testing/SKILL.md`): prove behavior. Capture the failure before a fix and the passing result after. Put evidence in `.artifacts/<task>/`.
@@ -26,6 +26,13 @@ The product spec is in `Docs/Product Requirements Document`. Read it before chan
 ## This Next.js version is newer than your training data
 
 `package.json` pins `next@16.2.6`. Per `AGENTS.md`, check `node_modules/next/dist/docs/` before writing App Router code or config.
+
+## Branches and deployment
+
+- `master` is the default branch and deploys to production (wirddy.vercel.app) on Vercel. Every other branch gets a preview deployment.
+- `vercel.json` runs server functions in `icn1` (Seoul), next to the Supabase database in `ap-northeast-2`. Keep them in the same region: each group page makes several queries, and a cross-Pacific round trip costs about 170 ms each.
+- Required environment variables are listed in `.env.example`. Cron jobs are scheduled in Supabase (`pg_cron`, see the cron migration) and call `/api/cron/*` with `CRON_SECRET`.
+- Database changes go in a new file in `supabase/migrations/`, applied to the Supabase project in order.
 
 ## Commands
 
@@ -73,6 +80,7 @@ Changes here affect the product guarantee: every week covers the whole range wit
 - `actions.ts`: server actions. Authentication, rate limits (`checkSharedRateLimit`, backed by the `check_rate_limit` Postgres function, with an in-memory fallback), and user-facing errors.
 - `service.ts`: domain rules. Saving regenerates the schedule on the server from validated input and ignores any schedule the browser sends. Editing updates member rows in place so public IDs, linked accounts, and reading progress survive. Linking never takes over a slot linked to another account, and an account can hold one slot per group. Progress on a linked slot can only be changed by that account or the group owner. Recurring groups store `recurrence` and `next_cycle_due_at`; the cron job creates the next cycle when due, points it back with `recurring_source_group_id`, and hands auto renewal to the new cycle.
 - `persistence.ts`: shared DB mechanics (member lookup by public ID with `eq` filters only, batched plan inserts).
+- `load-group.ts`: `loadGroup` wraps `getGroupByPublicId` in React `cache()`. Server pages, `generateMetadata` and the Open Graph image use it so a request loads its group once.
 - `lib/supabase/types.ts`: generated `Database` types. Update them when a migration adds columns, instead of casting queries to `any`.
 - `supabase/migrations/`: the source of truth for the schema. `supabase/schema.sql` is the migrations concatenated in order; regenerate it after adding a migration (command in its header).
 - Cron routes in `app/api/cron/` require `Authorization: Bearer $CRON_SECRET` and refuse every request when `CRON_SECRET` is unset (`lib/auth/cron.ts`). Reminders run every 15 minutes and match each user's local reminder time to one run.
@@ -98,7 +106,8 @@ The landing page ships only what first-time visitors need. Keep heavy code behin
 - `components/planner/planner-step.tsx` (form, validator, Quran data) and `components/schedule/schedule-view.tsx` load from `app/page.tsx` on demand.
 - Export libraries (`jspdf`, `html-to-image`, `jszip`) load inside export handlers and the lazily loaded export modal.
 - Components that only need the signed-in user use `hooks/use-auth-user.ts`, which loads the Supabase client after hydration and shares one session listener.
-- Fonts used only by the reader and exports are declared with `preload: false` in `app/layout.tsx`.
+- Fonts used only by the reader and exports are declared with `preload: false` in `app/layout.tsx`; Cairo is loaded as one variable font (no `weight` list).
+- Server pages load groups through `loadGroup` (one load per request), and independent Supabase queries run in parallel. Supabase query builders are lazy, so call `.then()` on one to start it early.
 
 ## Conventions
 

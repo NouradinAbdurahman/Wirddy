@@ -17,7 +17,7 @@ Whenever any AI agent works in this repository, you must read and strictly follo
 ### 1. `new-feature` ([`.agents/skills/new-feature/SKILL.md`](/.agents/skills/new-feature/SKILL.md))
 - **When to apply:** At the start of every new feature, fix, or task before modifying code.
 - **Rules:**
-  - Start every task in an isolated Git worktree branched from `origin/main`.
+  - Start every task in an isolated Git worktree branched from `origin/master` (this repo's default and production branch; `main` is an old branch).
   - Never develop directly on `main`, and never reuse another agent's worktree or branch.
   - Sync with `git fetch origin` and check open PR scopes (`gh pr list`, `gh pr diff <n> --name-only`) to avoid collisions.
   - Keep worktrees in a gitignored directory (e.g. `.worktrees/`).

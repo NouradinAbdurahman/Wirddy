@@ -8,7 +8,7 @@ This workspace has installed skills from `michaelshimeles/skills` under `.agents
 
 ## Installed Skills Reference
 
-- **Worktrees (`new-feature`):** Always create a worktree for new tasks from `origin/main` before writing code.
+- **Worktrees (`new-feature`):** Always create a worktree for new tasks from `origin/master` (the default and production branch) before writing code.
 - **Architecture (`code-structure`):** Keep orchestration (actions) separated from shared mechanics (services).
 - **Communication & Docs (`unslop`):** Avoid puffery, AI vocabulary, em dashes, and decorative emojis. Speak plainly with concrete facts and numbers.
 - **Verification (`evidence-driven-testing`):** Provide proof through screenshots/recordings and structured assertions, not prose claims alone.
