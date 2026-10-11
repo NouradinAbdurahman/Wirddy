@@ -1,6 +1,6 @@
 import React, { Suspense } from "react"
 import { Metadata } from "next"
-import { getGroupByPublicId } from "@/lib/groups/service"
+import { loadGroup } from "@/lib/groups/load-group"
 import { MemberScheduleClient } from "./client"
 
 interface PageProps {
@@ -11,7 +11,7 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { publicId, memberPublicId } = await params
-  const group = await getGroupByPublicId(publicId)
+  const group = await loadGroup(publicId)
 
   if (!group || group.isExpired) {
     return {
@@ -60,7 +60,7 @@ export async function generateMetadata({
 
 export default async function PublicMemberSchedulePage({ params }: PageProps) {
   const { publicId, memberPublicId } = await params
-  const groupData = await getGroupByPublicId(publicId)
+  const groupData = await loadGroup(publicId)
 
   return (
     <Suspense fallback={<div className="min-h-screen bg-background" />}>

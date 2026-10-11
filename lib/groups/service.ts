@@ -425,6 +425,21 @@ export async function getGroupByPublicId(
     }
   }
 
+  // Members and the active plan do not depend on each other, so the plan
+  // query starts now and runs while members load.
+  const planPromise = supabase
+    .from("schedule_plans")
+    .select(
+      "id, version_number, weeks_count, scheduler_version, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah, title, description, start_date, uses_dates, occasion_type, islamic_year, daily_division_enabled"
+    )
+    .eq("group_id", group.id)
+    .eq("is_active", true)
+    .order("version_number", { ascending: false })
+    .limit(1)
+    .single()
+    // Supabase queries are lazy; .then() sends this one right away.
+    .then((res) => res)
+
   // 2. Fetch members
   const { data: members, error: membersError } = (await supabase
     .from("group_members")
@@ -474,16 +489,7 @@ export async function getGroupByPublicId(
   })
 
   // 3. Fetch active plan
-  const { data: plan, error: planError } = (await supabase
-    .from("schedule_plans")
-    .select(
-      "id, version_number, weeks_count, scheduler_version, rotation_style, range_type, start_juz, range_start_surah, range_start_ayah, range_end_surah, range_end_ayah, title, description, start_date, uses_dates, occasion_type, islamic_year, daily_division_enabled"
-    )
-    .eq("group_id", group.id)
-    .eq("is_active", true)
-    .order("version_number", { ascending: false })
-    .limit(1)
-    .single()) as {
+  const { data: plan, error: planError } = (await planPromise) as {
     data: {
       id: string
       version_number: number

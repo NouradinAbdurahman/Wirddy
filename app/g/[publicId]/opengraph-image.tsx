@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og"
-import { getGroupByPublicId } from "@/lib/groups/service"
+import { loadGroup } from "@/lib/groups/load-group"
 
 export const runtime = "nodejs"
 export const alt = "Wirddy - Quran Reading Plan"
@@ -15,7 +15,7 @@ export default async function Image({
   params: Promise<{ publicId: string }>
 }) {
   const { publicId } = await params
-  const group = await getGroupByPublicId(publicId)
+  const group = await loadGroup(publicId)
 
   const groupName = group?.groupName || "ختمة القرآن"
   const weeksCount = group?.schedule.weeksCount || 4
