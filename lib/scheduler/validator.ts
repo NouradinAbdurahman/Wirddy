@@ -5,6 +5,16 @@ import {
   SchedulerValidationError,
   SchedulerValidationResult,
 } from "./types"
+import { quranService } from "../quran/service"
+import { getFullyKnownJuz } from "./knowledge"
+
+/** Returns the global ayah number, or null when the Surah/Ayah pair does not exist. */
+function exactGlobalAyah(surah: number, ayah: number): number | null {
+  if (!Number.isInteger(surah) || !Number.isInteger(ayah)) return null
+  const info = quranService.getSurah(surah)
+  if (!info || ayah < 1 || ayah > info.totalAyahs) return null
+  return quranService.getGlobalAyahNumber(surah, ayah)
+}
 
 export function validateScheduleInput(
   input: ScheduleInput
@@ -82,6 +92,7 @@ export function validateScheduleInput(
   const rangeType = input.group?.rangeType || "full"
 
   // Custom Quran range validation
+  let customRangeAyahs: number | null = null
   if (rangeType === "custom") {
     const cr = input.group?.customRange
     if (!cr) {
@@ -92,20 +103,24 @@ export function validateScheduleInput(
         messageEn: "Please specify start and end for custom Quran range.",
       })
     } else {
-      if (
-        cr.startSurah < 1 ||
-        cr.startSurah > 114 ||
-        cr.endSurah < 1 ||
-        cr.endSurah > 114 ||
-        cr.startAyah < 1 ||
-        cr.endAyah < 1
-      ) {
+      const startGlobal = exactGlobalAyah(cr.startSurah, cr.startAyah)
+      const endGlobal = exactGlobalAyah(cr.endSurah, cr.endAyah)
+      if (startGlobal === null || endGlobal === null) {
         errors.push({
           code: "INVALID_CUSTOM_RANGE_SURAH",
           field: "customRange",
           messageAr: "أرقام السور أو الآيات في النطاق المخصص غير صالحة.",
           messageEn: "Invalid Surah or Ayah numbers in custom range.",
         })
+      } else if (endGlobal < startGlobal) {
+        errors.push({
+          code: "CUSTOM_RANGE_REVERSED",
+          field: "customRange",
+          messageAr: "نهاية النطاق المخصص يجب أن تأتي بعد بدايته.",
+          messageEn: "The custom range must end after it starts.",
+        })
+      } else {
+        customRangeAyahs = endGlobal - startGlobal + 1
       }
     }
   }
@@ -147,6 +162,7 @@ export function validateScheduleInput(
   }
 
   let totalWeeklyAmount = 0
+  const coveredJuz = new Set<number>()
 
   input.members.forEach((member, index) => {
     const memberName = member.name?.trim() || ""
@@ -172,13 +188,19 @@ export function validateScheduleInput(
 
     const startJuz = member.startJuz || 1
     const endJuz = member.endJuz || 30
+    const hasSurahs =
+      member.knowledgeType === "surah_range" && member.startSurah && member.endSurah
 
     if (
       startJuz < 1 ||
       startJuz > 30 ||
       endJuz < 1 ||
       endJuz > 30 ||
-      startJuz > endJuz
+      startJuz > endJuz ||
+      (hasSurahs &&
+        (member.startSurah! < 1 ||
+          member.endSurah! > 114 ||
+          member.startSurah! > member.endSurah!))
     ) {
       errors.push({
         code: "INVALID_KNOWLEDGE_RANGE",
@@ -187,8 +209,17 @@ export function validateScheduleInput(
         messageEn: `Invalid Quran knowledge range for member "${memberName || index + 1}".`,
       })
     } else if (rangeType === "full") {
-      const knownSpan = endJuz - startJuz + 1
-      if (member.weeklyAmount > knownSpan) {
+      const knownJuz = getFullyKnownJuz(member)
+      knownJuz.forEach((j) => coveredJuz.add(j))
+      if (knownJuz.length === 0) {
+        errors.push({
+          code: "NO_FULL_JUZ_KNOWN",
+          field: `members[${index}].knowledge`,
+          messageAr: `السور التي يحفظها العضو "${memberName || index + 1}" لا تغطي جزءًا كاملًا. اختر سورًا تشمل جزءًا كاملًا على الأقل أو استخدم نطاقًا مخصصًا.`,
+          messageEn: `The Surahs "${memberName || index + 1}" knows do not cover a whole Juz. Pick Surahs that span at least one full Juz, or use a custom range.`,
+        })
+      } else if (member.weeklyAmount > knownJuz.length) {
+        const knownSpan = knownJuz.length
         errors.push({
           code: "AMOUNT_EXCEEDS_KNOWLEDGE",
           field: `members[${index}].weeklyAmount`,
@@ -215,9 +246,50 @@ export function validateScheduleInput(
     })
   }
 
+  if (rangeType === "full" && errors.length === 0) {
+    const missing: number[] = []
+    for (let j = 1; j <= 30; j++) if (!coveredJuz.has(j)) missing.push(j)
+    if (missing.length > 0) {
+      errors.push({
+        code: "JUZ_NOT_COVERED",
+        field: "members",
+        messageAr: `لا يوجد عضو يحفظ ${missing.length === 1 ? "الجزء" : "الأجزاء"} ${missing.join("، ")}. يجب أن يغطي الأعضاء جميع الأجزاء الثلاثين.`,
+        messageEn: `No member knows Juz ${missing.join(", ")}. Members together must cover all 30 Juz.`,
+      })
+    }
+  }
+
+  if (rangeType === "custom" && customRangeAyahs !== null) {
+    const minPerMember = input.group?.dailyDivisionEnabled ? 7 : 1
+    if (customRangeAyahs < input.members.length * minPerMember) {
+      errors.push({
+        code: "CUSTOM_RANGE_TOO_SMALL",
+        field: "customRange",
+        messageAr: input.group?.dailyDivisionEnabled
+          ? `النطاق المخصص (${customRangeAyahs} آية) صغير جدًا. مع التقسيم اليومي يحتاج كل عضو ٧ آيات على الأقل.`
+          : `النطاق المخصص (${customRangeAyahs} آية) أصغر من عدد الأعضاء.`,
+        messageEn: input.group?.dailyDivisionEnabled
+          ? `The custom range (${customRangeAyahs} ayahs) is too small. With daily division each member needs at least 7 ayahs.`
+          : `The custom range (${customRangeAyahs} ayahs) has fewer ayahs than there are members.`,
+      })
+    }
+  }
+
+  const warnings: SchedulerValidationError[] = []
+  if (input.group?.occasionType === "ramadan" && weeksCount && weeksCount * 7 > 30) {
+    const extraDays = weeksCount * 7 - 30
+    warnings.push({
+      code: "RAMADAN_EXCEEDS_MONTH",
+      field: "weeksCount",
+      messageAr: `رمضان ٢٩ أو ٣٠ يومًا، لذلك تمتد ${weeksCount} أسابيع نحو ${extraDays} أيام بعد نهاية الشهر. اختر ٤ أسابيع لتنتهي الخطة داخل رمضان.`,
+      messageEn: `Ramadan has 29 or 30 days, so ${weeksCount} weeks run about ${extraDays} days past the end of the month. Choose 4 weeks to finish within Ramadan.`,
+    })
+  }
+
   return {
     isValid: errors.length === 0,
     errors,
+    warnings,
   }
 }
 

@@ -197,6 +197,31 @@ export class QuranDataService {
   }
 
   /**
+   * Maps a Surah range to the Juz that lie entirely inside it. A Juz counts
+   * only when every one of its ayahs belongs to a known Surah, so a reader
+   * who knows Surahs 18-20 is not handed Juz 15, which opens with Al-Isra.
+   * Returns null when the Surahs do not cover a single whole Juz.
+   */
+  mapSurahsToKnownJuz(
+    startSurah: number,
+    endSurah: number
+  ): { startJuz: number; endJuz: number } | null {
+    const minS = Math.min(startSurah, endSurah)
+    const maxS = Math.max(startSurah, endSurah)
+
+    let minJuz = 0
+    let maxJuz = 0
+    for (const b of this.juzBoundaries) {
+      if (b.start.surahNumber >= minS && b.end.surahNumber <= maxS) {
+        if (!minJuz) minJuz = b.juzNumber
+        maxJuz = b.juzNumber
+      }
+    }
+
+    return minJuz ? { startJuz: minJuz, endJuz: maxJuz } : null
+  }
+
+  /**
    * Resolves a range of Juz numbers (e.g. 1 to 5) to exact start and end QuranLocation coordinates.
    */
   resolveJuzRange(

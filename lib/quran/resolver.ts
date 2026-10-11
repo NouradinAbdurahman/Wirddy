@@ -85,10 +85,6 @@ export function resolveCustomQuranRange(
   }
 
   const totalAyahs = endLoc.globalAyahNumber - startLoc.globalAyahNumber + 1
-  const approximateJuz = Math.max(
-    1,
-    Math.round((totalAyahs / 6236) * 30 * 10) / 10
-  )
 
   return {
     startJuz: startLoc.juzNumber,
@@ -110,6 +106,17 @@ export function resolveSurahToJuzRange(
   endSurahNumber: number
 ): { startJuz: number; endJuz: number } {
   return quranService.mapSurahsToJuz(startSurahNumber, endSurahNumber)
+}
+
+/**
+ * Returns the Juz range a reader fully knows from a Surah range, or null when
+ * the Surahs do not cover a whole Juz.
+ */
+export function resolveSurahToKnownJuzRange(
+  startSurahNumber: number,
+  endSurahNumber: number
+): { startJuz: number; endJuz: number } | null {
+  return quranService.mapSurahsToKnownJuz(startSurahNumber, endSurahNumber)
 }
 
 /**
